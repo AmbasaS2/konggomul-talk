@@ -3501,11 +3501,9 @@ function autoGrowInput() {
   const el = document.getElementById('tua-input');
   if (!el) return;
   const min = 34;
-  const max = 88;
   el.style.height = `${min}px`;
-  const next = Math.max(min, Math.min(el.scrollHeight, max));
-  el.style.height = `${next}px`;
-  el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
+  el.style.height = `${Math.max(min, el.scrollHeight)}px`;
+  el.style.overflowY = 'hidden';
 }
 
 
