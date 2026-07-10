@@ -1444,6 +1444,12 @@ async function refreshProfiles(options = {}) {
   const requestEpoch = lifecycleEpoch;
   const s = getSettings();
   const silent = !!options.silent;
+  const persist = options.persist !== false;
+  const before = JSON.stringify({
+    selectedProfile: s.selectedProfile || '',
+    profileMode: s.profileMode || 'current',
+    cachedProfiles: Array.isArray(s.cachedProfiles) ? s.cachedProfiles : [],
+  });
   try {
     const profiles = await getSavedConnectionProfiles();
     if (!lifecycleEnabled || cleanInProgress || requestEpoch !== lifecycleEpoch) return;
@@ -1457,8 +1463,13 @@ async function refreshProfiles(options = {}) {
       }
     }
     s.profileMode = s.selectedProfile ? 'profile' : 'current';
-    saveSettings();
-    renderProfileOptions();
+    const after = JSON.stringify({
+      selectedProfile: s.selectedProfile || '',
+      profileMode: s.profileMode || 'current',
+      cachedProfiles: Array.isArray(s.cachedProfiles) ? s.cachedProfiles : [],
+    });
+    if (persist && before !== after) saveSettings();
+    renderProfileOptions({ allowCorrection: false });
     if (!silent) setStatus(profiles.length ? `프로필 ${profiles.length}개를 불러왔습니다.` : '사용 가능한 Connection Manager 프로필이 없습니다.');
   } catch (e) {
     if (!silent) setStatus('프로필 목록 불러오기 실패');
@@ -2863,8 +2874,8 @@ function renderSettings() {
     </div>
   </div>`;
   $('#extensions_settings2').append(html);
-  hydrateGlobalSettingsUI();
-  refreshProfiles({ silent: true });
+  hydrateGlobalSettingsUI({ allowCorrection: false });
+  refreshProfiles({ silent: true, persist: false });
   $('#tua-setting-profile').on('change input', readGlobalSettingsUI);
   $('#tua-setting-refresh-profiles').on('click', () => refreshProfiles());
   $('#tua-show-debug').on('click', toggleKonggomulDebugDump);
@@ -2872,19 +2883,20 @@ function renderSettings() {
   $('#tua-clear-debug').on('click', clearKonggomulDebugDump);
 }
 
-function hydrateGlobalSettingsUI() {
+function hydrateGlobalSettingsUI(options = {}) {
   const s = getSettings();
+  const allowCorrection = options.allowCorrection !== false;
   if (s.selectedProfile) {
     const profiles = (s.cachedProfiles || []).map(normalizeConnectionProfile).filter(Boolean);
     const found = profiles.find(p => p.id === s.selectedProfile || p.name === s.selectedProfile);
     if (found) s.selectedProfile = found.id;
-    else if (profiles.length) {
+    else if (profiles.length && allowCorrection) {
       s.selectedProfile = '';
       s.profileMode = 'current';
       saveSettings();
     }
   }
-  renderProfileOptions();
+  renderProfileOptions({ allowCorrection });
   $('#tua-setting-profile').val(s.selectedProfile || '');
 }
 
@@ -2914,12 +2926,13 @@ function hydratePanelSettingsUI() {
 }
 
 
-function renderProfileOptions() {
+function renderProfileOptions(options = {}) {
   const s = getSettings();
+  const allowCorrection = options.allowCorrection !== false;
   const selects = $('#tua-setting-profile, #tua-panel-profile');
   if (!selects.length) return;
   const profiles = (s.cachedProfiles || []).map(normalizeConnectionProfile).filter(Boolean);
-  if (s.selectedProfile && profiles.length && !profiles.some(p => p.name === s.selectedProfile || p.id === s.selectedProfile)) {
+  if (allowCorrection && s.selectedProfile && profiles.length && !profiles.some(p => p.name === s.selectedProfile || p.id === s.selectedProfile)) {
     s.selectedProfile = '';
     s.profileMode = 'current';
     saveSettings();
@@ -3488,9 +3501,11 @@ function autoGrowInput() {
   const el = document.getElementById('tua-input');
   if (!el) return;
   const min = 34;
+  const max = 88;
   el.style.height = `${min}px`;
-  el.style.height = `${Math.max(min, el.scrollHeight)}px`;
-  el.style.overflowY = 'hidden';
+  const next = Math.max(min, Math.min(el.scrollHeight, max));
+  el.style.height = `${next}px`;
+  el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
 }
 
 
@@ -3580,6 +3595,7 @@ function cancelPendingInitialization() {
 
 async function init() {
   if (!lifecycleEnabled || cleanInProgress) return false;
+  if (initialized) return true;
   if (initPromise) return initPromise;
 
   const runEpoch = lifecycleEpoch;
