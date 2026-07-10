@@ -1,0 +1,17 @@
+{
+  "display_name": "🐕 콩고물 톡",
+  "loading_order": 50,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "Anonymous",
+  "version": "4.5.6",
+  "name": "🐕 콩고물 톡",
+  "auto_update": false,
+  "hooks": {
+    "activate": "onActivate",
+    "enable": "onEnable",
+    "disable": "onDisable"
+  }
+}
