@@ -202,7 +202,6 @@ let draggingPanel = null;
 let collapsedButtonSuppressClick = false;
 let worldInfoModulePromise = null;
 let resizingPanel = null;
-let menuRetryTimer = null;
 let menuTriggerClickHandler = null;
 let contextMenuButtonClickHandler = null;
 let contextMenuDocumentClickHandler = null;
@@ -225,7 +224,6 @@ let lifecycleEpoch = 0;
 let persistenceEpoch = 0;
 let cleanInProgress = false;
 let initPromise = null;
-let initialInitTimer = null;
 let appReadyInitHandler = null;
 
 function ctx() { return SillyTavern.getContext(); }
@@ -3439,16 +3437,12 @@ function ensureExtensionMenuEntry() {
   return true;
 }
 
-function stopExtensionMenuObserver({ removeEntry = false } = {}) {
+function stopExtensionMenuEntryEvents({ removeEntry = false } = {}) {
   // Disconnect a body observer left behind by an older build, but do not create one again.
   try {
     window.__konggomulReleaseMenuObserver?.disconnect?.();
   } catch {}
   window.__konggomulReleaseMenuObserver = null;
-  if (menuRetryTimer) {
-    clearInterval(menuRetryTimer);
-    menuRetryTimer = null;
-  }
   if (menuTriggerClickHandler) {
     document.removeEventListener('click', menuTriggerClickHandler, true);
     menuTriggerClickHandler = null;
@@ -3456,23 +3450,14 @@ function stopExtensionMenuObserver({ removeEntry = false } = {}) {
   if (removeEntry) document.getElementById('tua-extension-menu-entry')?.remove();
 }
 
-function scheduleExtensionMenuEntry() {
-  if (ensureExtensionMenuEntry()) return;
-  if (menuRetryTimer) return;
-
-  let attempts = 0;
-  menuRetryTimer = setInterval(() => {
-    attempts += 1;
-    if (!lifecycleEnabled || cleanInProgress || ensureExtensionMenuEntry() || attempts >= 24) {
-      clearInterval(menuRetryTimer);
-      menuRetryTimer = null;
-    }
-  }, 250);
+function tryExtensionMenuEntry() {
+  if (!lifecycleEnabled || cleanInProgress) return false;
+  return ensureExtensionMenuEntry();
 }
 
-function startExtensionMenuObserver() {
-  // Legacy function name kept to avoid touching the lifecycle flow. Menu recovery now
-  // follows the same bounded-retry + menu-click pattern used by the other extensions.
+function startExtensionMenuEntryEvents() {
+  // Legacy function name kept to avoid touching the lifecycle flow. Menu recovery is
+  // event-driven: lifecycle hooks try once, and opening the extension menu tries once.
   try {
     window.__konggomulReleaseMenuObserver?.disconnect?.();
   } catch {}
@@ -3484,18 +3469,18 @@ function startExtensionMenuObserver() {
       if (!(target instanceof Element)) return;
       if (!target.closest('#extensionsMenuButton, #extensionsMenu_button, [title="Extensions"], [title="확장"]')) return;
       setTimeout(() => {
-        if (lifecycleEnabled && !cleanInProgress) scheduleExtensionMenuEntry();
+        if (lifecycleEnabled && !cleanInProgress) tryExtensionMenuEntry();
       }, 80);
     };
     document.addEventListener('click', menuTriggerClickHandler, true);
   }
 
-  scheduleExtensionMenuEntry();
+  tryExtensionMenuEntry();
 }
 
 function ensureLauncher() {
   // v2.0: no separate chat-input button. The opener lives inside SillyTavern's extension menu.
-  startExtensionMenuObserver();
+  startExtensionMenuEntryEvents();
 }
 function autoGrowInput() {
   const el = document.getElementById('tua-input');
@@ -3554,7 +3539,7 @@ function cleanupRuntimeState() {
   runtimeActive = false;
   unbindRuntimeEvents();
   unbindPanelViewportRepairEvents();
-  stopExtensionMenuObserver({ removeEntry: true });
+  stopExtensionMenuEntryEvents({ removeEntry: true });
   clearTimeout(longPressTimer);
   longPressTimer = null;
   cancelMessageLongPress();
@@ -3575,10 +3560,6 @@ function cleanupRuntimeState() {
 }
 
 function cancelPendingInitialization() {
-  if (initialInitTimer) {
-    clearTimeout(initialInitTimer);
-    initialInitTimer = null;
-  }
   if (appReadyInitHandler) {
     try {
       const context = ctx();
@@ -3621,12 +3602,7 @@ async function init() {
 }
 
 function requestInit() {
-  void init().then(() => {
-    if (!lifecycleEnabled || cleanInProgress || initialized) return;
-    setTimeout(() => {
-      if (lifecycleEnabled && !cleanInProgress && !initialized) void init();
-    }, 0);
-  }).catch(error => console.error('[TUA] init failed', error));
+  void init().catch(error => console.error('[TUA] init failed', error));
 }
 
 jQuery(() => {
@@ -3637,16 +3613,12 @@ jQuery(() => {
       if (lifecycleEnabled && !cleanInProgress) requestInit();
     };
     if (context.eventSource && context.event_types?.APP_READY) context.eventSource.on(context.event_types.APP_READY, appReadyInitHandler);
-    initialInitTimer = setTimeout(() => {
-      initialInitTimer = null;
-      if (lifecycleEnabled && !cleanInProgress) requestInit();
-    }, 1000);
   } catch (e) { console.error('[TUA] init failed', e); }
 });
 
 export function onActivate() {
-  // SillyTavern may await activate hooks during startup. Room data now comes from
-  // the server settings only, but initialization still stays off the boot path.
+  // SillyTavern may await activate hooks during startup. Initialization is started
+  // once from the lifecycle hook and does not poll or schedule fallback retries.
   lifecycleEnabled = true;
   cleanInProgress = false;
   requestInit();
@@ -3657,7 +3629,7 @@ export function onEnable() {
   cleanInProgress = false;
   lifecycleEpoch += 1;
   requestInit();
-  startExtensionMenuObserver();
+  startExtensionMenuEntryEvents();
 }
 
 export async function onDisable() {
