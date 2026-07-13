@@ -3607,7 +3607,7 @@ async function init() {
     const loaded = await loadRooms({ expectedLifecycleEpoch: runEpoch });
     if (!loaded || !lifecycleEnabled || cleanInProgress || runEpoch !== lifecycleEpoch) return false;
     bindRuntimeEvents();
-    if (getSettings().enabled && getSettings().openOnStart) setPanelVisible(true);
+    if (getSettings().enabled && getSettings().openOnStart) setPanelVisible(true, { persistPreference: false });
     initialized = true;
     return true;
   })();
