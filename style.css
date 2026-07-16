@@ -321,7 +321,6 @@
   border-radius: 50%;
 }
 
-.tua-settings-mini .inline-drawer-content { padding-top: 8px; }
 .tua-settings-mini .checkbox_label { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
 .tua-mini-note { opacity: .7; font-size: 12px; line-height: 1.4; margin-top: 8px; }
 
@@ -1997,10 +1996,6 @@ body.tua-panel-resizing-body {
 
 
 /* v4.1.6: cleaner global settings layout */
-.tua-settings-mini .inline-drawer-content {
-  padding-bottom: 12px !important;
-}
-
 .tua-settings-mini .tua-global-profile-box {
   margin-top: 4px !important;
   margin-bottom: 2px !important;
@@ -3450,11 +3445,15 @@ body.tua-panel-resizing-body {
 }
 
 
-/* v4.5.6: align extension-title divider spacing with other settings drawers */
+/* v4.5.6: keep ST's animated drawer untouched; style the inner settings shell instead. */
 #tua-settings > .inline-drawer-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+#tua-settings .tua-settings-inner {
   border-top: 1px solid rgba(128, 118, 100, .18) !important;
-  margin-top: 0 !important;
-  padding-top: 7px !important;
+  padding: 7px 0 0 !important;
 }
 
 #tua-settings .tua-global-profile-box {

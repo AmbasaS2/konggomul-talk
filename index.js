@@ -2847,7 +2847,8 @@ function renderSettings() {
       <b>🐕 콩고물 톡</b>
       <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
     </div>
-    <div class="inline-drawer-content">
+    <div class="inline-drawer-content" style="display:none;">
+      <div class="tua-settings-inner">
       <div class="tua-global-profile-box">
         <div class="tua-global-profile-title">연결 프로필</div>
         <div class="tua-profile-row">
@@ -2863,6 +2864,7 @@ function renderSettings() {
           </div>
           <textarea id="tua-debug-output" readonly rows="8" placeholder="디버그 로그 버튼을 누르면 최근 콩고물 톡 요청 로그와 설정 정보가 여기에 표시됩니다."></textarea>
         </div>
+      </div>
       </div>
     </div>
   </div>`;
