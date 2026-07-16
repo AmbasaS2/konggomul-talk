@@ -2844,29 +2844,27 @@ async function sendCurrentInput() {
 function renderSettings() {
   if ($('#tua-settings').length) return;
   const html = `
-  <div id="tua-settings" class="tua-settings-mini">
-    <div class="inline-drawer">
-      <div class="inline-drawer-toggle inline-drawer-header">
-        <b>🐕 콩고물 톡</b>
-        <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-      </div>
-      <div class="inline-drawer-content">
-        <div class="tua-global-profile-box">
-          <div class="tua-global-profile-title">콩고물 톡 전용 API</div>
-          <div class="tua-profile-row">
-            <select id="tua-setting-profile"></select>
-            <button type="button" id="tua-setting-refresh-profiles" title="프로필 목록 새로고침">↻</button>
-          </div>
+  <div id="tua-settings" class="inline-drawer tua-settings-mini">
+    <div class="inline-drawer-toggle inline-drawer-header">
+      <b>🐕 콩고물 톡</b>
+      <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+    </div>
+    <div class="inline-drawer-content">
+      <div class="tua-global-profile-box">
+        <div class="tua-global-profile-title">콩고물 톡 전용 API</div>
+        <div class="tua-profile-row">
+          <select id="tua-setting-profile"></select>
+          <button type="button" id="tua-setting-refresh-profiles" title="프로필 목록 새로고침">↻</button>
         </div>
-        <div class="tua-global-debug-box">
-          <button type="button" id="tua-show-debug" class="menu_button tua-debug-settings-button">🐞 <span>디버그 로그</span></button>
-          <div id="tua-debug-panel" class="tua-settings-debug-panel" style="display:none;">
-            <div class="tua-debug-actions">
-              <button type="button" id="tua-copy-debug" class="menu_button">로그 복사</button>
-              <button type="button" id="tua-clear-debug" class="menu_button">로그 비우기</button>
-            </div>
-            <textarea id="tua-debug-output" readonly rows="8" placeholder="디버그 로그 버튼을 누르면 최근 콩고물 톡 요청 로그와 설정 정보가 여기에 표시됩니다."></textarea>
+      </div>
+      <div class="tua-global-debug-box">
+        <button type="button" id="tua-show-debug" class="menu_button tua-debug-settings-button">🐞 <span>디버그 로그</span></button>
+        <div id="tua-debug-panel" class="tua-settings-debug-panel" style="display:none;">
+          <div class="tua-debug-actions">
+            <button type="button" id="tua-copy-debug" class="menu_button">로그 복사</button>
+            <button type="button" id="tua-clear-debug" class="menu_button">로그 비우기</button>
           </div>
+          <textarea id="tua-debug-output" readonly rows="8" placeholder="디버그 로그 버튼을 누르면 최근 콩고물 톡 요청 로그와 설정 정보가 여기에 표시됩니다."></textarea>
         </div>
       </div>
     </div>
