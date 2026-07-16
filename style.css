@@ -1008,15 +1008,6 @@ body.tua-panel-resizing-body {
   color: var(--tua-text);
   font-size: 12px;
 }
-.tua-settings-mini #tua-setting-refresh-profiles {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 7px;
-  border: 1px solid rgba(110, 79, 31, .22);
-  background: rgba(255, 250, 240, .72);
-  color: var(--tua-text);
-  cursor: pointer;
-}
 .tua-settings-mini #tua-setting-profile-select-wrap {
   display: flex;
   flex-direction: column;
@@ -2058,8 +2049,7 @@ body.tua-panel-resizing-body {
   align-items: center !important;
 }
 
-.tua-settings-mini #tua-setting-profile,
-.tua-settings-mini #tua-setting-refresh-profiles {
+.tua-settings-mini #tua-setting-profile {
   border-radius: 0 !important;
   font-family: inherit !important;
 }
@@ -2069,13 +2059,6 @@ body.tua-panel-resizing-body {
   height: 28px !important;
   padding: 3px 6px !important;
   box-sizing: border-box !important;
-}
-
-.tua-settings-mini #tua-setting-refresh-profiles {
-  min-height: 28px !important;
-  height: 28px !important;
-  min-width: 32px !important;
-  padding: 3px 8px !important;
 }
 
 .tua-settings-mini .tua-global-debug-box {
@@ -3508,7 +3491,7 @@ body.tua-panel-resizing-body {
 
 #tua-settings .tua-profile-row {
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) 32px !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
@@ -3520,9 +3503,3 @@ body.tua-panel-resizing-body {
   max-width: 100% !important;
 }
 
-#tua-settings #tua-setting-refresh-profiles {
-  width: 32px !important;
-  min-width: 32px !important;
-  max-width: 32px !important;
-  padding: 0 !important;
-}

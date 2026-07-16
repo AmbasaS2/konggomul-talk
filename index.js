@@ -2854,7 +2854,6 @@ function renderSettings() {
         <div class="tua-global-profile-title">콩고물 톡 전용 API</div>
         <div class="tua-profile-row">
           <select id="tua-setting-profile"></select>
-          <button type="button" id="tua-setting-refresh-profiles" title="프로필 목록 새로고침">↻</button>
         </div>
       </div>
       <div class="tua-global-debug-box">
@@ -2873,7 +2872,6 @@ function renderSettings() {
   hydrateGlobalSettingsUI({ allowCorrection: false });
   refreshProfiles({ silent: true, persist: false });
   $('#tua-setting-profile').on('change input', readGlobalSettingsUI);
-  $('#tua-setting-refresh-profiles').on('click', () => refreshProfiles());
   $('#tua-show-debug').on('click', toggleKonggomulDebugDump);
   $('#tua-copy-debug').on('click', copyKonggomulDebugDump);
   $('#tua-clear-debug').on('click', clearKonggomulDebugDump);
@@ -2938,7 +2936,7 @@ function renderProfileOptions(options = {}) {
     sel.empty();
     sel.append(`<option value="">메인 API 사용</option>`);
     if (!profiles.length) {
-      sel.append(`<option value="" disabled>프로필 목록 새로고침 필요</option>`);
+      sel.append(`<option value="" disabled>사용 가능한 프로필 없음</option>`);
     } else {
       for (const p of profiles) {
         const label = p.model ? `${p.name} — ${p.model}` : p.name;
