@@ -202,7 +202,6 @@ let draggingPanel = null;
 let collapsedButtonSuppressClick = false;
 let worldInfoModulePromise = null;
 let resizingPanel = null;
-let menuTriggerClickHandler = null;
 let contextMenuButtonClickHandler = null;
 let contextMenuDocumentClickHandler = null;
 
@@ -1918,7 +1917,6 @@ function ensurePanel() {
     saveSettings();
     hydratePanelSettingsUI();
     applyVisualSettings();
-    ensureExtensionMenuEntry();
     setStatus(`테마를 ${THEMES[key].label}(으)로 변경했습니다.`);
   });
   $('#tua-export-rooms').on('click', exportCurrentCharacterRooms);
@@ -3377,105 +3375,38 @@ function sendToMainChat(text) {
   setStatus('RP 입력창에 반영 내용을 삽입했습니다.');
 }
 
-function cleanupMisplacedLauncher() {
-  // Remove any legacy chat-input or floating launcher left by older versions.
-  document.querySelectorAll('#tua-chatbar-launcher, #tua-floating-launcher, .tua-floating-launcher').forEach(el => el.remove());
-}
-
-function getExtensionsMenuContainer() {
-  const selectors = [
-    '#extensionsMenu', '#extensions_menu', '#extensions_list', '#extensionsList', '#extensions_menu2',
-    '.extensionsMenu', '.extensions_menu', '.extensions_list', '.extensionsList',
-    '#extensionsMenu .list-group', '#extensions_menu .list-group', '.drawer-content .extensions_list'
-  ];
-  for (const sel of selectors) {
-    const el = document.querySelector(sel);
-    if (el) return el;
-  }
-  // Fallback: find a visible container that already contains known extension rows.
-  const candidates = Array.from(document.querySelectorAll('div, nav, ul'));
-  return candidates.find(el => {
-    const txt = (el.textContent || '').trim();
-    return txt.includes('오픈데이터뱅크') || txt.includes('연결 프리셋 관리') || txt.includes('Generate Caption') || txt.includes('Peach Whisper');
-  }) || null;
-}
-
 function ensureExtensionMenuEntry() {
-  cleanupMisplacedLauncher();
-  const menu = getExtensionsMenuContainer();
+  const menu = document.querySelector('#extensionsMenu');
   if (!menu) return false;
-  let entry = document.getElementById('tua-extension-menu-entry');
-  if (!entry) {
-    entry = document.createElement('div');
-    entry.id = 'tua-extension-menu-entry';
-    entry.className = 'tua-extension-menu-entry';
-    entry.setAttribute('role', 'button');
-    entry.setAttribute('tabindex', '0');
-    entry.innerHTML = `<span class="tua-extension-menu-icon">${getTheme().menuIcon}</span><span class="tua-extension-menu-text">콩고물 톡</span>`;
-    entry.addEventListener('click', () => {
-      const st = getSettings();
-      if (!st.enabled) {
-        st.enabled = true;
-        saveSettings();
-        hydrateGlobalSettingsUI();
-      }
-      setPanelVisible(true);
-    });
-    entry.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        entry.click();
-      }
-    });
-  }
-  if (entry.parentElement !== menu) menu.appendChild(entry);
+  if (document.getElementById('tua-extension-menu-entry')) return true;
+
+  const entry = document.createElement('div');
+  entry.id = 'tua-extension-menu-entry';
+  entry.className = 'tua-extension-menu-entry';
+  entry.setAttribute('role', 'button');
+  entry.setAttribute('tabindex', '0');
+  entry.innerHTML = `<span class="tua-extension-menu-icon">${getTheme().menuIcon}</span><span class="tua-extension-menu-text">콩고물 톡</span>`;
+  entry.addEventListener('click', () => {
+    const st = getSettings();
+    if (!st.enabled) {
+      st.enabled = true;
+      saveSettings();
+      hydrateGlobalSettingsUI();
+    }
+    setPanelVisible(true);
+  });
+  entry.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      entry.click();
+    }
+  });
+  menu.appendChild(entry);
   return true;
 }
 
-function stopExtensionMenuEntryEvents({ removeEntry = false } = {}) {
-  // Disconnect a body observer left behind by an older build, but do not create one again.
-  try {
-    window.__konggomulReleaseMenuObserver?.disconnect?.();
-  } catch {}
-  window.__konggomulReleaseMenuObserver = null;
-  if (menuTriggerClickHandler) {
-    document.removeEventListener('click', menuTriggerClickHandler, true);
-    menuTriggerClickHandler = null;
-  }
-  if (removeEntry) document.getElementById('tua-extension-menu-entry')?.remove();
-}
-
-function tryExtensionMenuEntry() {
-  if (!lifecycleEnabled || cleanInProgress) return false;
-  return ensureExtensionMenuEntry();
-}
-
-function startExtensionMenuEntryEvents() {
-  // Legacy function name kept to avoid touching the lifecycle flow. Menu recovery is
-  // event-driven: lifecycle hooks try once, and opening the extension menu tries once.
-  try {
-    window.__konggomulReleaseMenuObserver?.disconnect?.();
-  } catch {}
-  window.__konggomulReleaseMenuObserver = null;
-
-  if (!menuTriggerClickHandler) {
-    menuTriggerClickHandler = (event) => {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      if (!target.closest('#extensionsMenuButton, #extensionsMenu_button, [title="Extensions"], [title="확장"]')) return;
-      setTimeout(() => {
-        if (lifecycleEnabled && !cleanInProgress) tryExtensionMenuEntry();
-      }, 80);
-    };
-    document.addEventListener('click', menuTriggerClickHandler, true);
-  }
-
-  tryExtensionMenuEntry();
-}
-
 function ensureLauncher() {
-  // v2.0: no separate chat-input button. The opener lives inside SillyTavern's extension menu.
-  startExtensionMenuEntryEvents();
+  return ensureExtensionMenuEntry();
 }
 function autoGrowInput() {
   const el = document.getElementById('tua-input');
@@ -3534,7 +3465,7 @@ function cleanupRuntimeState() {
   runtimeActive = false;
   unbindRuntimeEvents();
   unbindPanelViewportRepairEvents();
-  stopExtensionMenuEntryEvents({ removeEntry: true });
+  document.getElementById('tua-extension-menu-entry')?.remove();
   clearTimeout(longPressTimer);
   longPressTimer = null;
   cancelMessageLongPress();
@@ -3578,7 +3509,7 @@ async function init() {
     getSettings();
     renderSettings();
     ensurePanel();
-    ensureLauncher();
+    if (!ensureLauncher()) return false;
     applyVisualSettings();
     const loaded = await loadRooms({ expectedLifecycleEpoch: runEpoch });
     if (!loaded || !lifecycleEnabled || cleanInProgress || runEpoch !== lifecycleEpoch) return false;
@@ -3624,7 +3555,6 @@ export function onEnable() {
   cleanInProgress = false;
   lifecycleEpoch += 1;
   requestInit();
-  startExtensionMenuEntryEvents();
 }
 
 export async function onDisable() {
