@@ -2851,7 +2851,7 @@ function renderSettings() {
     </div>
     <div class="inline-drawer-content">
       <div class="tua-global-profile-box">
-        <div class="tua-global-profile-title">콩고물 톡 전용 API</div>
+        <div class="tua-global-profile-title">연결 프로필</div>
         <div class="tua-profile-row">
           <select id="tua-setting-profile" class="text_pole"></select>
         </div>

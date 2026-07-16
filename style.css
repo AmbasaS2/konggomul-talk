@@ -2005,7 +2005,7 @@ body.tua-panel-resizing-body {
   min-height: 28px !important;
   height: auto !important;
   padding: 5px 8px !important;
-  margin: 4px 0 0 !important;
+  margin: 0 !important;
   font-size: 11.5px !important;
   line-height: 1.1 !important;
   white-space: nowrap !important;
@@ -2040,7 +2040,7 @@ body.tua-panel-resizing-body {
 
 .tua-settings-mini .tua-global-profile-box {
   margin-top: 4px !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 2px !important;
 }
 
 .tua-settings-mini .tua-global-profile-title {
@@ -2053,18 +2053,23 @@ body.tua-panel-resizing-body {
 }
 
 #tua-settings #tua-setting-profile.text_pole {
+  box-sizing: border-box !important;
   font-family: inherit !important;
-  width: 100% !important;
-  font-size: var(--mainFontSize, 14px) !important;
-  min-height: 30px !important;
-  line-height: 1.4 !important;
+  width: min(100%, 320px) !important;
+  max-width: 320px !important;
+  min-width: 0 !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 3px 28px 3px 6px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
   margin: 0 !important;
 }
 
 .tua-settings-mini .tua-global-debug-box {
-  margin-top: 4px !important;
-  margin-bottom: 12px !important;
-  padding-bottom: 6px !important;
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+  padding-bottom: 4px !important;
 }
 
 .tua-settings-mini .tua-debug-settings-button,
@@ -3498,8 +3503,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-settings #tua-setting-profile {
-  width: 100% !important;
   min-width: 0 !important;
-  max-width: 100% !important;
+  max-width: min(100%, 320px) !important;
 }
 
