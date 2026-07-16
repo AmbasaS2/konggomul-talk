@@ -2853,7 +2853,7 @@ function renderSettings() {
       <div class="tua-global-profile-box">
         <div class="tua-global-profile-title">콩고물 톡 전용 API</div>
         <div class="tua-profile-row">
-          <select id="tua-setting-profile"></select>
+          <select id="tua-setting-profile" class="text_pole"></select>
         </div>
       </div>
       <div class="tua-global-debug-box">
@@ -2939,8 +2939,7 @@ function renderProfileOptions(options = {}) {
       sel.append(`<option value="" disabled>사용 가능한 프로필 없음</option>`);
     } else {
       for (const p of profiles) {
-        const label = p.model ? `${p.name} — ${p.model}` : p.name;
-        sel.append(`<option value="${escapeHtml(p.id)}">${escapeHtml(label)}</option>`);
+        sel.append(`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`);
       }
     }
     sel.val(s.selectedProfile || '');

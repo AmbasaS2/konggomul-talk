@@ -997,14 +997,17 @@ body.tua-panel-resizing-body {
   gap: 6px;
   align-items: center;
 }
-.tua-settings-mini .tua-profile-row select,
+.tua-settings-mini .tua-profile-row select {
+  flex: 1;
+  min-width: 0;
+}
 .tua-settings-mini #tua-setting-profile-select-wrap select {
   flex: 1;
   min-width: 0;
   border: 1px solid rgba(159, 122, 54, .34);
   border-radius: 8px;
   padding: 5px 7px;
-  background: #fffdf6;
+  background-color: #fffdf6;
   color: var(--tua-text);
   font-size: 12px;
 }
@@ -2049,16 +2052,13 @@ body.tua-panel-resizing-body {
   align-items: center !important;
 }
 
-.tua-settings-mini #tua-setting-profile {
-  border-radius: 0 !important;
+#tua-settings #tua-setting-profile.text_pole {
   font-family: inherit !important;
-}
-
-.tua-settings-mini #tua-setting-profile {
-  min-height: 28px !important;
-  height: 28px !important;
-  padding: 3px 6px !important;
-  box-sizing: border-box !important;
+  width: 100% !important;
+  font-size: var(--mainFontSize, 14px) !important;
+  min-height: 30px !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
 }
 
 .tua-settings-mini .tua-global-debug-box {
