@@ -3382,10 +3382,10 @@ function ensureExtensionMenuEntry() {
 
   const entry = document.createElement('div');
   entry.id = 'tua-extension-menu-entry';
-  entry.className = 'tua-extension-menu-entry';
+  entry.className = 'list-group-item flex-container flexGap5 interactable tua-extension-menu-entry';
   entry.setAttribute('role', 'button');
   entry.setAttribute('tabindex', '0');
-  entry.innerHTML = `<span class="tua-extension-menu-icon">${getTheme().menuIcon}</span><span class="tua-extension-menu-text">콩고물 톡</span>`;
+  entry.innerHTML = `<span class="tua-extension-menu-icon extensionsMenuExtensionButton">${getTheme().menuIcon}</span><span class="tua-extension-menu-text">콩고물 톡</span>`;
   entry.addEventListener('click', () => {
     const st = getSettings();
     if (!st.enabled) {
