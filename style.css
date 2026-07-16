@@ -3507,3 +3507,17 @@ body.tua-panel-resizing-body {
   max-width: min(100%, 320px) !important;
 }
 
+
+
+/* v4.5.6: align extension-title divider spacing with other settings drawers */
+#tua-settings > .inline-drawer-content {
+  border-top: 1px solid rgba(128, 118, 100, .18) !important;
+  margin-top: 0 !important;
+  padding-top: 7px !important;
+}
+
+#tua-settings .tua-global-profile-box {
+  border-top: 0 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
