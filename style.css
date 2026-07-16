@@ -3461,3 +3461,7 @@ body.tua-panel-resizing-body {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
+
+#tua-settings .tua-global-debug-box {
+  margin-top: 6px !important;
+}
