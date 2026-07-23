@@ -2033,13 +2033,8 @@ function clampPanelPosition(left, top) {
   const minTop = bounds.top + margin;
   const maxLeft = Math.max(minLeft, bounds.left + bounds.width - w - margin);
   const maxTop = Math.max(minTop, bounds.top + bounds.height - h - margin);
-  const snap = 14;
   let nextLeft = Math.max(minLeft, Math.min(Number.isFinite(Number(left)) ? Number(left) : minLeft, maxLeft));
   let nextTop = Math.max(minTop, Math.min(Number.isFinite(Number(top)) ? Number(top) : minTop, maxTop));
-  if (nextLeft - minLeft <= snap) nextLeft = minLeft;
-  else if (maxLeft - nextLeft <= snap) nextLeft = maxLeft;
-  if (nextTop - minTop <= snap) nextTop = minTop;
-  else if (maxTop - nextTop <= snap) nextTop = maxTop;
   return {
     left: nextLeft,
     top: nextTop
