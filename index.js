@@ -2017,7 +2017,9 @@ function getViewportBounds() {
 }
 
 function getPanelViewportMargin() {
-  return isCompactViewport() ? 8 : 0;
+  // The collapsed launcher may sit flush against any viewport edge.
+  // The expanded panel keeps the existing 8px inset on compact viewports.
+  return panelEl?.classList.contains('tua-collapsed') ? 0 : (isCompactViewport() ? 8 : 0);
 }
 
 function clampPanelPosition(left, top) {
