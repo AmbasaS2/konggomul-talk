@@ -2017,9 +2017,7 @@ function getViewportBounds() {
 }
 
 function getPanelViewportMargin() {
-  // The collapsed launcher may sit flush against any viewport edge.
-  // The expanded panel keeps the existing 8px inset on compact viewports.
-  return panelEl?.classList.contains('tua-collapsed') ? 0 : (isCompactViewport() ? 8 : 0);
+  return 0;
 }
 
 function clampPanelPosition(left, top) {
@@ -3518,7 +3516,11 @@ async function init() {
     const loaded = await loadRooms({ expectedLifecycleEpoch: runEpoch });
     if (!loaded || !lifecycleEnabled || cleanInProgress || runEpoch !== lifecycleEpoch) return false;
     bindRuntimeEvents();
-    if (getSettings().enabled && getSettings().openOnStart) setPanelVisible(true, { persistPreference: false });
+    const startupSettings = getSettings();
+    if (startupSettings.enabled && startupSettings.openOnStart) {
+      startupSettings.collapsed = true;
+      setPanelVisible(true, { persistPreference: false });
+    }
     initialized = true;
     return true;
   })();
