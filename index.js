@@ -1,12 +1,12 @@
 /*
- * 🐕 콩고물 톡 v4.5.6
+ * 🐕 콩고물 톡 v4.5.7
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '4.5.6';
+const EXTENSION_VERSION = '4.5.7';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 
@@ -216,6 +216,8 @@ let roomLoadSequence = 0;
 let generationInFlight = false;
 let activeGenerationTask = null;
 let generationTaskCounter = 0;
+let profileRefreshSequence = 0;
+let profileLastAppliedNonemptySequence = 0;
 let panelViewportRepairRaf = null;
 let panelViewportRepairEventsBound = false;
 let lifecycleEnabled = true;
@@ -632,7 +634,10 @@ async function loadRooms({ expectedLifecycleEpoch = lifecycleEpoch } = {}) {
     shouldPersist = true;
   } else {
     const beforeNormalize = roomStateFingerprint(roomState);
-    roomState.rooms.forEach(room => normalizeKongtalkIntro(room, { ensureIntro: false }));
+    roomState.rooms.forEach(room => {
+      normalizeKongtalkIntro(room, { ensureIntro: false });
+      pruneOrphanGenerationPlaceholders(room);
+    });
     if (roomStateFingerprint(roomState) !== beforeNormalize) shouldPersist = true;
     activeRoomId = getMostRecentRoomId(roomState) || roomState.rooms[0]?.id || null;
   }
@@ -1327,22 +1332,24 @@ async function resolveSelectedConnectionProfileFresh() {
   const selected = String(s.selectedProfile || '').trim();
   if (!selected) return null;
 
+  const refreshSequence = ++profileRefreshSequence;
   const profiles = await getSavedConnectionProfiles();
   if (profiles.length) {
-    s.cachedProfiles = profiles;
-    const found = profiles.find(p => p.id === selected || p.name === selected);
-    if (!found) {
-      const previous = s.selectedProfile;
-      s.selectedProfile = '';
-      s.profileMode = 'current';
-      saveSettings();
+    const shouldApply = refreshSequence >= profileLastAppliedNonemptySequence;
+    if (shouldApply) {
+      profileLastAppliedNonemptySequence = refreshSequence;
+      const beforeCache = JSON.stringify(s.cachedProfiles || []);
+      s.cachedProfiles = profiles;
+      if (beforeCache !== JSON.stringify(s.cachedProfiles)) saveSettings();
       renderProfileOptions();
-      throw new Error(`선택한 콩고물 톡 전용 API 프로필을 찾을 수 없습니다: ${previous}`);
     }
-    s.selectedProfile = found.id;
-    s.profileMode = 'profile';
-    saveSettings();
-    renderProfileOptions();
+    const effectiveProfiles = shouldApply
+      ? profiles
+      : (s.cachedProfiles || []).map(normalizeConnectionProfile).filter(Boolean);
+    const found = effectiveProfiles.find(p => p.id === selected || p.name === selected);
+    if (!found) {
+      throw new Error(`선택한 콩고물 톡 전용 API 프로필을 찾을 수 없습니다: ${selected}`);
+    }
     return found;
   }
 
@@ -1439,6 +1446,7 @@ function stringifyPromptMessages(messages = []) {
 async function refreshProfiles(options = {}) {
   if (!lifecycleEnabled || cleanInProgress) return;
   const requestEpoch = lifecycleEpoch;
+  const refreshSequence = ++profileRefreshSequence;
   const s = getSettings();
   const silent = !!options.silent;
   const persist = options.persist !== false;
@@ -1450,16 +1458,13 @@ async function refreshProfiles(options = {}) {
   try {
     const profiles = await getSavedConnectionProfiles();
     if (!lifecycleEnabled || cleanInProgress || requestEpoch !== lifecycleEpoch) return;
-    const previous = s.selectedProfile;
-    s.cachedProfiles = profiles;
-    if (s.selectedProfile) {
-      const found = profiles.find(p => p.id === s.selectedProfile || p.name === s.selectedProfile);
-      s.selectedProfile = found?.id || '';
-      if (previous && !s.selectedProfile && !silent) {
-        setStatus(`삭제되었거나 찾을 수 없는 전용 API 프로필을 해제했습니다: ${previous}`);
-      }
+    if (profiles.length) {
+      if (refreshSequence < profileLastAppliedNonemptySequence) return;
+      profileLastAppliedNonemptySequence = refreshSequence;
+      s.cachedProfiles = profiles;
+    } else if (refreshSequence < profileLastAppliedNonemptySequence) {
+      return;
     }
-    s.profileMode = s.selectedProfile ? 'profile' : 'current';
     const after = JSON.stringify({
       selectedProfile: s.selectedProfile || '',
       profileMode: s.profileMode || 'current',
@@ -1657,10 +1662,7 @@ ${safePrompt}`;
       throw new Error('ConnectionManagerRequestService를 찾지 못해 콩고물 톡 전용 프로필 요청을 보낼 수 없습니다.');
     }
 
-    const profile = findCmProfile(resolvedProfile.id);
-    if (!profile) {
-      throw new Error(`선택한 콩고물 톡 전용 API 프로필을 찾을 수 없습니다: ${resolvedProfile.id}`);
-    }
+    const profile = resolvedProfile;
 
     const budget = getEffectiveProfileMaxTokens(safeMaxTokens, profile);
     const timeoutMs = 180000;
@@ -2424,13 +2426,15 @@ Only after the declaration has been fully read aloud, let {char} react to receiv
 Write only {char}'s first Korean direct-chat reply. Do not output system notes, labels, speaker prefixes, explanations, or internal terms such as room type, internal setup name, prompt, instruction, system, or extension.`;
 }
 
-async function generateRoomIntroReply(modeKey) {
+async function generateRoomIntroReply(modeKey, generationTask = null) {
   const settings = getSettings();
   const mode = migrateModeKey(modeKey);
   const instruction = buildRoomIntroInstruction(mode);
   const declaration = getRoleAssignmentDeclaration(mode);
   if (!instruction) return getKongtalkIntroIcon() || '';
+  assertRoomIntroGenerationCurrent(generationTask);
   const systemPrompt = await buildSystemPrompt('', mode, instruction);
+  assertRoomIntroGenerationCurrent(generationTask);
   const isCoworker = mode === 'coworker';
   const isParallel = mode === 'parallel' || mode === 'parallelClassic';
   const promptContent = isCoworker
@@ -2446,11 +2450,16 @@ ${declaration}`;
     : isParallel
       ? 'Answer now. Output the required Korean AU profile block, then one natural direct-chat reaction to the show being watched together. Do not use remote/call wording, tell {user} to come or hurry, or arrange what to order, prepare, or do next. End on an immediately answerable show reaction.'
       : 'Answer now. Read the assigned Korean declaration aloud in character, prioritizing completion of the reading before any longer reaction. Once the reading ends, immediately return to {char}\'s normal Korean speech level and verbal habits from the character card; do not keep using honorific Korean merely because the declaration did. Then continue as {char} in direct chat only. Do not turn the reply into a scene.';
-  return await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens || 1000, tail);
+  const reply = await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens || 1000, tail, generationTask);
+  assertRoomIntroGenerationCurrent(generationTask);
+  return reply;
 }
 
 async function createRoomWithModeIntro(modeKey) {
   const mode = migrateModeKey(modeKey);
+  if (generationInFlight) {
+    await cancelCurrentGeneration({ persist: true, render: true, announce: false });
+  }
   closeModePicker();
   closeRoomList();
   closeSettingsPanel();
@@ -2471,24 +2480,72 @@ async function createRoomWithModeIntro(modeKey) {
   const loadingAt = introAt;
   room.messages.push({ id: loadingId, role: 'assistant', content: '...', at: loadingAt, loading: true });
   room.updatedAt = loadingAt;
+  const task = {
+    id: ++generationTaskCounter,
+    kind: 'room-intro',
+    roomId: room.id,
+    loadingId,
+    startedAt: introAt,
+    requestCharKey: roomStateCharKey || getCharKey(),
+    persistenceEpoch,
+    lifecycleEpoch,
+    cancelCleanupComplete: false,
+    controller: new AbortController(),
+    cancelled: false,
+    completed: false,
+  };
+  activeGenerationTask = task;
+  generationInFlight = true;
+  setComposerBusy(true);
   renderMessages();
   setStatus(`${MODES[mode].label} 첫 톡을 생성하는 중입니다.`);
   try {
-    const reply = sanitizeAssistantReply(await generateRoomIntroReply(mode));
-    const msg = room.messages.find(m => m.id === loadingId);
+    await saveRooms();
+    assertRoomIntroGenerationCurrent(task);
+    const reply = sanitizeAssistantReply(await generateRoomIntroReply(mode, task));
+    assertRoomIntroGenerationCurrent(task);
+    const currentRoom = (roomState.rooms || []).find(item => item.id === task.roomId);
+    const msg = currentRoom?.messages?.find(m => m.id === loadingId);
     if (msg) { msg.content = reply; msg.loading = false; }
+    if (currentRoom) currentRoom.updatedAt = Date.now();
+    task.completed = true;
+    task.loadingId = '';
+    await saveRooms();
+    if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch && activeRoomId === task.roomId) {
+      renderAll();
+      scrollMessagesToBottom();
+    }
     setStatus(`새 ${MODES[mode].label} 방을 시작했습니다.`);
   } catch (e) {
-    const msg = room.messages.find(m => m.id === loadingId);
-    if (msg) { msg.content = `오류: ${e.message || e}`; msg.loading = false; msg.error = true; }
-    setStatus('첫 톡 생성에 실패했습니다. 다시 시도해 주세요.');
-    console.error('[Konggomul] room intro failed', e);
+    const cancelledOrStale = task.cancelled || isAbortError(e) || !isRoomIntroGenerationCurrent(task);
+    if (cancelledOrStale) {
+      if (isGenerationStorageContextCurrent(task)) {
+        removeGenerationLoadingMessages(task);
+        if (!task.cancelCleanupComplete && !cleanInProgress) {
+          await saveRooms();
+          task.cancelCleanupComplete = true;
+        }
+      }
+    } else {
+      const currentRoom = (roomState.rooms || []).find(item => item.id === task.roomId);
+      const msg = currentRoom?.messages?.find(m => m.id === loadingId);
+      if (msg) { msg.content = `오류: ${e.message || e}`; msg.loading = false; msg.error = true; }
+      if (currentRoom) currentRoom.updatedAt = Date.now();
+      task.completed = true;
+      task.loadingId = '';
+      await saveRooms();
+      if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch && activeRoomId === task.roomId) renderAll();
+      setStatus('첫 톡 생성에 실패했습니다. 다시 시도해 주세요.');
+      console.error('[Konggomul] room intro failed', e);
+    }
+  } finally {
+    if (activeGenerationTask?.id === task.id) {
+      activeGenerationTask = null;
+      generationInFlight = false;
+      setComposerBusy(false);
+    }
   }
-  room.updatedAt = Date.now();
-  await saveRooms();
-  renderAll();
-  scrollMessagesToBottom();
-  return room;
+  return (roomState.rooms || []).find(item => item.id === task.roomId) || room;
 }
 
 function getRecentKongtalkLines(limit = 10) {
@@ -2541,14 +2598,17 @@ Summary now.`);
 
 async function summarizeRecentKongtalkToMain() {
   if (!confirm('최근 콩고물 톡 10건을 요약해 RP에 삽입할까요?')) return;
+  const draftSnapshot = captureMainChatDraft();
   try {
     setStatus('최근 콩고물 톡 10건을 요약하는 중입니다.');
     const summary = sanitizeAssistantReply(await generateKongtalkSummaryForMain());
-    sendToMainChat(summary);
+    await sendToMainChat(summary, draftSnapshot);
   } catch (e) {
     console.error('[Konggomul] RP summary failed', e);
     alert(`RP 반영 요약에 실패했습니다: ${e.message || e}`);
     setStatus('RP 반영 요약에 실패했습니다.');
+  } finally {
+    draftSnapshot.release?.();
   }
 }
 
@@ -2570,6 +2630,34 @@ function setComposerBusy(isBusy) {
 
 function isAbortError(error) {
   return error?.name === 'AbortError' || /aborted|abort/i.test(String(error?.message || error || ''));
+}
+
+function isGenerationStorageContextCurrent(task) {
+  return !!task
+    && !cleanInProgress
+    && task.persistenceEpoch === persistenceEpoch
+    && roomStateCharKey === task.requestCharKey
+    && getCharKey() === task.requestCharKey;
+}
+
+function isRoomIntroGenerationCurrent(task) {
+  if (!task) return true;
+  return task.kind === 'room-intro'
+    && !task.cancelled
+    && !task.completed
+    && lifecycleEnabled
+    && !cleanInProgress
+    && task.lifecycleEpoch === lifecycleEpoch
+    && isGenerationStorageContextCurrent(task)
+    && activeGenerationTask?.id === task.id
+    && (roomState.rooms || []).some(room => room.id === task.roomId);
+}
+
+function assertRoomIntroGenerationCurrent(task) {
+  if (isRoomIntroGenerationCurrent(task)) return;
+  const error = new Error('Room intro generation aborted.');
+  error.name = 'AbortError';
+  throw error;
 }
 
 function ensureDeletedMessagesMap() {
@@ -2646,10 +2734,6 @@ function getActiveGenerationKeepLoadingId(roomId) {
 function isGenerationPlaceholderMessage(item) {
   const id = String(item?.id || '');
   if (item?.role !== 'assistant') return false;
-  // Room-intro placeholders are controlled by createRoomWithModeIntro().
-  // They must not be treated as ordinary send/stop placeholders, or a save/merge
-  // during intro generation can remove the declaration/opening reply before it lands.
-  if (id.startsWith('msg_intro_loading_')) return false;
   const ellipsisOnly = isStandaloneEllipsisContent(item?.content);
   if (item?.loading) return true;
   // A msg_loading_* id alone is not enough: older builds could accidentally keep that id on a completed reply.
@@ -2873,20 +2957,7 @@ function renderSettings() {
 }
 
 function hydrateGlobalSettingsUI(options = {}) {
-  const s = getSettings();
-  const allowCorrection = options.allowCorrection !== false;
-  if (s.selectedProfile) {
-    const profiles = (s.cachedProfiles || []).map(normalizeConnectionProfile).filter(Boolean);
-    const found = profiles.find(p => p.id === s.selectedProfile || p.name === s.selectedProfile);
-    if (found) s.selectedProfile = found.id;
-    else if (profiles.length && allowCorrection) {
-      s.selectedProfile = '';
-      s.profileMode = 'current';
-      saveSettings();
-    }
-  }
-  renderProfileOptions({ allowCorrection });
-  $('#tua-setting-profile').val(s.selectedProfile || '');
+  renderProfileOptions(options);
 }
 
 function readGlobalSettingsUI() {
@@ -2917,19 +2988,19 @@ function hydratePanelSettingsUI() {
 
 function renderProfileOptions(options = {}) {
   const s = getSettings();
-  const allowCorrection = options.allowCorrection !== false;
   const selects = $('#tua-setting-profile, #tua-panel-profile');
   if (!selects.length) return;
   const profiles = (s.cachedProfiles || []).map(normalizeConnectionProfile).filter(Boolean);
-  if (allowCorrection && s.selectedProfile && profiles.length && !profiles.some(p => p.name === s.selectedProfile || p.id === s.selectedProfile)) {
-    s.selectedProfile = '';
-    s.profileMode = 'current';
-    saveSettings();
-  }
+  const selected = String(s.selectedProfile || '').trim();
+  const selectedProfile = selected ? profiles.find(p => p.name === selected || p.id === selected) || null : null;
   selects.each(function () {
     const sel = $(this);
     sel.empty();
     sel.append(`<option value="">메인 API 사용</option>`);
+    if (selected && !selectedProfile) {
+      const label = resolveConnectionProfileName(selected, s.cachedProfiles);
+      sel.append(`<option value="${escapeHtml(selected)}">현재 확인되지 않음 · ${escapeHtml(label)}</option>`);
+    }
     if (!profiles.length) {
       sel.append(`<option value="" disabled>사용 가능한 프로필 없음</option>`);
     } else {
@@ -2937,7 +3008,7 @@ function renderProfileOptions(options = {}) {
         sel.append(`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`);
       }
     }
-    sel.val(s.selectedProfile || '');
+    sel.val(selectedProfile?.id || selected);
   });
 }
 
@@ -3364,12 +3435,71 @@ function bindMessagePressHandlers() {
     .on('pointerup.tuaPress pointercancel.tuaPress pointerleave.tuaPress', cancelMessageLongPress);
 }
 
-function sendToMainChat(text) {
-  const textarea = document.querySelector('#send_textarea, textarea[name="message"], #chat_textarea');
-  if (!textarea) { alert('메인 채팅 입력창을 찾지 못했습니다. 복사 기능을 사용해주세요.'); return; }
+function findMainChatTextarea() {
+  return document.querySelector('#send_textarea, textarea[name="message"], #chat_textarea');
+}
+
+function captureMainChatDraft() {
+  const textarea = findMainChatTextarea();
+  const snapshot = {
+    textarea,
+    value: textarea ? String(textarea.value || '') : null,
+    changed: false,
+    release: null,
+  };
+  if (textarea) {
+    const onInput = () => { snapshot.changed = true; };
+    textarea.addEventListener('input', onInput);
+    snapshot.release = () => textarea.removeEventListener('input', onInput);
+  }
+  return snapshot;
+}
+
+function setMainChatDraft(textarea, text) {
   textarea.value = text;
   textarea.dispatchEvent(new Event('input', { bubbles: true }));
-  setStatus('RP 입력창에 반영 내용을 삽입했습니다.');
+}
+
+async function preserveRpSummaryByCopy(text) {
+  const copied = await copyTextToClipboard(text);
+  if (!copied) prompt('자동 복사에 실패했습니다. 아래 RP 반영 결과를 직접 복사해 주세요.', text);
+  return copied;
+}
+
+async function sendToMainChat(text, draftSnapshot = null) {
+  const textarea = findMainChatTextarea();
+  if (!textarea) {
+    const copied = await preserveRpSummaryByCopy(text);
+    alert(copied
+      ? '메인 채팅 입력창을 찾지 못해 RP 반영 결과를 클립보드에 복사했습니다.'
+      : '메인 채팅 입력창을 찾지 못해 RP 반영 결과를 직접 복사 창에 표시했습니다.');
+    return 'copied';
+  }
+
+  const currentDraft = String(textarea.value || '');
+  const unchangedEmptyDraft = draftSnapshot?.textarea === textarea
+    && draftSnapshot.value === ''
+    && draftSnapshot.changed !== true
+    && currentDraft === '';
+  if (unchangedEmptyDraft) {
+    setMainChatDraft(textarea, text);
+    setStatus('RP 입력창에 반영 내용을 삽입했습니다.');
+    return 'inserted';
+  }
+
+  const shouldAppend = confirm('메인 RP 입력창에 작성 중인 내용이 있습니다. RP 반영 결과를 기존 내용 뒤에 추가할까요?\n\n취소하면 RP 반영 결과만 클립보드에 복사합니다.');
+  if (shouldAppend) {
+    const separator = currentDraft ? (currentDraft.endsWith('\n') ? '\n' : '\n\n') : '';
+    setMainChatDraft(textarea, `${currentDraft}${separator}${text}`);
+    setStatus('기존 RP 초안 뒤에 반영 내용을 추가했습니다.');
+    return 'appended';
+  }
+
+  const copied = await preserveRpSummaryByCopy(text);
+  setStatus(copied
+    ? 'RP 반영 결과를 클립보드에 복사했습니다.'
+    : 'RP 반영 결과를 직접 복사 창에 표시했습니다.');
+  return 'copied';
 }
 
 function ensureExtensionMenuEntry() {
