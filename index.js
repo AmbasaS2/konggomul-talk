@@ -1,12 +1,12 @@
 /*
- * 🐕 콩고물 톡 v4.5.7
+ * 🐕 콩고물 톡 v4.5.9
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '4.5.7';
+const EXTENSION_VERSION = '4.5.9';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 
@@ -191,7 +191,10 @@ let activeRoomId = null;
 let roomState = { rooms: [] };
 let panelEl = null;
 let contextMenuEl = null;
+let roomContextMenuEl = null;
 let longPressTimer = null;
+let roomLongPressState = null;
+let roomContextSuppressClick = false;
 let messageLongPressTimer = null;
 let messageLongPressState = null;
 const MESSAGE_LONG_PRESS_MS = 850;
@@ -204,6 +207,9 @@ let worldInfoModulePromise = null;
 let resizingPanel = null;
 let contextMenuButtonClickHandler = null;
 let contextMenuDocumentClickHandler = null;
+let roomContextMenuButtonClickHandler = null;
+let roomContextMenuDocumentClickHandler = null;
+let modePickerTargetRoomId = null;
 
 let runtimeActive = false;
 let initializing = false;
@@ -236,6 +242,77 @@ function clampInt(value, min, max, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+function normalizeAssistantVariantState(role, content, rawVariants, rawIndex) {
+  const baseContent = String(content || '');
+  if (role !== 'assistant' || !Array.isArray(rawVariants) || !rawVariants.length) {
+    return { content: baseContent };
+  }
+
+  const variants = [];
+  for (const raw of rawVariants) {
+    const value = String(raw || '');
+    if (!value || variants.includes(value)) continue;
+    variants.push(value);
+  }
+  if (!variants.length) return { content: baseContent };
+
+  let variantIndex = clampInt(rawIndex, 0, variants.length - 1, variants.length - 1);
+  const contentIndex = baseContent ? variants.indexOf(baseContent) : -1;
+  if (contentIndex >= 0) {
+    variantIndex = contentIndex;
+  } else if (baseContent) {
+    variants.push(baseContent);
+    variantIndex = variants.length - 1;
+  }
+
+  return {
+    content: variants[variantIndex],
+    variants,
+    variantIndex,
+  };
+}
+
+function getAssistantVariantState(message) {
+  if (!message || message.role !== 'assistant') {
+    return { variants: [String(message?.content || '')], variantIndex: 0 };
+  }
+  const normalized = normalizeAssistantVariantState('assistant', message.content, message.variants, message.variantIndex);
+  const variants = Array.isArray(normalized.variants) && normalized.variants.length
+    ? normalized.variants
+    : [String(normalized.content || '')];
+  return {
+    variants,
+    variantIndex: clampInt(normalized.variantIndex, 0, variants.length - 1, 0),
+  };
+}
+
+function selectAssistantVariant(message, nextIndex) {
+  if (!message || message.role !== 'assistant') return false;
+  const state = getAssistantVariantState(message);
+  if (state.variants.length < 2) return false;
+  const index = clampInt(nextIndex, 0, state.variants.length - 1, state.variantIndex);
+  message.variants = state.variants;
+  message.variantIndex = index;
+  message.content = state.variants[index];
+  return true;
+}
+
+function appendAssistantVariant(message, content) {
+  if (!message || message.role !== 'assistant') return false;
+  const value = String(content || '').trim();
+  if (!value) return false;
+  const state = getAssistantVariantState(message);
+  let nextIndex = state.variants.indexOf(value);
+  if (nextIndex < 0) {
+    state.variants.push(value);
+    nextIndex = state.variants.length - 1;
+  }
+  message.variants = state.variants;
+  message.variantIndex = nextIndex;
+  message.content = state.variants[nextIndex];
+  return true;
 }
 
 function limitGraphemes(value, max = 4) {
@@ -411,13 +488,15 @@ function normalizeStoredRoomState(raw) {
       const content = String(m?.content || '');
       const loading = !!m?.loading;
       const id = String(m?.id || ('msg_' + at + '_' + Math.random().toString(16).slice(2)));
+      const variantState = normalizeAssistantVariantState(role, content, m?.variants, m?.variantIndex);
       // Keep completed legacy msg_loading_* ids stable. They are only treated as
       // disposable placeholders when the row is actually an ellipsis/loading message.
       return {
         id,
         role,
-        content,
+        content: variantState.content,
         at,
+        ...(variantState.variants ? { variants: variantState.variants, variantIndex: variantState.variantIndex } : {}),
         ...(loading ? { loading: true } : {}),
         ...(m?.error ? { error: true } : {}),
       };
@@ -712,25 +791,41 @@ function getRoomMode(room = getActiveRoom()) {
   return room.mode;
 }
 
-function setRoomMode(mode) {
-  const room = getActiveRoom();
+function setRoomModeById(id, mode) {
+  const room = roomState.rooms.find(item => item.id === id);
   const next = migrateModeKey(mode);
-  if (!room || !MODES[next]) return;
+  if (!room || !MODES[next]) return false;
+  if (generationInFlight && activeGenerationTask?.roomId === id) return false;
+  if (room.mode === next) return true;
   room.mode = next;
   room.updatedAt = Date.now();
   saveRooms();
+  renderAll();
+  setStatus(`대화방 모드를 ${MODES[next].label}(으)로 변경했습니다.`);
+  return true;
+}
+
+function setRoomMode(mode) {
+  return setRoomModeById(activeRoomId, mode);
 }
 
 function deleteRoom(id) {
+  if (generationInFlight && activeGenerationTask?.roomId === id) {
+    alert('답변 생성을 중지한 뒤 대화방을 삭제해 주세요.');
+    return false;
+  }
   const deletedAt = Date.now();
   if (!roomState.deletedRooms || typeof roomState.deletedRooms !== 'object' || Array.isArray(roomState.deletedRooms)) roomState.deletedRooms = {};
   if (id) roomState.deletedRooms[String(id)] = deletedAt;
   roomState.rooms = roomState.rooms.filter(r => r.id !== id);
   if (!roomState.rooms.length) createRoom(false, 'kongtalk', true);
-  activeRoomId = roomState.rooms[0].id;
+  if (!activeRoomId || activeRoomId === id || !roomState.rooms.some(room => room.id === activeRoomId)) {
+    activeRoomId = roomState.rooms[0].id;
+  }
   roomState.updatedAt = deletedAt;
   saveRooms();
   renderAll();
+  return true;
 }
 
 function toggleActiveRoomPinned() {
@@ -752,23 +847,6 @@ function getSortedRooms() {
     if (aLast !== bLast) return bLast - aLast;
     return Number(b?.createdAt || 0) - Number(a?.createdAt || 0);
   });
-}
-
-function clearRoom(id) {
-  const room = roomState.rooms.find(r => r.id === id);
-  if (room) {
-    const deletedAt = Date.now();
-    if (!roomState.deletedMessages || typeof roomState.deletedMessages !== 'object' || Array.isArray(roomState.deletedMessages)) roomState.deletedMessages = {};
-    for (const message of room.messages || []) {
-      if (message?.id) roomState.deletedMessages[String(message.id)] = deletedAt;
-    }
-    room.messages = [];
-    room.lastMessageAt = 0;
-    room.updatedAt = deletedAt;
-    roomState.updatedAt = deletedAt;
-  }
-  saveRooms();
-  renderMessages();
 }
 
 function deleteMessage(id) {
@@ -1010,9 +1088,10 @@ function getExtensionMemoryBlock() {
 }
 
 
-function getPromptRoomMessages(currentUserText = '', limit = 12) {
+function getPromptRoomMessages(currentUserText = '', limit = 12, sourceMessages = null) {
   const room = getActiveRoom();
-  const messages = (room?.messages || [])
+  const source = Array.isArray(sourceMessages) ? sourceMessages : (room?.messages || []);
+  const messages = source
     .filter(m => !m.loading && !m.error && String(m.content || '').trim());
   const latest = String(currentUserText || '').trim();
   if (latest && messages.length) {
@@ -1065,9 +1144,9 @@ function buildParallelWatchingRules(charLabel = '{char}', userLabel = '{user}') 
 - Always output in Korean unless ${userLabel} explicitly asks otherwise.`;
 }
 
-function buildPromptMessages(userText) {
+function buildPromptMessages(userText, sourceMessages = null) {
   const historyLimit = getChatMemoryLimit();
-  const history = getPromptRoomMessages(userText, historyLimit).map(m => ({
+  const history = getPromptRoomMessages(userText, historyLimit, sourceMessages).map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
     content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : String(m.content || '')
   }));
@@ -1771,9 +1850,9 @@ function sanitizeAssistantReply(text) {
   return out || '(빈 응답)';
 }
 
-async function generateAssistantReply(userText, generationTask = null) {
+async function generateAssistantReply(userText, generationTask = null, sourceMessages = null) {
   const systemPrompt = await buildSystemPrompt(userText);
-  const prompt = buildPromptMessages(userText);
+  const prompt = buildPromptMessages(userText, sourceMessages);
   const settings = getSettings();
   return await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens, 'Answer now. Reply as direct chat only. Do not turn the reply into a scene or RP continuation.', generationTask);
 }
@@ -1897,11 +1976,31 @@ function ensurePanel() {
   $('#tua-close').on('click', () => setPanelVisible(false));
   $('#tua-collapse').on('click', (e) => { e.preventDefault(); e.stopPropagation(); setPanelCollapsed(true); });
   $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } setPanelCollapsed(false); setPanelVisible(true); });
-  $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeRoomList(); closeModePicker(); $('#tua-in-panel-settings').toggleClass('open'); });
-  $('#tua-active-room-title').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); closeModePicker(); toggleRoomList(); });
-  $('#tua-new-room').on('click', (e) => { e.preventDefault(); closeSettingsPanel(); closeRoomList(); toggleModePicker(); });
+  $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); hideRoomContextMenu(); closeRoomList(); closeModePicker(); $('#tua-in-panel-settings').toggleClass('open'); });
+  $('#tua-active-room-title')
+    .on('click', (e) => {
+      e.preventDefault();
+      if (roomContextSuppressClick) { roomContextSuppressClick = false; return; }
+      hideRoomContextMenu();
+      closeSettingsPanel();
+      closeModePicker();
+      toggleRoomList();
+    })
+    .on('contextmenu', (e) => {
+      e.preventDefault();
+      cancelRoomLongPress();
+      openRoomContextMenuForRoom(activeRoomId, e.clientX, e.clientY);
+    })
+    .on('pointerdown', (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+      scheduleRoomLongPress(activeRoomId, e.clientX, e.clientY);
+    })
+    .on('pointermove', e => moveRoomLongPress(e.clientX, e.clientY))
+    .on('pointerup pointercancel pointerleave', finishRoomLongPress);
+  $('#tua-new-room').on('click', (e) => { e.preventDefault(); hideRoomContextMenu(); closeSettingsPanel(); closeRoomList(); toggleModePicker(); });
   $('#tua-roombar-toggle').on('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleRoomActionsCollapsed(); });
-  $('#tua-delete-room').on('click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); if (confirm('채팅방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
+  $('#tua-delete-room').on('click', () => { hideRoomContextMenu(); closeSettingsPanel(); closeRoomList(); closeModePicker(); if (confirm('채팅방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
   $('#tua-pin-room').on('click', () => { closeSettingsPanel(); toggleActiveRoomPinned(); });
   $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); });
   $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
@@ -2157,11 +2256,13 @@ function closeRoomList() {
 
 function closeModePicker() {
   $('#tua-mode-picker').removeClass('open');
+  modePickerTargetRoomId = null;
 }
 
-function toggleModePicker(force) {
+function toggleModePicker(force, targetRoomId = null) {
   const picker = $('#tua-mode-picker');
   if (!picker.length) return;
+  modePickerTargetRoomId = targetRoomId && roomState.rooms.some(room => room.id === targetRoomId) ? targetRoomId : null;
   renderModePicker();
   if (typeof force === 'boolean') picker.toggleClass('open', force);
   else picker.toggleClass('open');
@@ -2171,10 +2272,12 @@ function renderModePicker() {
   const picker = $('#tua-mode-picker');
   if (!picker.length) return;
   picker.empty();
-  picker.append('<div class="tua-mode-picker-title">어떤 모드로 시작할까요?</div>');
+  const targetRoom = modePickerTargetRoomId ? roomState.rooms.find(room => room.id === modePickerTargetRoomId) : null;
+  picker.append(`<div class="tua-mode-picker-title">${targetRoom ? `“${escapeHtml(targetRoom.title || '대화방')}” 모드 변경` : '어떤 모드로 시작할까요?'}</div>`);
   const buttons = $('<div class="tua-mode-picker-buttons"></div>');
   for (const [key, mode] of Object.entries(MODES)) {
-    buttons.append(`<button type="button" data-mode="${escapeHtml(key)}">${escapeHtml(mode.label)}</button>`);
+    const active = targetRoom && getRoomMode(targetRoom) === key ? ' active' : '';
+    buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${escapeHtml(mode.label)}</button>`);
   }
   picker.append(buttons);
   picker.find('button[data-mode]').on('click', async function () {
@@ -2183,7 +2286,13 @@ function renderModePicker() {
     button.data('busy', true).prop('disabled', true);
     try {
       const modeKey = migrateModeKey(button.data('mode'));
-      await createRoomWithModeIntro(modeKey);
+      const targetRoomId = modePickerTargetRoomId;
+      if (targetRoomId) {
+        closeModePicker();
+        setRoomModeById(targetRoomId, modeKey);
+      } else {
+        await createRoomWithModeIntro(modeKey);
+      }
     } finally {
       button.data('busy', false).prop('disabled', false);
     }
@@ -2259,13 +2368,18 @@ function normalizeImportedRoomState(raw) {
       createdAt: Number(room.createdAt || Date.now()),
       mode: migrateModeKey(room.mode),
       pinned: !!room.pinned,
-      messages: Array.isArray(room.messages) ? room.messages.map(m => ({
-        id: String(m.id || ('msg_' + Date.now() + '_' + Math.random().toString(16).slice(2))),
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: String(m.content || ''),
-        at: Number(m.at || Date.now()),
-        ...(m.error ? { error: true } : {})
-      })) : []
+      messages: Array.isArray(room.messages) ? room.messages.map(m => {
+        const role = m.role === 'user' ? 'user' : 'assistant';
+        const variantState = normalizeAssistantVariantState(role, m.content, m.variants, m.variantIndex);
+        return {
+          id: String(m.id || ('msg_' + Date.now() + '_' + Math.random().toString(16).slice(2))),
+          role,
+          content: variantState.content,
+          at: Number(m.at || Date.now()),
+          ...(variantState.variants ? { variants: variantState.variants, variantIndex: variantState.variantIndex } : {}),
+          ...(m.error ? { error: true } : {})
+        };
+      }) : []
     })),
     voiceNote: typeof imported.voiceNote === 'string' ? imported.voiceNote : ''
   };
@@ -2899,10 +3013,145 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
       }
       if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
     }
+    if (!task.completed && task.loadingId && isGenerationStorageContextCurrent(task)) {
+      const removed = removeGenerationLoadingMessages(task);
+      if (removed && !cleanInProgress) await saveRooms();
+    }
     if (activeGenerationTask?.id === task.id) {
       activeGenerationTask = null;
       generationInFlight = false;
       setComposerBusy(false);
+    }
+  }
+}
+
+function getLastRegenerableAssistantMessage(room = getActiveRoom()) {
+  const messages = Array.isArray(room?.messages) ? room.messages : [];
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (!message || message.loading || isGenerationPlaceholderMessage(message)) continue;
+    if (!String(message.content || '').trim()) continue;
+    if (isAssistantIntroMessage(message)) continue;
+    if (message.role !== 'assistant' || message.error) return null;
+    const hasUserBefore = messages.slice(0, index).some(item => item?.role === 'user' && !item.loading && !item.error && String(item.content || '').trim());
+    return hasUserBefore ? message : null;
+  }
+  return null;
+}
+
+function canRegenerateAssistantMessage(messageId, room = getActiveRoom()) {
+  if (generationInFlight || !room) return false;
+  const latest = getLastRegenerableAssistantMessage(room);
+  return !!latest && String(latest.id) === String(messageId || '');
+}
+
+async function regenerateAssistantMessage(messageId) {
+  const currentCharKey = getCharKey();
+  if (roomStateCharKey !== currentCharKey) {
+    const loaded = await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch });
+    if (!loaded || roomStateCharKey !== currentCharKey) return;
+  }
+  if (generationInFlight) return;
+
+  const room = getActiveRoom();
+  if (!canRegenerateAssistantMessage(messageId, room)) {
+    setStatus('가장 마지막 AI 답변만 다시 생성할 수 있습니다.');
+    return;
+  }
+
+  const targetIndex = room.messages.findIndex(item => String(item.id) === String(messageId));
+  const targetMessage = room.messages[targetIndex];
+  const sourceMessages = room.messages.slice(0, targetIndex).map(item => ({ ...item }));
+  const lastUserMessage = [...sourceMessages].reverse().find(item => item.role === 'user' && !item.loading && !item.error && String(item.content || '').trim());
+  if (!targetMessage || !lastUserMessage) return;
+
+  const task = {
+    id: ++generationTaskCounter,
+    kind: 'regenerate',
+    roomId: room.id,
+    targetMessageId: targetMessage.id,
+    loadingId: '',
+    startedAt: Date.now(),
+    requestCharKey: roomStateCharKey || currentCharKey,
+    persistenceEpoch,
+    lifecycleEpoch,
+    cancelCleanupComplete: false,
+    controller: new AbortController(),
+    cancelled: false,
+    completed: false,
+  };
+  activeGenerationTask = task;
+  generationInFlight = true;
+  setComposerBusy(true);
+  hideContextMenu();
+
+  try {
+    removeStaleLoadingMessages(room);
+    const loadingAt = Date.now();
+    task.loadingId = 'msg_loading_' + loadingAt + '_' + Math.random().toString(16).slice(2);
+    room.messages.push({ id: task.loadingId, role: 'assistant', content: '...', at: loadingAt, loading: true });
+    room.updatedAt = loadingAt;
+    await saveRooms();
+    renderMessages();
+    scrollMessagesToBottom();
+
+    try {
+      const reply = sanitizeAssistantReply(await generateAssistantReply(String(lastUserMessage.content || ''), task, sourceMessages));
+      if (task.cancelled || getCharKey() !== task.requestCharKey) return;
+      const currentRoom = (roomState.rooms || []).find(item => item.id === task.roomId);
+      const currentTarget = currentRoom?.messages?.find(item => item.id === task.targetMessageId);
+      if (!currentRoom || !currentTarget) return;
+
+      removeGenerationLoadingMessages(task);
+      const doneAt = Date.now();
+      appendAssistantVariant(currentTarget, reply);
+      currentTarget.at = doneAt;
+      currentTarget.error = false;
+      currentRoom.lastMessageAt = doneAt;
+      currentRoom.updatedAt = doneAt;
+      roomState.updatedAt = doneAt;
+      task.completed = true;
+      task.loadingId = '';
+    } catch (error) {
+      if (task.cancelled || isAbortError(error) || getCharKey() !== task.requestCharKey) {
+        removeGenerationLoadingMessages(task);
+        if (!task.cancelCleanupComplete && !cleanInProgress && task.persistenceEpoch === persistenceEpoch) {
+          await saveRooms();
+          task.cancelCleanupComplete = true;
+        }
+        if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
+        return;
+      }
+      removeGenerationLoadingMessages(task);
+      task.completed = true;
+      task.loadingId = '';
+      addDebugLog('generation.regenerate.error', '답변 다시 생성 실패', { error: String(error?.message || error), stack: String(error?.stack || '') });
+      console.error('[Konggomul] regeneration failed', error);
+      alert(`다시 생성에 실패했습니다: ${error.message || error}`);
+    }
+
+    if (!task.cancelled && getCharKey() === task.requestCharKey && task.persistenceEpoch === persistenceEpoch) {
+      await saveRooms();
+      if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
+    }
+  } finally {
+    if (task.cancelled) {
+      removeGenerationLoadingMessages(task);
+      if (!task.cancelCleanupComplete && !cleanInProgress && task.persistenceEpoch === persistenceEpoch) {
+        await saveRooms();
+        task.cancelCleanupComplete = true;
+      }
+      if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
+    }
+    if (!task.completed && task.loadingId && isGenerationStorageContextCurrent(task)) {
+      const removed = removeGenerationLoadingMessages(task);
+      if (removed && !cleanInProgress) await saveRooms();
+    }
+    if (activeGenerationTask?.id === task.id) {
+      activeGenerationTask = null;
+      generationInFlight = false;
+      setComposerBusy(false);
+      if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
     }
   }
 }
@@ -3250,14 +3499,14 @@ function renderRoomList() {
     const title = `${room.pinned ? '📌 ' : ''}${room.title || defaultRoomTitle(room.createdAt)}`;
     list.append(`<button class="tua-room-item ${active} ${pinned}" data-id="${escapeHtml(room.id)}"><span><b>${escapeHtml(title)}</b><small>${escapeHtml(roomMode)} · ${escapeHtml(String(last).slice(0, 34))}</small></span><em>${count}</em></button>`);
   }
-  let roomPressTriggered = false;
   list.find('.tua-room-item').off('.tuaRoom')
     .on('click.tuaRoom', function (e) {
-      if (roomPressTriggered) {
+      if (roomContextSuppressClick) {
         e.preventDefault();
-        roomPressTriggered = false;
+        roomContextSuppressClick = false;
         return;
       }
+      hideRoomContextMenu();
       closeSettingsPanel();
       activeRoomId = $(this).data('id');
       $('#tua-room-list').removeClass('open');
@@ -3266,23 +3515,16 @@ function renderRoomList() {
     })
     .on('contextmenu.tuaRoom', function (e) {
       e.preventDefault();
-      roomPressTriggered = true;
-      renameRoomById($(this).data('id'));
-      setTimeout(() => { roomPressTriggered = false; }, 80);
+      cancelRoomLongPress();
+      openRoomContextMenuForRoom($(this).data('id'), e.clientX, e.clientY);
     })
     .on('pointerdown.tuaRoom', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
-      const id = $(this).data('id');
-      clearTimeout(longPressTimer);
-      longPressTimer = setTimeout(() => {
-        roomPressTriggered = true;
-        renameRoomById(id);
-      }, 620);
+      if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+      scheduleRoomLongPress($(this).data('id'), e.clientX, e.clientY);
     })
-    .on('pointerup.tuaRoom pointercancel.tuaRoom pointerleave.tuaRoom', function () {
-      clearTimeout(longPressTimer);
-      if (roomPressTriggered) setTimeout(() => { roomPressTriggered = false; }, 120);
-    });
+    .on('pointermove.tuaRoom', e => moveRoomLongPress(e.clientX, e.clientY))
+    .on('pointerup.tuaRoom pointercancel.tuaRoom pointerleave.tuaRoom', finishRoomLongPress);
 }
 
 function scrollMessagesToBottom() {
@@ -3308,16 +3550,54 @@ function renderMessages() {
     const name = m.role === 'declaration' ? '' : (m.role === 'user' ? getUserKongtalkNickname() : getCharName());
     const nameHtml = name ? `<div class="tua-msg-name">${escapeHtml(name)}</div>` : '';
     const lockedClass = m.role === 'declaration' ? ' tua-locked' : '';
-    const title = m.role === 'declaration' ? '역할 선언' : '오래 누르면 복사/삭제/RP 반영';
+    const title = m.role === 'declaration' ? '역할 선언' : '오래 누르면 메시지 메뉴';
+    const variantState = getAssistantVariantState(m);
+    const variantNavigation = m.role === 'assistant' && variantState.variants.length > 1
+      ? `<div class="tua-variant-nav" aria-label="답변 버전 ${variantState.variantIndex + 1}/${variantState.variants.length}">
+          <button type="button" data-variant-direction="-1" title="이전 답변" aria-label="이전 답변" ${generationInFlight ? 'disabled' : ''}>‹</button>
+          <span>${variantState.variantIndex + 1}/${variantState.variants.length}</span>
+          <button type="button" data-variant-direction="1" title="다음 답변" aria-label="다음 답변" ${generationInFlight ? 'disabled' : ''}>›</button>
+        </div>`
+      : '';
     const html = `
       <div class="tua-msg tua-${roleClass}${lockedClass} ${m.error ? 'tua-error' : ''} ${m.loading ? 'tua-loading' : ''}" data-id="${escapeHtml(m.id)}" tabindex="0" title="${title}">
         ${nameHtml}
         <div class="tua-bubble">${normalizeNewlines(m.content)}</div>
+        ${variantNavigation}
       </div>`;
     box.append(html);
   }
+  bindVariantNavigationHandlers();
   bindMessagePressHandlers();
   box.scrollTop(box[0]?.scrollHeight || 0);
+}
+
+function switchAssistantVariant(messageId, direction) {
+  if (generationInFlight) return;
+  const room = getActiveRoom();
+  const message = room?.messages?.find(item => String(item.id) === String(messageId || ''));
+  if (!message) return;
+  const state = getAssistantVariantState(message);
+  if (state.variants.length < 2) return;
+  const delta = Number(direction) < 0 ? -1 : 1;
+  const nextIndex = (state.variantIndex + delta + state.variants.length) % state.variants.length;
+  if (!selectAssistantVariant(message, nextIndex)) return;
+  const now = Date.now();
+  room.updatedAt = now;
+  roomState.updatedAt = now;
+  saveRooms();
+  renderMessages();
+}
+
+function bindVariantNavigationHandlers() {
+  $('#tua-messages .tua-variant-nav button').off('.tuaVariant')
+    .on('pointerdown.tuaVariant pointerup.tuaVariant pointercancel.tuaVariant', e => e.stopPropagation())
+    .on('click.tuaVariant', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const messageId = $(this).closest('.tua-msg').data('id');
+      switchAssistantVariant(messageId, Number($(this).data('variant-direction')));
+    });
 }
 
 
@@ -3360,6 +3640,7 @@ function ensureContextMenu() {
   contextMenuEl.innerHTML = `
     <button data-action="copy">복사</button>
     <button data-action="send-ooc">RP 반영</button>
+    <button data-action="regenerate">다시 생성</button>
     <button data-action="delete" class="danger">삭제</button>`;
   document.body.appendChild(contextMenuEl);
   contextMenuButtonClickHandler = async e => {
@@ -3369,10 +3650,11 @@ function ensureContextMenu() {
     const msg = getActiveRoom().messages.find(x => x.id === id);
     if (!msg) return hideContextMenu();
     const action = btn.dataset.action;
+    hideContextMenu();
     if (action === 'copy') await copyTextToClipboard(msg.content);
     if (action === 'delete') deleteMessage(id);
     if (action === 'send-ooc') await summarizeRecentKongtalkToMain();
-    hideContextMenu();
+    if (action === 'regenerate') await regenerateAssistantMessage(id);
   };
   contextMenuDocumentClickHandler = e => {
     if (!contextMenuEl) return;
@@ -3391,9 +3673,110 @@ function openContextMenuForMessage(id, x, y) {
   const menu = ensureContextMenu();
   menu.dataset.msgId = id;
   menu.dataset.tuaTheme = getThemeKey();
-  menu.style.left = `${Math.max(0, Math.min(x, window.innerWidth - 150))}px`;
-  menu.style.top = `${Math.max(0, Math.min(y, window.innerHeight - 112))}px`;
+  menu.querySelector('[data-action="regenerate"]')?.toggleAttribute('hidden', !canRegenerateAssistantMessage(id));
+  const rpButton = menu.querySelector('[data-action="send-ooc"]');
+  const deleteButton = menu.querySelector('[data-action="delete"]');
+  if (rpButton) rpButton.disabled = generationInFlight;
+  if (deleteButton) deleteButton.disabled = generationInFlight;
+  showContextMenuAt(menu, x, y);
+}
+
+function showContextMenuAt(menu, x, y) {
+  if (!menu) return;
+  menu.style.left = '0px';
+  menu.style.top = '0px';
   menu.classList.add('open');
+  const rect = menu.getBoundingClientRect();
+  const left = Math.max(0, Math.min(Number(x) || 0, window.innerWidth - rect.width - 4));
+  const top = Math.max(0, Math.min(Number(y) || 0, window.innerHeight - rect.height - 4));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+}
+
+function ensureRoomContextMenu() {
+  if (roomContextMenuEl) return roomContextMenuEl;
+  roomContextMenuEl = document.createElement('div');
+  roomContextMenuEl.id = 'tua-room-context-menu';
+  roomContextMenuEl.innerHTML = `
+    <button data-action="rename">이름 변경</button>
+    <button data-action="change-mode">모드 변경</button>
+    <button data-action="delete" class="danger">방 삭제</button>`;
+  document.body.appendChild(roomContextMenuEl);
+
+  roomContextMenuButtonClickHandler = e => {
+    const button = e.target.closest('button');
+    if (!button || !roomContextMenuEl) return;
+    const roomId = roomContextMenuEl.dataset.roomId;
+    const room = roomState.rooms.find(item => item.id === roomId);
+    const action = button.dataset.action;
+    hideRoomContextMenu();
+    if (!room) return;
+    if (action === 'rename') renameRoomById(roomId);
+    if (action === 'change-mode') beginRoomModeChange(roomId);
+    if (action === 'delete' && confirm(`“${room.title || '대화방'}”을(를) 삭제할까요?`)) deleteRoom(roomId);
+  };
+  roomContextMenuDocumentClickHandler = e => {
+    if (!roomContextMenuEl) return;
+    if (!roomContextMenuEl.contains(e.target) && !e.target.closest('.tua-room-item, #tua-active-room-title')) hideRoomContextMenu();
+  };
+  roomContextMenuEl.addEventListener('click', roomContextMenuButtonClickHandler);
+  document.addEventListener('click', roomContextMenuDocumentClickHandler);
+  return roomContextMenuEl;
+}
+
+function hideRoomContextMenu() {
+  if (roomContextMenuEl) roomContextMenuEl.classList.remove('open');
+}
+
+function openRoomContextMenuForRoom(roomId, x, y) {
+  if (!roomState.rooms.some(room => room.id === roomId)) return;
+  hideContextMenu();
+  const menu = ensureRoomContextMenu();
+  menu.dataset.roomId = roomId;
+  menu.dataset.tuaTheme = getThemeKey();
+  const modeButton = menu.querySelector('[data-action="change-mode"]');
+  if (modeButton) modeButton.disabled = generationInFlight;
+  showContextMenuAt(menu, x, y);
+}
+
+function beginRoomModeChange(roomId) {
+  if (generationInFlight) {
+    alert('답변 생성이 끝난 뒤 모드를 변경해 주세요.');
+    return;
+  }
+  if (!roomState.rooms.some(room => room.id === roomId)) return;
+  closeSettingsPanel();
+  closeRoomList();
+  toggleModePicker(true, roomId);
+}
+
+function cancelRoomLongPress() {
+  clearTimeout(longPressTimer);
+  longPressTimer = null;
+  roomLongPressState = null;
+}
+
+function scheduleRoomLongPress(roomId, x, y) {
+  cancelRoomLongPress();
+  roomLongPressState = { roomId, x, y };
+  longPressTimer = setTimeout(() => {
+    if (!roomLongPressState || roomLongPressState.roomId !== roomId) return;
+    roomContextSuppressClick = true;
+    openRoomContextMenuForRoom(roomId, x, y);
+    roomLongPressState = null;
+    longPressTimer = null;
+  }, 620);
+}
+
+function moveRoomLongPress(x, y) {
+  if (!roomLongPressState) return;
+  if (Math.abs(Number(x) - roomLongPressState.x) > MESSAGE_LONG_PRESS_MOVE_CANCEL_PX
+    || Math.abs(Number(y) - roomLongPressState.y) > MESSAGE_LONG_PRESS_MOVE_CANCEL_PX) cancelRoomLongPress();
+}
+
+function finishRoomLongPress() {
+  cancelRoomLongPress();
+  if (roomContextSuppressClick) setTimeout(() => { roomContextSuppressClick = false; }, 180);
 }
 
 function cancelMessageLongPress() {
@@ -3595,12 +3978,16 @@ function cleanupRuntimeState() {
   document.getElementById('tua-extension-menu-entry')?.remove();
   clearTimeout(longPressTimer);
   longPressTimer = null;
+  roomLongPressState = null;
+  roomContextSuppressClick = false;
+  modePickerTargetRoomId = null;
   cancelMessageLongPress();
   draggingPanel = null;
   resizingPanel = null;
   collapsedButtonSuppressClick = false;
   document.body.classList.remove('tua-panel-dragging-body', 'tua-panel-resizing-body');
   hideContextMenu();
+  hideRoomContextMenu();
   if (contextMenuEl) {
     if (contextMenuButtonClickHandler) contextMenuEl.removeEventListener('click', contextMenuButtonClickHandler);
     if (contextMenuDocumentClickHandler) document.removeEventListener('click', contextMenuDocumentClickHandler);
@@ -3608,6 +3995,14 @@ function cleanupRuntimeState() {
     contextMenuEl = null;
     contextMenuButtonClickHandler = null;
     contextMenuDocumentClickHandler = null;
+  }
+  if (roomContextMenuEl) {
+    if (roomContextMenuButtonClickHandler) roomContextMenuEl.removeEventListener('click', roomContextMenuButtonClickHandler);
+    if (roomContextMenuDocumentClickHandler) document.removeEventListener('click', roomContextMenuDocumentClickHandler);
+    roomContextMenuEl.remove();
+    roomContextMenuEl = null;
+    roomContextMenuButtonClickHandler = null;
+    roomContextMenuDocumentClickHandler = null;
   }
   if (panelEl) setPanelVisible(false, { persistPreference: false });
 }

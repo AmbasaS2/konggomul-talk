@@ -3465,3 +3465,150 @@ body.tua-panel-resizing-body {
 #tua-settings .tua-global-debug-box {
   margin-top: 6px !important;
 }
+
+/* v4.5.8: compact collapsed launcher and send button defaults */
+#tua-panel.tua-collapsed {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+
+#tua-panel.tua-collapsed #tua-collapsed-button {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 14px !important;
+}
+
+#tua-panel #tua-send {
+  width: 26px !important;
+  min-width: 26px !important;
+  height: 26px !important;
+  flex-basis: 26px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+}
+
+/* v4.5.9: answer variants */
+#tua-panel .tua-variant-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin: -1px 4px 0;
+  color: var(--tua-muted) !important;
+  font-size: calc(var(--tua-font-size) - 3px) !important;
+  line-height: 1 !important;
+  user-select: none;
+}
+
+#tua-panel .tua-variant-nav button {
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--tua-muted) !important;
+  box-shadow: none !important;
+  font-size: 16px !important;
+  line-height: 16px !important;
+}
+
+#tua-panel .tua-variant-nav button:hover {
+  background: var(--tua-button-hover) !important;
+}
+
+#tua-panel .tua-variant-nav button:disabled {
+  opacity: .38 !important;
+  cursor: default !important;
+}
+
+#tua-panel .tua-variant-nav span {
+  min-width: 28px;
+  text-align: center;
+}
+
+#tua-panel .tua-mode-picker-buttons button.active {
+  background: var(--tua-room-active-bg) !important;
+  border-color: var(--tua-accent) !important;
+}
+
+/* v4.5.9: room actions use right-click / long-press instead of another visible button */
+#tua-room-context-menu {
+  position: fixed;
+  z-index: 10051;
+  display: none;
+  min-width: 132px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #fffaf0;
+  color: #1d160d;
+  border: 1px solid rgba(134, 96, 36, .22);
+  box-shadow: 0 14px 38px rgba(92, 66, 28, .24);
+}
+
+#tua-room-context-menu.open {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#tua-room-context-menu button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 9px;
+  padding: 4px 7px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: clamp(10px, calc(var(--tua-font-size) - 2px), 14px);
+  line-height: 1.25;
+}
+
+#tua-room-context-menu button:hover { background: #f3dfb9; }
+#tua-room-context-menu button.danger:hover { background: #f2c5a8; }
+#tua-room-context-menu button:disabled,
+#tua-context-menu button:disabled {
+  opacity: .42;
+  cursor: default;
+}
+#tua-context-menu button[hidden] { display: none !important; }
+
+#tua-room-context-menu[data-tua-theme="konggomul"] {
+  background: #fffaf4 !important;
+  color: #2f2116 !important;
+  border-color: rgba(223, 198, 161, .78) !important;
+  box-shadow: 0 14px 38px rgba(128, 87, 45, .18) !important;
+}
+#tua-room-context-menu[data-tua-theme="konggomul"] button:hover { background: #f6dfbd !important; }
+#tua-room-context-menu[data-tua-theme="konggomul"] button.danger:hover { background: #efd2a5 !important; }
+
+#tua-room-context-menu[data-tua-theme="chocoStrawberry"] {
+  background: #fff7f2 !important;
+  color: #3a251b !important;
+  border-color: rgba(212, 163, 144, .82) !important;
+  box-shadow: 0 14px 38px rgba(83, 47, 31, .20) !important;
+}
+#tua-room-context-menu[data-tua-theme="chocoStrawberry"] button:hover { background: #e9beb0 !important; }
+#tua-room-context-menu[data-tua-theme="chocoStrawberry"] button.danger:hover { background: #efc1c4 !important; }
+
+#tua-room-context-menu[data-tua-theme="melonSoda"] {
+  background: #fbfff3 !important;
+  color: #1d2a19 !important;
+  border-color: rgba(171, 199, 149, .82) !important;
+  box-shadow: 0 14px 38px rgba(59, 84, 44, .17) !important;
+}
+#tua-room-context-menu[data-tua-theme="melonSoda"] button:hover { background: #edf7d3 !important; }
+#tua-room-context-menu[data-tua-theme="melonSoda"] button.danger:hover { background: #c7ddab !important; }
+
+#tua-room-context-menu[data-tua-theme="blackWhite"] {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border-color: rgba(189, 189, 189, .82) !important;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .16) !important;
+}
+#tua-room-context-menu[data-tua-theme="blackWhite"] button:hover { background: #eeeeee !important; }
+#tua-room-context-menu[data-tua-theme="blackWhite"] button.danger:hover { background: #dedede !important; }
