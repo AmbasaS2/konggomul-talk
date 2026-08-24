@@ -1,12 +1,14 @@
+import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
+
 /*
- * 🐕 콩고물 톡 v4.5.9
+ * 🐕 콩고물 톡 v4.5.10
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '4.5.9';
+const EXTENSION_VERSION = '4.5.10';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 
@@ -392,6 +394,39 @@ function getCharKey(character = getCurrentCharacter()) {
   if (!character) return 'no-character';
   const raw = character.avatar || character.name || character.data?.name || 'character';
   return String(raw).replace(/[^a-zA-Z0-9가-힣_.-]/g, '_').slice(0, 120);
+}
+
+function getStoredCharacterRoomEntries() {
+  const store = getServerRoomStore();
+  const context = ctx();
+  const characters = Array.isArray(context.characters)
+    ? context.characters
+    : Object.values(context.characters || {});
+  const installedByKey = new Map();
+
+  for (const character of characters) {
+    if (!character) continue;
+    const key = getCharKey(character);
+    const name = getCharName(character);
+    if (!installedByKey.has(key)) installedByKey.set(key, new Set());
+    installedByKey.get(key).add(name);
+  }
+
+  return Object.keys(store).map(key => {
+    const installedNames = installedByKey.get(key);
+    const matched = !!installedNames?.size;
+    const names = matched ? [...installedNames].sort((a, b) => a.localeCompare(b, 'ko')) : [];
+    return {
+      key,
+      matched,
+      label: matched
+        ? `${names.join(' / ')} · ${key}`
+        : `[미매칭 저장 데이터] ${key}`,
+    };
+  }).sort((a, b) => {
+    if (a.matched !== b.matched) return a.matched ? -1 : 1;
+    return a.label.localeCompare(b.label, 'ko');
+  });
 }
 
 
@@ -2423,23 +2458,106 @@ function importCurrentCharacterRooms(e) {
   reader.readAsText(file);
 }
 
-function resetAllRoomsForCurrentCharacter() {
-  if (!confirm('현재 캐릭터의 모든 대화 내역을 초기화하시겠습니까?')) return;
-  const resetAt = Date.now();
-  const deletedRooms = {};
-  const deletedMessages = {};
-  for (const room of roomState.rooms || []) {
-    if (room?.id) deletedRooms[String(room.id)] = resetAt;
-    for (const message of room?.messages || []) {
-      if (message?.id) deletedMessages[String(message.id)] = resetAt;
+function createResetRoomState(sourceState, resetAt = Date.now()) {
+  const preservedVoiceNote = typeof sourceState?.voiceNote === 'string' ? sourceState.voiceNote : '';
+  const room = {
+    id: 'room_' + resetAt + '_' + Math.random().toString(16).slice(2),
+    title: defaultRoomTitle(resetAt, 'kongtalk'),
+    createdAt: resetAt,
+    updatedAt: resetAt,
+    lastMessageAt: 0,
+    mode: 'kongtalk',
+    pinned: false,
+    messages: [],
+  };
+  normalizeKongtalkIntro(room, { ensureIntro: true });
+  return normalizeStoredRoomState({
+    rooms: [room],
+    voiceNote: preservedVoiceNote,
+    resetAt,
+    updatedAt: resetAt,
+    deletedRooms: {},
+    deletedMessages: {},
+  });
+}
+
+async function resetRoomsForCharacterKey(charKey) {
+  const store = getServerRoomStore();
+  if (!Object.hasOwn(store, charKey)) return false;
+
+  const stateIsLoaded = roomStateCharKey === charKey;
+  if (generationInFlight && activeGenerationTask?.requestCharKey === charKey) {
+    await cancelCurrentGeneration({ persist: false, render: false, announce: false });
+  }
+  if (stateIsLoaded) await roomSaveQueue.catch(() => undefined);
+
+  const sourceState = stateIsLoaded ? roomState : store[charKey];
+  const nextState = createResetRoomState(sourceState);
+  if (stateIsLoaded) {
+    roomState = nextState;
+    activeRoomId = nextState.rooms[0]?.id || null;
+  }
+  await persistRoomSnapshot(charKey, nextState);
+
+  if (getCharKey() === charKey) {
+    if (roomStateCharKey !== charKey) await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch });
+    else {
+      renderAll();
+      scrollMessagesToBottom();
     }
   }
-  roomState = { rooms: [], resetAt, deletedRooms, deletedMessages, updatedAt: resetAt };
-  createRoom(false, 'kongtalk', true);
-  saveRooms();
-  renderAll();
-  scrollMessagesToBottom();
-  setStatus('이 캐릭터의 대화를 초기화했습니다.');
+  setStatus('선택한 캐릭터의 대화를 초기화했습니다.');
+  return true;
+}
+
+async function resetAllRoomsForCurrentCharacter() {
+  if (!confirm('현재 캐릭터의 모든 대화 내역을 초기화하시겠습니까?')) return;
+  await resetRoomsForCharacterKey(getCharKey());
+}
+
+async function openStoredCharacterRoomResetPopup() {
+  const entries = getStoredCharacterRoomEntries();
+  if (!entries.length) {
+    alert('초기화할 콩고물 톡 저장 데이터가 없습니다.');
+    return;
+  }
+
+  const content = document.createElement('div');
+  const question = document.createElement('strong');
+  question.textContent = '어떤 캐릭터의 콩고물 톡 대화를 초기화할까요?';
+  const explanation = document.createElement('p');
+  explanation.textContent = '선택한 캐릭터의 모든 방과 메시지가 삭제되고 기본 콩톡 방 1개가 새로 생성됩니다. 캐릭터 말투 메모와 확장 설정·테마·연결 프로필은 유지됩니다.';
+  const select = document.createElement('select');
+  select.className = 'text_pole';
+  select.style.width = '100%';
+  select.style.maxWidth = '100%';
+  select.setAttribute('aria-label', '초기화할 캐릭터');
+  const currentKey = getCharKey();
+  for (const entry of entries) {
+    const option = document.createElement('option');
+    option.value = entry.key;
+    option.textContent = entry.label;
+    option.selected = entry.key === currentKey;
+    select.appendChild(option);
+  }
+  const warning = document.createElement('p');
+  warning.textContent = '다른 기기의 SillyTavern을 닫거나 새로고침한 뒤 진행해 주세요.';
+  content.append(question, explanation, select, warning);
+
+  const popup = new Popup(content, POPUP_TYPE.CONFIRM, null, {
+    okButton: '대화 초기화',
+    cancelButton: '취소',
+    leftAlign: true,
+  });
+  const result = await popup.show();
+  if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+
+  const selectedKey = String(select.value || '');
+  if (!selectedKey || !Object.hasOwn(getServerRoomStore(), selectedKey)) {
+    alert('선택한 캐릭터의 저장 데이터를 찾지 못했습니다. 목록을 다시 열어 주세요.');
+    return;
+  }
+  await resetRoomsForCharacterKey(selectedKey);
 }
 
 function renameRoomById(id) {
@@ -3184,6 +3302,7 @@ function renderSettings() {
         </div>
       </div>
       <div class="tua-global-debug-box">
+        <button type="button" id="tua-reset-character-rooms" class="menu_button tua-debug-settings-button">🗑️ <span>대화 데이터 정리</span></button>
         <button type="button" id="tua-show-debug" class="menu_button tua-debug-settings-button">🐞 <span>디버그 로그</span></button>
         <div id="tua-debug-panel" class="tua-settings-debug-panel" style="display:none;">
           <div class="tua-debug-actions">
@@ -3200,6 +3319,7 @@ function renderSettings() {
   hydrateGlobalSettingsUI({ allowCorrection: false });
   refreshProfiles({ silent: true, persist: false });
   $('#tua-setting-profile').on('change input', readGlobalSettingsUI);
+  $('#tua-reset-character-rooms').on('click', openStoredCharacterRoomResetPopup);
   $('#tua-show-debug').on('click', toggleKonggomulDebugDump);
   $('#tua-copy-debug').on('click', copyKonggomulDebugDump);
   $('#tua-clear-debug').on('click', clearKonggomulDebugDump);
