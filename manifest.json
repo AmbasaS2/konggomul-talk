@@ -5,9 +5,10 @@
   "optional": [],
   "js": "index.js",
   "css": "style.css",
-  "author": "Anonymous",
+  "author": "AmbasaS2",
   "version": "4.5.10",
   "name": "🐕 콩고물 톡",
+  "homePage": "https://github.com/AmbasaS2",
   "auto_update": false,
   "hooks": {
     "activate": "onActivate",
