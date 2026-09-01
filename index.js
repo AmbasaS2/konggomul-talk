@@ -152,7 +152,7 @@ const THEMES = {
 };
 
 const OUTPUT_LANGUAGE_KEYS = new Set(['ko', 'en', 'bilingual']);
-const SENTENCE_COUNT_KEYS = new Set(['auto', '2-5', '6-10', '11-18']);
+const SENTENCE_COUNT_KEYS = new Set(['auto', '1-3', '2-5', '6-10', '11-18']);
 
 function readCssTextVariable(name, fallback) {
   if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return fallback;
@@ -1207,6 +1207,11 @@ English sentence.
 function buildSentenceCountInstruction(includeSentenceCount = true) {
   if (!includeSentenceCount) return '';
   switch (getSettings().sentenceCount) {
+    case '1-3':
+      return `[Selected response sentence count]
+- Use 1–3 sentences for the entire reply.
+- Fit the amount of content to this range.
+- This selected range takes priority over earlier general and role-specific reply-length guidance.`;
     case '2-5':
       return `[Selected response sentence count]
 - Use 2–5 sentences for the entire reply.
@@ -2036,6 +2041,7 @@ function ensurePanel() {
         <label>답변 문장 수
           <select id="tua-panel-sentence-count">
             <option value="auto">자동(기존)</option>
+            <option value="1-3">1~3문장</option>
             <option value="2-5">2~5문장</option>
             <option value="6-10">6~10문장</option>
             <option value="11-18">11~18문장</option>
