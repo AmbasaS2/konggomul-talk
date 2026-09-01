@@ -3612,3 +3612,113 @@ body.tua-panel-resizing-body {
 }
 #tua-room-context-menu[data-tua-theme="blackWhite"] button:hover { background: #eeeeee !important; }
 #tua-room-context-menu[data-tua-theme="blackWhite"] button.danger:hover { background: #dedede !important; }
+
+/* v5.0.0: SillyTavern-linked fifth custom theme.
+   Override these three values in SillyTavern custom CSS when desired. */
+#tua-panel #tua-panel-sentence-count,
+#tua-panel #tua-panel-output-language {
+  box-sizing: border-box !important;
+}
+
+:where(:root) {
+  --tua-custom-theme-name: "커스텀";
+  --tua-custom-main-icon: "🧸";
+  --tua-custom-send-icon: "🤎";
+}
+
+#tua-panel[data-tua-theme="custom"] {
+  --tua-st-bg: rgb(from var(--SmartThemeBlurTintColor) r g b / 1);
+  --tua-st-user: rgb(from var(--SmartThemeUserMesBlurTintColor) r g b / 1);
+  --tua-st-bot: rgb(from var(--SmartThemeBotMesBlurTintColor) r g b / 1);
+  --tua-st-accent: var(--SmartThemeEmColor, var(--SmartThemeUnderlineColor));
+
+  --tua-bg: var(--tua-st-bg) !important;
+  --tua-bg-2: color-mix(in srgb, var(--tua-st-bg) 78%, var(--tua-st-bot) 22%) !important;
+  --tua-card: color-mix(in srgb, var(--tua-st-bg) 62%, var(--tua-st-bot) 38%) !important;
+  --tua-panel-bg-end: var(--tua-st-bg) !important;
+  --tua-line: var(--SmartThemeBorderColor) !important;
+  --tua-text: var(--SmartThemeBodyColor) !important;
+  --tua-muted: var(--SmartThemeQuoteColor, var(--SmartThemeUnderlineColor)) !important;
+  --tua-bubble-text: var(--SmartThemeBodyColor) !important;
+  --tua-user-bubble: var(--tua-st-user) !important;
+  --tua-char-bubble: var(--tua-st-bot) !important;
+  --tua-accent: var(--tua-st-accent) !important;
+  --tua-accent-dark: color-mix(in srgb, var(--tua-st-accent) 74%, var(--SmartThemeBorderColor) 26%) !important;
+
+  --tua-header-a: color-mix(in srgb, var(--tua-st-user) 87%, var(--tua-st-accent) 13%) !important;
+  --tua-header-b: color-mix(in srgb, var(--tua-st-bg) 85%, var(--tua-st-accent) 15%) !important;
+  --tua-header-c: color-mix(in srgb, var(--tua-st-user) 48%, var(--SmartThemeBorderColor) 52%) !important;
+
+  --tua-roombar-bg: color-mix(in srgb, var(--tua-st-bg) 85%, var(--SmartThemeBorderColor) 15%) !important;
+  --tua-room-list-bg: color-mix(in srgb, var(--tua-st-bg) 76%, var(--SmartThemeBorderColor) 24%) !important;
+  --tua-room-item-bg: color-mix(in srgb, var(--tua-st-bg) 72%, var(--tua-st-bot) 28%) !important;
+  --tua-room-active-bg: color-mix(in srgb, var(--tua-st-user) 85%, var(--tua-st-accent) 15%) !important;
+
+  --tua-settings-bg: color-mix(in srgb, var(--tua-st-bg) 72%, var(--tua-st-bot) 28%) !important;
+  --tua-inputbar-bg: color-mix(in srgb, var(--tua-st-bg) 85%, var(--SmartThemeBorderColor) 15%) !important;
+  --tua-input-bg: color-mix(in srgb, var(--tua-st-bg) 40%, var(--tua-st-bot) 60%) !important;
+
+  --tua-button-bg: color-mix(in srgb, var(--tua-st-bg) 72%, var(--tua-st-bot) 28%) !important;
+  --tua-button-hover: color-mix(in srgb, var(--tua-st-user) 90%, var(--tua-st-accent) 10%) !important;
+  --tua-send-bg: color-mix(in srgb, var(--tua-st-user) 68%, var(--tua-st-accent) 32%) !important;
+  --tua-danger-bg: var(--tua-st-user) !important;
+  --tua-danger-color: var(--SmartThemeUnderlineColor) !important;
+
+  --tua-collapsed-bg: color-mix(in srgb, var(--tua-st-accent) 10%, transparent) !important;
+  --tua-collapsed-bg-hover: color-mix(in srgb, var(--tua-st-accent) 18%, transparent) !important;
+  --tua-shadow: color-mix(in srgb, var(--SmartThemeShadowColor, var(--SmartThemeBorderColor)) 8%, transparent) !important;
+
+  --tua-scrollbar-track: color-mix(in srgb, var(--tua-st-bg) 85%, var(--SmartThemeBorderColor) 15%) !important;
+  --tua-scrollbar-thumb: var(--SmartThemeBorderColor) !important;
+  --tua-scrollbar-thumb-hover: color-mix(in srgb, var(--SmartThemeBorderColor) 64%, var(--SmartThemeUnderlineColor) 36%) !important;
+  --tua-scrollbar-arrow: var(--SmartThemeUnderlineColor) !important;
+}
+
+#tua-context-menu[data-tua-theme="custom"],
+#tua-room-context-menu[data-tua-theme="custom"] {
+  background: color-mix(in srgb, rgb(from var(--SmartThemeBlurTintColor) r g b / 1) 72%, rgb(from var(--SmartThemeBotMesBlurTintColor) r g b / 1) 28%) !important;
+  color: var(--SmartThemeBodyColor) !important;
+  border-color: var(--SmartThemeBorderColor) !important;
+  box-shadow: 0 14px 38px color-mix(in srgb, var(--SmartThemeShadowColor, var(--SmartThemeBorderColor)) 18%, transparent) !important;
+}
+
+#tua-context-menu[data-tua-theme="custom"] button,
+#tua-room-context-menu[data-tua-theme="custom"] button {
+  color: var(--SmartThemeBodyColor) !important;
+}
+
+#tua-context-menu[data-tua-theme="custom"] button:hover,
+#tua-room-context-menu[data-tua-theme="custom"] button:hover {
+  background: color-mix(in srgb, rgb(from var(--SmartThemeUserMesBlurTintColor) r g b / 1) 90%, var(--SmartThemeEmColor, var(--SmartThemeUnderlineColor)) 10%) !important;
+}
+
+#tua-context-menu[data-tua-theme="custom"] button.danger:hover,
+#tua-room-context-menu[data-tua-theme="custom"] button.danger:hover {
+  background: rgb(from var(--SmartThemeUserMesBlurTintColor) r g b / 1) !important;
+  color: var(--SmartThemeUnderlineColor) !important;
+}
+
+#tua-panel {
+  --tua-current-intro-icon: "🐕";
+}
+
+#tua-panel
+.tua-msg:is(
+  [data-id^="msg_intro_"],
+  [data-id^="msg_default_intro_"],
+  [data-id^="msg_theme_intro_"]
+):not([data-id^="msg_intro_loading_"])
+.tua-bubble {
+  font-size: 0 !important;
+}
+
+#tua-panel
+.tua-msg:is(
+  [data-id^="msg_intro_"],
+  [data-id^="msg_default_intro_"],
+  [data-id^="msg_theme_intro_"]
+):not([data-id^="msg_intro_loading_"])
+.tua-bubble::after {
+  content: var(--tua-current-intro-icon);
+  font-size: var(--tua-font-size);
+}

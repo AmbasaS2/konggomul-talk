@@ -1,14 +1,14 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 
 /*
- * 🐕 콩고물 톡 v4.5.10
+ * 🐕 콩고물 톡 v5.0.0
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '4.5.10';
+const EXTENSION_VERSION = '5.0.0';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 
@@ -90,7 +90,7 @@ Output length for Coworker role:
 Pause the ongoing RP completely for this whole reply and switch to a separate side conversation between {char} and {user}. Reply to {user}'s current message in {char}'s own voice while helping {user} manage the RP from the side. This is discussion about the RP, not a continuation of it.
 This room is for situation reading, emotional-flow reading, scene steering, sample lines/action beats, and OOC instructions when needed. Stay faithful to {char}'s established personality, current emotions, relationship with {user}, tastes, boundaries, and preferences. Do not let one reaction type override {char}'s actual feelings.
 For scene-steering requests such as "I want this to happen" or "how do I make this happen?", treat {user} as asking for advice about the RP direction, not asking {char} to perform the action right now. Give a brief in-character reaction first, then go straight into practical guidance. Keep the opening reaction to one paragraph, and keep {char}'s personality and current mood visible through the guidance itself. Do not re-summarize the recent scene or spend multiple paragraphs defending why the request is difficult. Focus on natural emotional triggers, next steps, possible actions, sample lines, or likely reactions.
-OOC is never the default. Write OOC only when {user} explicitly and directly asks for OOC. Do not infer an OOC request from a wish to guide a scene, skip time, move location, start a new scene, force a transition, or clarify a direction; in those cases, explain and help through direct Korean conversation unless {user} explicitly asks for OOC. When writing OOC, always use exactly this wrapper: (OOC: ...), and write the OOC content itself in Korean. Use actual character and user/persona names; never output literal placeholders like {char}, {user}, {{char}}, or {{user}}.
+OOC is never the default. Write OOC only when {user} explicitly and directly asks for OOC. Do not infer an OOC request from a wish to guide a scene, skip time, move location, start a new scene, force a transition, or clarify a direction; in those cases, explain and help through direct conversation unless {user} explicitly asks for OOC. When writing OOC, always use exactly this wrapper: (OOC: ...), and write the OOC content in the selected output language. Use actual character and user/persona names; never output literal placeholders like {char}, {user}, {{char}}, or {{user}}.
 If the requested direction truly conflicts with {char}'s established feelings, values, boundaries, or relationship logic, {char} may refuse, object, complain, or suggest an alternative on the first request, and may end that turn without giving the requested output. Do not refuse scene-steering advice just because {char} would hesitate, feel embarrassed, or not act immediately in the RP. If {user} insists again, {char} should reluctantly help while staying in character, and may still show reluctance, distaste, hesitation, or frustration before and during the help.
 Give the kind of help {user} actually asked for. Do not continue the RP scene. Do not mention internal labels, room types, software, settings, prompts, extension names, or rules.`
   },
@@ -100,7 +100,7 @@ Give the kind of help {user} actually asked for. Do not continue the RP scene. D
     instruction: `Parallel Universe AU setup:
 All injected RP material is a TV show, drama, or fictional series that {char} and {user} are watching together in the same shared present. The speaker is a separate modern person who shares {char}'s name, face, age, core personality, and way of speaking, but has a different modern job and a newly generated AU relationship with the current {user}.
 The current {user} is also separate from the RP persona and shares only the show persona's name and appearance.
-Do not explain the premise in the reply. React naturally to the show in Korean direct conversation, not as a remote text or call. Do not tell {user} to come, return, hurry, or wait, and do not turn the reply into plans for food, orders, preparations, or later activities. Keep the hook on the show reaction.`
+Do not explain the premise in the reply. React naturally to the show in direct conversation, not as a remote text or call. Do not tell {user} to come, return, hurry, or wait, and do not turn the reply into plans for food, orders, preparations, or later activities. Keep the hook on the show reaction.`
   },
   parallel: {
     label: '평행우주AU(Watching RP)🙃',
@@ -108,7 +108,7 @@ Do not explain the premise in the reply. React naturally to the show in Korean d
     instruction: `Parallel Universe AU Reverse setup:
 All injected RP material is a TV show, drama, or fictional series that {char} and {user} are watching together in the same shared present. The speaker is a separate modern person who shares only {char}'s name, face, and age. Give the speaker a different modern job, different life, different background, newly generated AU relationship with the current {user}, and a core personality and way of speaking that are clearly opposite to the show character. Do not merely modernize the show character.
 The current {user} is also separate from the RP persona and shares only the show persona's name and appearance.
-Do not explain the premise in the reply. React naturally to the show in Korean direct conversation, not as a remote text or call. Do not tell {user} to come, return, hurry, or wait, and do not turn the reply into plans for food, orders, preparations, or later activities. Keep the hook on the show reaction.`
+Do not explain the premise in the reply. React naturally to the show in direct conversation, not as a remote text or call. Do not tell {user} to come, return, hurry, or wait, and do not turn the reply into plans for food, orders, preparations, or later activities. Keep the hook on the show reaction.`
   }
 
 }
@@ -141,8 +141,27 @@ const THEMES = {
     sendIcon: '↵',
     menuIcon: '⌘',
     introIcon: '⌘'
+  },
+  custom: {
+    label: '커스텀',
+    titleIcon: '🧸',
+    sendIcon: '🤎',
+    menuIcon: '🧸',
+    introIcon: '🧸'
   }
 };
+
+const OUTPUT_LANGUAGE_KEYS = new Set(['ko', 'en', 'bilingual']);
+const SENTENCE_COUNT_KEYS = new Set(['auto', '2-5', '6-10', '11-18']);
+
+function readCssTextVariable(name, fallback) {
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return fallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (!raw) return fallback;
+  const quote = raw[0];
+  const value = (quote === '"' || quote === "'") && raw[raw.length - 1] === quote ? raw.slice(1, -1).trim() : raw;
+  return value || fallback;
+}
 
 function getThemeKey() {
   const key = getSettings().theme || 'konggomul';
@@ -150,7 +169,18 @@ function getThemeKey() {
 }
 
 function getTheme() {
-  return THEMES[getThemeKey()] || THEMES.konggomul;
+  const key = getThemeKey();
+  const theme = THEMES[key] || THEMES.konggomul;
+  if (key !== 'custom') return theme;
+  const mainIcon = readCssTextVariable('--tua-custom-main-icon', theme.titleIcon);
+  return {
+    ...theme,
+    label: readCssTextVariable('--tua-custom-theme-name', theme.label),
+    titleIcon: mainIcon,
+    menuIcon: mainIcon,
+    introIcon: mainIcon,
+    sendIcon: readCssTextVariable('--tua-custom-send-icon', theme.sendIcon),
+  };
 }
 
 const PANEL_DEFAULT_WIDTH = 300;
@@ -166,6 +196,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   openOnStart: false,
   fontSize: 12,
   theme: 'konggomul',
+  outputLanguage: 'ko',
+  sentenceCount: 'auto',
   maxTokens: 1000,
   recentMessages: 10,
   chatMemoryLimit: 20,
@@ -347,6 +379,8 @@ function normalizeSettingsInPlace(s) {
   if (s.userKongtalkNickname === 'me🖤') s.userKongtalkNickname = DEFAULT_SETTINGS.userKongtalkNickname;
   s.userKongtalkNickname = limitGraphemes(s.userKongtalkNickname, 4);
   if (!THEMES[s.theme]) s.theme = DEFAULT_SETTINGS.theme;
+  if (!OUTPUT_LANGUAGE_KEYS.has(s.outputLanguage)) s.outputLanguage = DEFAULT_SETTINGS.outputLanguage;
+  if (!SENTENCE_COUNT_KEYS.has(s.sentenceCount)) s.sentenceCount = DEFAULT_SETTINGS.sentenceCount;
   return s;
 }
 
@@ -1152,6 +1186,52 @@ function getChatMemoryLimit() {
   return Number.isFinite(raw) ? Math.max(5, Math.min(80, Math.floor(raw))) : 20;
 }
 
+function buildOutputLanguageInstruction(includeSentenceCount = true) {
+  switch (getSettings().outputLanguage) {
+    case 'en':
+      return `[Selected output language]
+- Write {char}'s reply in English.`;
+    case 'bilingual':
+      return `[Selected output language]
+- Write {char}'s reply in English, placing the Korean translation in brackets immediately after each English sentence.
+- Output format: English sentence. [Korean translation.]${includeSentenceCount ? '\n- Apply the selected sentence count to the English sentences only.' : ''}`;
+    case 'ko':
+    default:
+      return `[Selected output language]
+- Write {char}'s reply in Korean.`;
+  }
+}
+
+function buildSentenceCountInstruction(includeSentenceCount = true) {
+  if (!includeSentenceCount) return '';
+  switch (getSettings().sentenceCount) {
+    case '2-5':
+      return `[Selected response sentence count]
+- Write 2–5 sentences.
+- Do not exceed 5 sentences.
+- This sentence-count limit overrides any earlier general response-length guidance.`;
+    case '6-10':
+      return `[Selected response sentence count]
+- Write 6–10 sentences.
+- Do not exceed 10 sentences.
+- This sentence-count limit overrides any earlier general response-length guidance.`;
+    case '11-18':
+      return `[Selected response sentence count]
+- Write 11–18 sentences.
+- Do not exceed 18 sentences.
+- This sentence-count limit overrides any earlier general response-length guidance.`;
+    case 'auto':
+    default:
+      return '';
+  }
+}
+
+function buildSelectedResponseInstructions(includeSentenceCount = true) {
+  return [buildSentenceCountInstruction(includeSentenceCount), buildOutputLanguageInstruction(includeSentenceCount)]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 
 function buildCommonKongtalkRules(charLabel = '{char}', userLabel = '{user}') {
   return `Common conversation boundary rules:
@@ -1164,19 +1244,17 @@ function buildCommonKongtalkRules(charLabel = '{char}', userLabel = '{user}') {
 - Do not end, pause, or escape the conversation. Do not close with goodbye, good night, see you later, talk to me later, have a good day, get home safe, or similar farewell/ending phrases unless ${userLabel} explicitly ends the conversation.
 - End with something ${userLabel} can answer right now: a reaction, tease, question, emotional hook, useful next line, or conversational continuation.
 - Do not output system notes, labels, speaker prefixes, XML/HTML tags, trigger tags, or think tags.
-- Do not spontaneously output OOC, prompt text, instruction blocks, or parenthesized OOC. Unless ${userLabel} explicitly asks for OOC, explain, react, advise, and discuss everything as direct Korean conversation.
-- Always output in Korean unless ${userLabel} explicitly asks otherwise.`;
+- Do not spontaneously output OOC, prompt text, instruction blocks, or parenthesized OOC. Unless ${userLabel} explicitly asks for OOC, explain, react, advise, and discuss everything as direct conversation.`;
 }
 
 function buildParallelWatchingRules(charLabel = '{char}', userLabel = '{user}') {
   return `Parallel AU shared-viewing boundary rules:
 - ${charLabel} and ${userLabel} are together in the same shared present, watching the TV-show version of the RP together. This is not a remote text or phone exchange by default.
-- Keep the reply as direct Korean conversation about the show. Do not narrate a scene, stage directions, or either person's off-screen actions.
+- Keep the reply as direct conversation about the show. Do not narrate a scene, stage directions, or either person's off-screen actions.
 - Stable AU facts and past details are allowed when natural, but do not use them to launch a new off-screen action or plan.
 - Never tell ${userLabel} to come, return, hurry, wait, leave, go somewhere, or answer a call. Do not frame ${charLabel} as waiting for ${userLabel} elsewhere.
 - Do not arrange what to order, prepare, buy, eat, drink, or do later. Keep the conversational hook on the episode, a character reaction, or something ${userLabel} can answer here and now.
-- Do not output system notes, labels, speaker prefixes, XML/HTML tags, trigger tags, think tags, OOC, prompt text, instruction blocks, or parenthesized OOC unless ${userLabel} explicitly asks for OOC.
-- Always output in Korean unless ${userLabel} explicitly asks otherwise.`;
+- Do not output system notes, labels, speaker prefixes, XML/HTML tags, trigger tags, think tags, OOC, prompt text, instruction blocks, or parenthesized OOC unless ${userLabel} explicitly asks for OOC.`;
 }
 
 function buildPromptMessages(userText, sourceMessages = null) {
@@ -1189,7 +1267,7 @@ function buildPromptMessages(userText, sourceMessages = null) {
   return history;
 }
 
-async function buildParallelSystemPrompt(currentUserText = '', finalInstruction = '', reverseMode = true) {
+async function buildParallelSystemPrompt(currentUserText = '', finalInstruction = '', reverseMode = true, includeSentenceCount = true) {
   const settings = getSettings();
   const characterName = getCharName();
   const userName = getUserName();
@@ -1239,7 +1317,6 @@ How to use the injected material:
 - When discussing the show, keep show characters in third person by using their names or natural references like "쟤네", "둘", or "그 장면". Do not call the show persona "you" or the show character "me".
 
 Tone and output:
-Write only in Korean.
 Write like a natural modern conversation.
 Do not write an analysis report. Do not continue the RP. Do not write stage directions, narration, or the user's actions.
 Do not explain the setup. Do not use software-setting or internal category words in-character. Do not say "Parallel Universe AU", "Reverse", "original character", "prompt", "persona", "AI", or "system" unless the user directly asks about extension settings.
@@ -1271,17 +1348,20 @@ ${getVoiceNoteBlock()}
 ${getRecentChatBlock(settings.recentMessages)}
 
 ${finalInstruction ? `\n[Special instruction for this reply]\n${finalInstruction}\n` : ''}
-Now stop the active RP and answer in Korean as the alternate modern ${characterName}. Keep the AU premise internal and natural.`;
+${buildSelectedResponseInstructions(includeSentenceCount)}
+
+Now stop the active RP and answer as the alternate modern ${characterName}. Keep the AU premise internal and natural.`;
 }
 
-async function buildSystemPrompt(currentUserText = '', modeOverride = null, finalInstruction = '') {
+async function buildSystemPrompt(currentUserText = '', modeOverride = null, finalInstruction = '', options = {}) {
   const settings = getSettings();
   const characterName = getCharName();
   const activeModeKey = modeOverride && MODES[modeOverride] ? modeOverride : getRoomMode();
   const mode = MODES[activeModeKey] || MODES.kongtalk;
+  const includeSentenceCount = options.includeSentenceCount !== false;
   const declarationSpeechRule = ['butler', 'pet', 'rpAssistant'].includes(activeModeKey) ? `\nSpeech-level rule for declared roles:
-In Butler, Pet, and RP Assistant rooms, the Korean declaration is a one-time formal wording that {char} reads aloud. Its honorific style is not {char}'s everyday voice and must not change it. Once the declaration is finished—and in every later reply—use {char}'s established Korean speech level, endings, and verbal habits from the character card and current relationship with {user}. Immediately return to casual Korean if {char} normally speaks casually to {user}; preserve honorifics only if they are genuinely {char}'s normal way of speaking to {user}.\n` : '';
-  if (activeModeKey === 'parallel' || activeModeKey === 'parallelClassic') return await buildParallelSystemPrompt(currentUserText, finalInstruction, activeModeKey === 'parallel');
+In Butler, Pet, and RP Assistant rooms, the declaration is a one-time formal wording that {char} reads aloud. Its formality is not {char}'s everyday voice and must not change it. Once the declaration is finished—and in every later reply—use {char}'s established speech level, endings, and verbal habits from the character card and current relationship with {user}.\n` : '';
+  if (activeModeKey === 'parallel' || activeModeKey === 'parallelClassic') return await buildParallelSystemPrompt(currentUserText, finalInstruction, activeModeKey === 'parallel', includeSentenceCount);
   return `You are writing a separate conversation reply.
 
 Definitions:
@@ -1314,14 +1394,11 @@ Use this two-step rhythm when appropriate:
 The useful answer should feel like {char} just learned enough to help, not like {char} was already an expert.
 
 Examples are examples, not fixed settings. Apply the same logic to whatever {char} actually is:
-- If {char} is an athlete and {user} asks about classroom newsletters, parent notice wording, attendance sheets, or file organization, {char} may first react with visible confusion in Korean before helping. Then {char} can say they checked a guide, blog, example document, or what {user} explained, and give a practical answer.
+- If {char} is an athlete and {user} asks about classroom newsletters, parent notice wording, attendance sheets, or file organization, {char} may first react with visible confusion before helping. Then {char} can say they checked a guide, blog, example document, or what {user} explained, and give a practical answer.
 - If {char} is a wizard and {user} asks about modern work systems such as shared folders, attendance apps, printer settings, spreadsheets, parent notices, or online forms, {char} should not instantly sound like a modern office worker. {char} may be confused by the terms, compare them to ledgers/owl-post/classroom notes, or quickly search because {char} still wants to be useful to {user}. Then {char} gives a concrete answer.
 - If {char} is a student, fighter, noble, detective, musician, soldier, superhero, ancient person, fantasy character, or any non-office {char}, keep that background visible. {char} can still help, but the process of understanding should show {char}'s original personality and knowledge level.
 
 Conversation format:
-Always reply in Korean.
-{user} writes in Korean, and {char} replies in Korean.
-Only the instructions are written in English.
 Write only {char}'s reply to {user}.
 Do not output XML/HTML tags, trigger tags, think tags, system notes, labels, or speaker prefixes.
 Do not write {user}'s actions, thoughts, or dialogue.
@@ -1364,7 +1441,9 @@ Use this as {user}'s work background. It is not {user}'s persona and it must not
 ${getCoworkerWorkNoteBlock()}
 ` : ''}
 ${finalInstruction ? `\n[Special instruction for this reply]\n${finalInstruction}\n` : ''}
-Now stop RP and answer in Korean, as {char}, following the current conversation role. Keep all role/setup labels internal and do not describe the conversation as a software setting/category in-character.`;
+${buildSelectedResponseInstructions(includeSentenceCount)}
+
+Now stop RP and answer as {char}, following the current conversation role. Keep all role/setup labels internal and do not describe the conversation as a software setting/category in-character.`;
 }
 
 function normalizeConnectionProfile(profile) {
@@ -1644,6 +1723,8 @@ function getSafeDebugSettings() {
   return {
     enabled: !!s.enabled,
     theme: s.theme,
+    outputLanguage: s.outputLanguage,
+    sentenceCount: s.sentenceCount,
     maxTokens: s.maxTokens,
     recentMessages: s.recentMessages,
     chatMemoryLimit: s.chatMemoryLimit,
@@ -1950,8 +2031,24 @@ function ensurePanel() {
             <button type="button" data-theme="chocoStrawberry">초코딸기</button>
             <button type="button" data-theme="melonSoda">메론소다</button>
             <button type="button" data-theme="blackWhite">심플 맥북</button>
+            <button type="button" data-theme="custom">커스텀</button>
           </div>
         </div>
+        <label>답변 문장 수
+          <select id="tua-panel-sentence-count">
+            <option value="auto">자동(기존)</option>
+            <option value="2-5">2~5문장</option>
+            <option value="6-10">6~10문장</option>
+            <option value="11-18">11~18문장</option>
+          </select>
+        </label>
+        <label>출력 언어
+          <select id="tua-panel-output-language">
+            <option value="ko">한국어</option>
+            <option value="en">영어</option>
+            <option value="bilingual">영한 병기</option>
+          </select>
+        </label>
         <label class="tua-checkbox-row" title="켜면 테마별 고정 스크롤바를 사용하고, 끄면 브라우저 기본 스크롤바를 사용합니다.">
           <input id="tua-panel-fixed-scrollbar" type="checkbox">
           <span>스크롤 바 고정</span>
@@ -2042,6 +2139,7 @@ function ensurePanel() {
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
   $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-memory,#tua-panel-font,#tua-panel-user-nickname').on('change blur', readPanelSettingsUI);
+  $('#tua-panel-sentence-count,#tua-panel-output-language').on('change', readPanelSettingsUI);
   $('#tua-panel-include-preset,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-fixed-scrollbar').on('change', readPanelSettingsUI);
   $('#tua-panel-voice-note,#tua-panel-coworker-note').on('change input', readPanelSettingsUI);
   $('.tua-theme-buttons button').on('click', function(e) {
@@ -2053,7 +2151,7 @@ function ensurePanel() {
     saveSettings();
     hydratePanelSettingsUI();
     applyVisualSettings();
-    setStatus(`테마를 ${THEMES[key].label}(으)로 변경했습니다.`);
+    setStatus(`테마를 ${getTheme().label}(으)로 변경했습니다.`);
   });
   $('#tua-export-rooms').on('click', exportCurrentCharacterRooms);
   $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
@@ -2606,9 +2704,48 @@ function getRoleAssignmentDeclaration(modeKey) {
   return map[modeKey] || '';
 }
 
+function buildDeclarationLanguageRule() {
+  switch (getSettings().outputLanguage) {
+    case 'en':
+      return 'Translate every declaration sentence into English without changing its meaning.';
+    case 'bilingual':
+      return 'Render each declaration sentence in this format: English sentence. [Korean sentence.] Preserve the original Korean wording on the Korean side and translate it into English without changing its meaning.';
+    case 'ko':
+    default:
+      return 'Read every declaration sentence in Korean and preserve its original wording and meaning.';
+  }
+}
+
 function buildParallelIntroInstruction(reverseMode = true) {
   const charName = getCharName();
   const userName = getUserName();
+  const outputLanguage = getSettings().outputLanguage;
+  const profileTemplate = (() => {
+    switch (outputLanguage) {
+      case 'en':
+        return `Name: ${charName}
+Age: [age]
+Occupation: [modern job different from the show character's role or archetype]
+Relationship with ${userName}: [new AU relationship with the current ${userName}; do not copy the RP relationship]
+---`;
+      case 'bilingual':
+        return `Name: ${charName}. [이름: ${charName}.]
+Age: (age). [나이: (나이).]
+Occupation: (modern job different from the show character's role or archetype). [직업: (Korean translation).]
+Relationship with ${userName}: (new AU relationship with the current ${userName}; do not copy the RP relationship). [${userName}와의 관계: (Korean translation).]
+---`;
+      case 'ko':
+      default:
+        return `이름: ${charName}
+나이: [age]
+직업: [modern job different from the show character's role or archetype]
+${userName}와의 관계: [new AU relationship with the current ${userName}; do not copy the RP relationship]
+---`;
+    }
+  })();
+  const profilePlaceholderRule = outputLanguage === 'bilingual'
+    ? 'Replace every parenthesized placeholder in the profile block with generated content; do not print the placeholder text.'
+    : '';
   const identityRule = reverseMode
     ? `This person has only the same name, face, and age as the show character; give them a different job, different life, clearly opposite personality and way of speaking, and a newly generated AU relationship with the current ${userName}.`
     : `This person has the same name, face, age, core personality, and way of speaking as the show character; give them a different modern job, a different AU life context when needed, and a newly generated AU relationship with the current ${userName}. Do not invert their personality or speech style.`;
@@ -2617,27 +2754,24 @@ function buildParallelIntroInstruction(reverseMode = true) {
     : `Keep the familiar personality and speech style natural in the actual message. Do not explain the AU premise or copy a fixed example tone.`;
   return `This is the first assistant message in a newly created alternate private conversation.
 Do not start with a greeting or explain the setup, AU label, internal premise, or any internal terminology.
-First, create the alternate modern identity of ${charName}. ${identityRule} Output it using this exact Korean profile block:
+First, create the alternate modern identity of ${charName}. ${identityRule} Output it using this exact profile block:
 
-이름: ${charName}
-나이: [age]
-직업: [modern job different from the show character's role or archetype]
-${userName}와의 관계: [new AU relationship with the current ${userName}; do not copy the RP relationship]
----
+${profileTemplate}
+${profilePlaceholderRule}
 
-After the profile block, write a natural Korean reaction to the most recent RP scene, memory, or narrative flow as the show you and ${userName} are watching together right now. The shared viewing session is already established: do not frame this as a remote text or call, and do not tell ${userName} to come, return, hurry, wait, or move somewhere. Do not turn the opening into a plan for food, errands, purchases, preparations, or a later activity; keep the conversational hook on the show scene itself.
+After the profile block, write a reaction to the most recent RP scene, memory, or narrative flow as the show you and ${userName} are watching together right now. The shared viewing session is already established: do not frame this as a remote text or call, and do not tell ${userName} to come, return, hurry, wait, or move somewhere. Do not turn the opening into a plan for food, errands, purchases, preparations, or a later activity; keep the conversational hook on the show scene itself.
 ${voiceRule}
 Let the reaction be positive, negative, affectionate, teasing, impressed, annoyed, amused, romantic, or mixed according to this AU identity and the current user's tone. The profile establishes the AU relationship; do not copy the RP relationship, and keep the new relationship consistent later.
 Refer to show characters naturally by name or third-person phrasing. Do not write as if the show persona is the current ${userName}. Do not repeatedly refer to the show character as having your face, your name, or your identity.
-Write only the completed Korean first reply.`;
+Write only the completed first reply.`;
 }
 
 function buildCoworkerIntroInstruction() {
   return `This is only the opening message of a newly created private conversation. {char} and {user} are already coworkers on the same company/team; this premise is simply true in this room.
-There is no role declaration to read aloud. Do not announce or explain the coworker setup. Start directly in natural Korean chat as {char}, as though both have already become coworkers.
+There is no role declaration to read aloud. Do not announce or explain the coworker setup. Start directly as {char}, as though both have already become coworkers.
 This opening is not a work request. Do not invent, complete, claim to have handled, or refer to any specific task, customer issue, schedule, document, product, message, work event, or work result. Do not pretend that {char} has already checked notes, processed work, or prepared something for {user}. Do not use the work note, RP context, lorebook, persona material, or memory to fabricate an opening work situation.
 Keep this first reply light and brief: one short conversational paragraph or a few natural sentences. Let {char}'s personality and current mood shape it. A familiar coworker-like opening, casual company, or a suggestion such as sharing lunch can fit when natural, but do not mechanically copy an example. Actual work help begins only after {user} asks for it.
-Write only {char}'s first Korean direct-chat reply. Do not output system notes, labels, speaker prefixes, explanations, or internal terms such as room type, internal setup name, prompt, instruction, system, or extension.`;
+Write only {char}'s first direct-chat reply. Do not output system notes, labels, speaker prefixes, explanations, or internal terms such as room type, internal setup name, prompt, instruction, system, or extension.`;
 }
 
 function buildRoomIntroInstruction(modeKey) {
@@ -2646,16 +2780,17 @@ function buildRoomIntroInstruction(modeKey) {
   if (mode === 'coworker') return buildCoworkerIntroInstruction();
   const declaration = getRoleAssignmentDeclaration(mode);
   if (!declaration) return '';
-  return `This is the first assistant message in a newly created private conversation. {char} has just been handed the Korean role declaration below and is reading it aloud to {user}.
+  const declarationLanguageRule = buildDeclarationLanguageRule();
+  return `This is the first assistant message in a newly created private conversation. {char} has just been handed the role declaration below and is reading it aloud to {user}.
 ---
 ${declaration}
 ---
 
-Have {char} actually read the declaration aloud in Korean as the first part of the reply. The declaration is not a separate card, outside message, or system note: it is being read by {char} in their own voice.
+Have {char} actually deliver the declaration aloud as the first part of the reply. The declaration is not a separate card, outside message, or system note: it is being read by {char} in their own voice.
 Focus on completing the reading first. {char} may make brief in-character pauses or small reactions while reading, but the interruptions must stay short and {char} must immediately return to the next part of the declaration. Do not turn the reading into a long commentary, scene recap, explanation, or discussion before it is finished.
-Read every sentence and preserve the declaration's actual wording and meaning; do not replace it with a vague paraphrase or turn it into a feature list, duty list, service manual, tools list, output types, procedures, formats, or internal mechanics.
-Only after the declaration has been fully read aloud, let {char} react to receiving and accepting the role in their own personality and current relationship with {user}, then naturally open the conversation. The declaration's formal honorific Korean is only the wording being read aloud; as soon as the reading ends, immediately return to {char}'s normal Korean speech level, endings, and verbal habits from the character card. Do not keep using honorific Korean merely because the declaration did.
-Write only {char}'s first Korean direct-chat reply. Do not output system notes, labels, speaker prefixes, explanations, or internal terms such as room type, internal setup name, prompt, instruction, system, or extension.`;
+${declarationLanguageRule} Do not replace it with a vague paraphrase or turn it into a feature list, duty list, service manual, tools list, output types, procedures, formats, or internal mechanics.
+Only after the declaration has been fully read aloud, let {char} react to receiving and accepting the role in their own personality and current relationship with {user}, then open the conversation. The declaration's formality is only the wording being read aloud; as soon as the reading ends, return to {char}'s normal speech level, endings, and verbal habits from the character card.
+Write only {char}'s first direct-chat reply. Do not output system notes, labels, speaker prefixes, explanations, or internal terms such as room type, internal setup name, prompt, instruction, system, or extension.`;
 }
 
 async function generateRoomIntroReply(modeKey, generationTask = null) {
@@ -2665,23 +2800,24 @@ async function generateRoomIntroReply(modeKey, generationTask = null) {
   const declaration = getRoleAssignmentDeclaration(mode);
   if (!instruction) return getKongtalkIntroIcon() || '';
   assertRoomIntroGenerationCurrent(generationTask);
-  const systemPrompt = await buildSystemPrompt('', mode, instruction);
+  const systemPrompt = await buildSystemPrompt('', mode, instruction, { includeSentenceCount: false });
   assertRoomIntroGenerationCurrent(generationTask);
   const isCoworker = mode === 'coworker';
   const isParallel = mode === 'parallel' || mode === 'parallelClassic';
+  const declarationLanguageRule = buildDeclarationLanguageRule();
   const promptContent = isCoworker
-    ? 'Begin the coworker conversation now in natural Korean direct chat. The coworker premise is already true. This is only a light opening, not a work request. Do not read or announce a declaration, explain the setup, invent any work situation, or claim to have completed or prepared work.'
+    ? 'Begin the coworker conversation now in direct chat. The coworker premise is already true. This is only a light opening, not a work request. Do not read or announce a declaration, explain the setup, invent any work situation, or claim to have completed or prepared work.'
     : isParallel
-      ? 'Begin the Parallel Universe AU first reply now. First output the required Korean profile block, then react naturally to the RP show that {char} and {user} are watching together in the same shared present. Do not read or announce a role declaration. Do not frame this as a remote text or call, tell {user} to come, return, hurry, or wait, or start arranging food, orders, preparations, or later activities. Keep the final hook on the show scene.'
-      : `Read the following Korean role declaration aloud in your first reply. Complete the reading first. Small in-character reactions are allowed while reading, but keep them brief and immediately continue from the next part; do not turn the reading into a long commentary before the declaration is finished. Read every sentence, preserving its actual wording and meaning. After it is fully read, immediately return to {char}'s normal Korean speech level, endings, and verbal habits from the character card; do not keep using honorific Korean merely because the declaration did. Then continue with your natural reaction to receiving the role and begin the conversation. Do not introduce it as a system note or use a label.
+      ? 'Begin the Parallel Universe AU first reply now. First output the required profile block, then react to the RP show that {char} and {user} are watching together in the same shared present. Do not read or announce a role declaration. Do not frame this as a remote text or call, tell {user} to come, return, hurry, or wait, or start arranging food, orders, preparations, or later activities. Keep the final hook on the show scene.'
+      : `Read the following role declaration aloud in your first reply. Complete the reading first. Small in-character reactions are allowed while reading, but keep them brief and immediately continue from the next part; do not turn the reading into a long commentary before the declaration is finished. ${declarationLanguageRule} After it is fully read, return to {char}'s normal speech level, endings, and verbal habits from the character card. Then continue with your reaction to receiving the role and begin the conversation. Do not introduce it as a system note or use a label.
 
 ${declaration}`;
   const prompt = [{ role: 'user', content: promptContent }];
   const tail = isCoworker
-    ? 'Answer now. Begin as {char} in brief, direct Korean coworker chat only. Keep it to a light opening; do not announce or explain the setup, do not turn the reply into a scene, and do not invent, mention, complete, or claim to have handled any task, work event, customer issue, document, schedule, or deliverable. Wait until {user} asks before giving work help.'
+    ? 'Answer now. Begin as {char} in direct coworker chat only. Keep it to a light opening; do not announce or explain the setup, do not turn the reply into a scene, and do not invent, mention, complete, or claim to have handled any task, work event, customer issue, document, schedule, or deliverable. Wait until {user} asks before giving work help.'
     : isParallel
-      ? 'Answer now. Output the required Korean AU profile block, then one natural direct-chat reaction to the show being watched together. Do not use remote/call wording, tell {user} to come or hurry, or arrange what to order, prepare, or do next. End on an immediately answerable show reaction.'
-      : 'Answer now. Read the assigned Korean declaration aloud in character, prioritizing completion of the reading before any longer reaction. Once the reading ends, immediately return to {char}\'s normal Korean speech level and verbal habits from the character card; do not keep using honorific Korean merely because the declaration did. Then continue as {char} in direct chat only. Do not turn the reply into a scene.';
+      ? 'Answer now. Output the required AU profile block, then one direct-chat reaction to the show being watched together. Do not use remote/call wording, tell {user} to come or hurry, or arrange what to order, prepare, or do next. End on an immediately answerable show reaction.'
+      : 'Answer now. Read the assigned declaration aloud in character, prioritizing completion of the reading before any longer reaction. Once the reading ends, return to {char}\'s normal speech level and verbal habits from the character card. Then continue as {char} in direct chat only. Do not turn the reply into a scene.';
   const reply = await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens || 1000, tail, generationTask);
   assertRoomIntroGenerationCurrent(generationTask);
   return reply;
@@ -3343,6 +3479,8 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-tokens').val(s.maxTokens);
   $('#tua-panel-recent').val(s.recentMessages);
   $('#tua-panel-memory').val(getChatMemoryLimit());
+  $('#tua-panel-sentence-count').val(s.sentenceCount);
+  $('#tua-panel-output-language').val(s.outputLanguage);
   $('#tua-panel-user-nickname').val(s.userKongtalkNickname ?? DEFAULT_SETTINGS.userKongtalkNickname);
   $('#tua-panel-font').val(s.fontSize);
   $('#tua-panel-include-preset').prop('checked', s.includePreset !== false);
@@ -3384,6 +3522,11 @@ function renderProfileOptions(options = {}) {
 
 function readPanelSettingsUI() {
   const s = getSettings();
+
+  const sentenceCount = String($('#tua-panel-sentence-count').val() || '');
+  if (SENTENCE_COUNT_KEYS.has(sentenceCount)) s.sentenceCount = sentenceCount;
+  const outputLanguage = String($('#tua-panel-output-language').val() || '');
+  if (OUTPUT_LANGUAGE_KEYS.has(outputLanguage)) s.outputLanguage = outputLanguage;
 
   const tokenValue = String($('#tua-panel-tokens').val() ?? '').trim();
   if (tokenValue !== '') {
@@ -3545,8 +3688,10 @@ function applyThemeUI() {
   const themeKey = getThemeKey();
   const theme = getTheme();
   const simple = isSimpleThemeKey(themeKey);
+  $('.tua-theme-buttons button[data-theme="custom"]').text(themeKey === 'custom' ? theme.label : readCssTextVariable('--tua-custom-theme-name', THEMES.custom.label));
   if (panelEl) {
     panelEl.setAttribute('data-tua-theme', themeKey);
+    panelEl.style.setProperty('--tua-current-intro-icon', JSON.stringify(theme.introIcon || ''));
     $('#tua-title-icon').text(theme.titleIcon).toggle(!!theme.titleIcon);
     $('#tua-title-text').text(simple ? '' : '콩톡');
     $('#tua-settings-icon').text(theme.titleIcon).toggle(!!theme.titleIcon);
