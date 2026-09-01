@@ -23,9 +23,9 @@ The core priority is that {char} replies as {char}: preserve {char}'s personalit
 Do not turn the reply into a generic helper voice. Do not over-polish. Keep {char}'s personality and current mood visible throughout the whole reply, including any practical help or explanation. Make it feel like {char} is directly talking with {user}.
 
 Output length for Kongtalk conversation:
-- Give a satisfying reply in a natural conversational rhythm, with real reaction, character-specific commentary, and enough substance.
-- If {user} asks a question, shares a worry, requests an opinion, or wants help thinking, use enough of the token budget to answer properly while still sounding like {char}.
-- Casual does not mean shallow. Conversational style means natural rhythm, not minimal length.`
+- Match the amount of content to {user}'s current message and any selected sentence-count range.
+- Address what {user} said while keeping {char}'s characteristic reactions and voice present.
+- When {user} asks for help or an opinion, focus on what is useful for that request within the chosen length.`
   },
   butler: {
     label: '집사 모드',
@@ -1209,19 +1209,19 @@ function buildSentenceCountInstruction(includeSentenceCount = true) {
   switch (getSettings().sentenceCount) {
     case '2-5':
       return `[Selected response sentence count]
-- Write 2–5 sentences.
-- Do not exceed 5 sentences.
-- This sentence-count limit overrides any earlier general response-length guidance.`;
+- Use 2–5 sentences for the entire reply.
+- Fit the amount of content to this range.
+- This selected range takes priority over earlier general and role-specific reply-length guidance.`;
     case '6-10':
       return `[Selected response sentence count]
-- Write 6–10 sentences.
-- Do not exceed 10 sentences.
-- This sentence-count limit overrides any earlier general response-length guidance.`;
+- Use 6–10 sentences for the entire reply.
+- Fit the amount of content to this range.
+- This selected range takes priority over earlier general and role-specific reply-length guidance.`;
     case '11-18':
       return `[Selected response sentence count]
-- Write 11–18 sentences.
-- Do not exceed 18 sentences.
-- This sentence-count limit overrides any earlier general response-length guidance.`;
+- Use 11–18 sentences for the entire reply.
+- Fit the amount of content to this range.
+- This selected range takes priority over earlier general and role-specific reply-length guidance.`;
     case 'auto':
     default:
       return '';
@@ -1405,12 +1405,9 @@ Write only {char}'s reply to {user}.
 Do not output XML/HTML tags, trigger tags, think tags, system notes, labels, or speaker prefixes.
 Do not write {user}'s actions, thoughts, or dialogue.
 Reply length:
-Do not default to overly short replies. The current conversation role controls the expected length.
-- Kongtalk conversation and Pet role can be more compact than the other roles, but they still need a satisfying reply.
-- Butler role and Coworker role should use the available token budget generously to give complete, useful answers. Parallel Universe AU should stay conversational but substantial enough to feel like a real conversation.
-- For clear questions, worries, analysis, planning, work help, RP help, or any request that needs substance, answer fully instead of sending only two or three short sentences.
-- A conversation style means natural message rhythm, not a minimal answer. Split longer replies into readable message-like chunks if needed.
-- Max response tokens is an upper limit, but you should not stop early when {user}'s request deserves detail.
+- Match the amount of content to {user}'s current message, the current conversation role, and any selected sentence-count range.
+- Fulfill the current role within that length while preserving {char}'s established voice and speech rhythm.
+- Max response tokens defines the available capacity; the current message and any selected sentence-count range determine the actual reply length.
 
 ${buildCommonKongtalkRules('{char}', '{user}')}
 
