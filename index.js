@@ -1,14 +1,14 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 
 /*
- * 🐕 콩고물 톡 v5.0.0
+ * 🐕 콩고물 톡 v5.0.1
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.0.0';
+const EXTENSION_VERSION = '5.0.1';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 
@@ -1190,15 +1190,17 @@ function buildOutputLanguageInstruction(includeSentenceCount = true) {
   switch (getSettings().outputLanguage) {
     case 'en':
       return `[Selected output language]
-- Write {char}'s reply in English.`;
+- Regardless of the language used by {user}, write {char}'s reply in English.`;
     case 'bilingual':
       return `[Selected output language]
-- Write {char}'s reply in English, placing the Korean translation in brackets immediately after each English sentence.
-- Output format: English sentence. [Korean translation.]${includeSentenceCount ? '\n- Apply the selected sentence count to the English sentences only.' : ''}`;
+- Regardless of the language used by {user}, write each sentence of {char}'s reply in English on its own line, followed immediately by its Korean translation in brackets on the next line.
+- Output format:
+English sentence.
+[Korean translation.]${includeSentenceCount ? '\n- Apply the selected sentence count to the English sentences only.' : ''}`;
     case 'ko':
     default:
       return `[Selected output language]
-- Write {char}'s reply in Korean.`;
+- Regardless of the language used by {user}, write {char}'s reply in Korean.`;
   }
 }
 
@@ -2709,7 +2711,7 @@ function buildDeclarationLanguageRule() {
     case 'en':
       return 'Translate every declaration sentence into English without changing its meaning.';
     case 'bilingual':
-      return 'Render each declaration sentence in this format: English sentence. [Korean sentence.] Preserve the original Korean wording on the Korean side and translate it into English without changing its meaning.';
+      return 'Render each declaration sentence in English on its own line, followed immediately by the original Korean sentence in brackets on the next line. Preserve the original Korean wording on the Korean side and translate it into English without changing its meaning.';
     case 'ko':
     default:
       return 'Read every declaration sentence in Korean and preserve its original wording and meaning.';
@@ -2729,10 +2731,14 @@ Occupation: [modern job different from the show character's role or archetype]
 Relationship with ${userName}: [new AU relationship with the current ${userName}; do not copy the RP relationship]
 ---`;
       case 'bilingual':
-        return `Name: ${charName}. [이름: ${charName}.]
-Age: (age). [나이: (나이).]
-Occupation: (modern job different from the show character's role or archetype). [직업: (Korean translation).]
-Relationship with ${userName}: (new AU relationship with the current ${userName}; do not copy the RP relationship). [${userName}와의 관계: (Korean translation).]
+        return `Name: ${charName}.
+[이름: ${charName}.]
+Age: (age).
+[나이: (나이).]
+Occupation: (modern job different from the show character's role or archetype).
+[직업: (Korean translation).]
+Relationship with ${userName}: (new AU relationship with the current ${userName}; do not copy the RP relationship).
+[${userName}와의 관계: (Korean translation).]
 ---`;
       case 'ko':
       default:
