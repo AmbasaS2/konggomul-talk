@@ -331,6 +331,11 @@ function readCssTextVariable(name, fallback) {
   return value || fallback;
 }
 
+function getLocalizedCustomThemeName() {
+  const raw = readCssTextVariable('--tua-custom-theme-name', '');
+  return !raw || raw === '커스텀' ? uiText('theme.custom') : raw;
+}
+
 function getThemeKey() {
   const key = getSettings().theme || 'konggomul';
   return THEMES[key] ? key : 'konggomul';
@@ -343,7 +348,7 @@ function getTheme() {
   const mainIcon = readCssTextVariable('--tua-custom-main-icon', theme.titleIcon);
   return {
     ...theme,
-    label: readCssTextVariable('--tua-custom-theme-name', theme.label),
+    label: getLocalizedCustomThemeName(),
     titleIcon: mainIcon,
     menuIcon: mainIcon,
     introIcon: mainIcon,
@@ -4133,7 +4138,7 @@ function applyThemeUI() {
   const themeKey = getThemeKey();
   const theme = getTheme();
   const simple = isSimpleThemeKey(themeKey);
-  $('.tua-theme-buttons button[data-theme="custom"]').text(readCssTextVariable('--tua-custom-theme-name', uiText('theme.custom')));
+  $('.tua-theme-buttons button[data-theme="custom"]').text(getLocalizedCustomThemeName());
   if (panelEl) {
     panelEl.setAttribute('data-tua-theme', themeKey);
     panelEl.style.setProperty('--tua-current-intro-icon', JSON.stringify(theme.introIcon || ''));
