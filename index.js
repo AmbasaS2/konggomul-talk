@@ -12,6 +12,164 @@ const EXTENSION_VERSION = '5.1.0';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 
+const UI_ENGLISH = Object.freeze({
+  "app.title": "Konggomul Talk",
+  "app.short": "Kongtalk",
+  "app.settings": "Konggomul Talk Settings",
+  "app.settingsShort": "Settings",
+  "mode.kongtalk": "Kongtalk",
+  "mode.butler": "Butler Mode",
+  "mode.pet": "Pet Mode",
+  "mode.coworker": "Coworker Mode",
+  "mode.rpAssistant": "RP Assistant Mode",
+  "mode.guestOoc": "Guest OOC",
+  "mode.parallelClassic": "Parallel Universe AU (Watching RP)",
+  "mode.parallel": "Parallel Universe AU (Watching RP) 🙃",
+  "theme.konggomul": "Konggomul",
+  "theme.chocoStrawberry": "Choco Strawberry",
+  "theme.melonSoda": "Melon Soda",
+  "theme.blackWhite": "Simple MacBook",
+  "theme.custom": "Custom",
+  "panel.collapse": "Collapse",
+  "panel.settings": "Settings",
+  "panel.close": "Close",
+  "panel.openRooms": "Open room list",
+  "panel.newRoom": "New room",
+  "panel.pinRoom": "Pin / unpin room",
+  "panel.unpinRoom": "Unpin room",
+  "panel.deleteRoom": "Delete room",
+  "panel.expandActions": "Expand room actions",
+  "panel.collapseActions": "Collapse room actions",
+  "panel.theme": "Theme",
+  "panel.sentences": "Response sentence count",
+  "panel.auto": "Auto (default)",
+  "panel.sentences13": "1–3 sentences",
+  "panel.sentences25": "2–5 sentences",
+  "panel.sentences610": "6–10 sentences",
+  "panel.sentences1118": "11–18 sentences",
+  "panel.output": "Output language",
+  "panel.korean": "Korean",
+  "panel.english": "English",
+  "panel.bilingual": "English / Korean bilingual",
+  "panel.fixedScrollbar": "Fixed scrollbar",
+  "panel.fixedScrollbarHint": "Enable the themed scrollbar; disable to use the browser's default scrollbar.",
+  "panel.nickname": "Kongtalk user nickname",
+  "panel.nicknameHint": "Name or emoji shown next to your messages. Up to 4 characters; leave blank to hide.",
+  "panel.fontSize": "Chat font size (px)",
+  "panel.voiceNote": "Character voice note",
+  "panel.voiceNoteHint": "Example: Dry and concise speech; short jokes; realistic support; avoid excessive praise.",
+  "panel.advanced": "Advanced settings",
+  "panel.preset": "Include preset",
+  "panel.presetHint": "Disable to omit the selected dedicated API preset and reduce prompt influence or token usage.",
+  "panel.lorebook": "Include lorebook",
+  "panel.lorebookHint": "Disable to omit active World Info / lorebook entries.",
+  "panel.extensionMemory": "Include extension memory",
+  "panel.extensionMemoryHint": "Disable to omit memory and summaries available from SillyTavern or other extensions.",
+  "panel.tokens": "Target response tokens",
+  "panel.recentRp": "Recent RP messages to read",
+  "panel.roomMemory": "Kongtalk memory range",
+  "panel.roomMemoryHint": "Number of earlier messages in this room to include for replies, in addition to your latest message.",
+  "panel.coworkerNote": "Coworker work note",
+  "panel.coworkerNoteHint": "Example: Describe your actual job, tasks, and the kind of help needed.",
+  "panel.export": "Export this character's conversations",
+  "panel.import": "Import this character's conversations",
+  "panel.reset": "Reset all conversation history",
+  "panel.guestExport": "Export Guest OOC conversations",
+  "panel.guestImport": "Import Guest OOC conversations",
+  "panel.guestReset": "Reset Guest OOC conversations",
+  "panel.messagePlaceholder": "Type a message…",
+  "panel.send": "Send / continue if empty",
+  "panel.generating": "Generating · click to stop",
+  "panel.resize": "Resize panel",
+  "panel.reopen": "Expand Konggomul Talk",
+  "settings.profile": "Connection profile",
+  "settings.cleanup": "Conversation data cleanup",
+  "settings.debug": "Debug logs",
+  "settings.copyLog": "Copy logs",
+  "settings.clearLog": "Clear logs",
+  "settings.debugPlaceholder": "Open debug logs to view recent request information and settings.",
+  "settings.mainApi": "Use main API",
+  "settings.missingProfile": "Previously selected (not found) · {0}",
+  "settings.noProfiles": "No connection profiles available",
+  "room.name": "Room",
+  "room.noMessages": "No conversation yet",
+  "room.modePicker": "Which mode would you like to start?",
+  "room.changeModeTitle": "Change mode for “{0}”",
+  "room.rename": "Rename",
+  "room.changeMode": "Change mode",
+  "room.delete": "Delete room",
+  "room.pin": "Pin room",
+  "guest.selectTitle": "Guest OOC · Who would you like to invite?",
+  "guest.search": "Search characters…",
+  "guest.noCharacters": "No installed characters found.",
+  "guest.allCount": "All characters · {0}",
+  "guest.recentCount": "Recent guests · up to 5",
+  "guest.noMatch": "No matching characters.",
+  "guest.showAll": "Show all characters",
+  "guest.showRecent": "Show recent 5",
+  "guest.back": "← Back to modes",
+  "message.copy": "Copy",
+  "message.regenerate": "Regenerate",
+  "message.delete": "Delete",
+  "message.pressHint": "Long-press for message actions",
+  "message.declaration": "Role declaration",
+  "message.variant": "Reply variant {0}/{1}",
+  "message.previous": "Previous reply",
+  "message.next": "Next reply",
+  "dialog.deleteRoom": "Delete this room?",
+  "dialog.deleteNamedRoom": "Delete “{0}”?",
+  "dialog.renameRoom": "Rename this room?",
+  "dialog.newName": "New room name",
+  "dialog.modeBusy": "Wait until the current reply finishes before changing the mode.",
+  "dialog.guestModeLocked": "A Guest OOC room keeps its chosen character and mode. Create another guest room to choose someone else.",
+  "dialog.noGuest": "The invited character is missing. Reinstall it or create a new Guest OOC room.",
+  "dialog.disabled": "Konggomul Talk is disabled. Enable it in Extension Settings.",
+  "dialog.guestCreateFailed": "Could not create Guest OOC room: {0}",
+  "dialog.missingGuest": "The selected character is no longer installed.",
+  "dialog.guestStoreFailed": "Could not load Guest OOC conversations.",
+  "dialog.exportGuestFailed": "Could not export Guest OOC conversations.",
+  "dialog.importMainConfirm": "Importing replaces all conversations for the current character. Continue?",
+  "dialog.importGuestConfirm": "Importing replaces all Guest OOC conversations. Continue?",
+  "dialog.deleteGuestConfirm": "Delete every Guest OOC room and message? Character voice notes will be kept.",
+  "dialog.invalidBackup": "This is not a valid Konggomul Talk backup.",
+  "dialog.guestBackupWrong": "Use Guest OOC import for a Guest OOC backup.",
+  "dialog.mainImportFailed": "Import failed: {0}",
+  "dialog.guestImportFailed": "Guest OOC import failed: {0}",
+  "dialog.invalidGuestBackup": "This is not a Guest OOC backup.",
+  "dialog.resetMainConfirm": "Reset all conversations for the current character?",
+  "dialog.noResetData": "No saved Konggomul Talk conversations to reset.",
+  "dialog.resetQuestion": "Which character's conversations do you want to reset?",
+  "dialog.resetExplanation": "All rooms and messages for that character will be deleted and a new default Kongtalk room created. Voice notes, theme and connection settings remain.",
+  "dialog.resetLabel": "Character to reset",
+  "dialog.resetDeviceWarning": "Close or refresh SillyTavern on other connected devices before continuing.",
+  "dialog.resetButton": "Reset conversations",
+  "dialog.cancel": "Cancel",
+  "dialog.resetMissing": "The selected character's data was not found. Please reopen this list.",
+  "dialog.profileMissing": "Selected connection profile not found. The main API was not used as a fallback.",
+  "dialog.serviceMissing": "Connection Manager request service is unavailable.",
+  "dialog.noContent": "(Empty response)",
+  "dialog.nonText": "The model returned an image or link instead of text. Check that the selected profile uses a text model.",
+  "dialog.lastReplyOnly": "Only the latest AI reply can be regenerated.",
+  "dialog.regenerateFailed": "Regeneration failed: {0}",
+  "dialog.firstReplyFailed": "Failed to generate the opening message. Please try again.",
+  "dialog.noContinuation": "Nothing to continue yet. Send a message first.",
+  "dialog.copied": "Copied.",
+  "dialog.copyFailed": "Failed to copy.",
+  "dialog.noGuestRoom": "No guest room is open.",
+  "dialog.none": "None",
+  "dialog.restoreError": "Error: {0}"
+});
+function uiText(key, ...values) {
+  const fallback = UI_ENGLISH[key] ?? key;
+  let text = fallback;
+  try { text = ctx()?.translate?.(fallback, 'konggomul.' + key) || fallback; } catch { /* use English fallback */ }
+  return String(text).replace(/\{(\d+)\}/g, (token, index) => values[Number(index)] ?? token);
+}
+function uiHtml(key, ...values) { return escapeHtml(uiText(key, ...values)); }
+function modeUiLabel(key) { return uiText('mode.' + migrateModeKey(key)); }
+function themeUiLabel(key) { return uiText('theme.' + key); }
+
+
 
 const MODES = {
   kongtalk: {
@@ -851,8 +1009,8 @@ async function saveRooms() {
 }
 
 function defaultRoomTitle(now = Date.now(), modeKey = null) {
-  const modeLabel = MODES[migrateModeKey(modeKey)]?.label || '콩톡';
-  const stamp = new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const modeLabel = modeUiLabel(modeKey);
+  const stamp = new Date(now).toLocaleString(ctx()?.getCurrentLocale?.() || undefined, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
   return `${modeLabel} · ${stamp}`;
 }
 
@@ -2115,114 +2273,114 @@ function ensurePanel() {
     <div class="tua-window">
       <div class="tua-header">
         <div class="tua-titlebox">
-          <div class="tua-title"><span id="tua-title-icon">🐕</span><span id="tua-title-text">콩톡</span></div>
+          <div class="tua-title"><span id="tua-title-icon">🐕</span><span id="tua-title-text">${uiHtml('app.short')}</span></div>
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
-          <button type="button" id="tua-collapse" title="접기">—</button>
-          <button type="button" id="tua-settings-open" title="설정">⚙</button>
-          <button type="button" id="tua-close" title="닫기">×</button>
+          <button type="button" id="tua-collapse" title="${uiHtml('panel.collapse')}">—</button>
+          <button type="button" id="tua-settings-open" title="${uiHtml('panel.settings')}">⚙</button>
+          <button type="button" id="tua-close" title="${uiHtml('panel.close')}">×</button>
         </div>
       </div>
       <div class="tua-roombar-wrap">
         <div class="tua-roombar">
-          <button type="button" id="tua-active-room-title" class="tua-active-room-title" title="대화방 목록 열기"></button>
+          <button type="button" id="tua-active-room-title" class="tua-active-room-title" title="${uiHtml('panel.openRooms')}"></button>
           <div class="tua-room-actions" id="tua-room-actions">
-            <button type="button" id="tua-new-room" title="새 대화방">＋</button>
-            <button type="button" id="tua-pin-room" title="대화방 고정/해제">📌</button>
-            <button type="button" id="tua-delete-room" title="대화방 삭제">🗑️</button>
+            <button type="button" id="tua-new-room" title="${uiHtml('panel.newRoom')}">＋</button>
+            <button type="button" id="tua-pin-room" title="${uiHtml('panel.pinRoom')}">📌</button>
+            <button type="button" id="tua-delete-room" title="${uiHtml('panel.deleteRoom')}">🗑️</button>
           </div>
-          <button type="button" id="tua-roombar-toggle" class="tua-roombar-toggle" title="대화방 관리 버튼 펼치기" aria-label="대화방 관리 버튼 펼치기">⋯</button>
+          <button type="button" id="tua-roombar-toggle" class="tua-roombar-toggle" title="${uiHtml('panel.expandActions')}" aria-label="${uiHtml('panel.expandActions')}">⋯</button>
         </div>
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-mode-picker" class="tua-mode-picker"></div>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
-        <div class="tua-settings-title"><span id="tua-settings-icon">🐕</span><span id="tua-settings-title-text">콩고물 톡 설정</span></div>
+        <div class="tua-settings-title"><span id="tua-settings-icon">🐕</span><span id="tua-settings-title-text">${uiHtml('app.settings')}</span></div>
         <div class="tua-theme-picker">
-          <div class="tua-theme-title">테마</div>
+          <div class="tua-theme-title">${uiHtml('panel.theme')}</div>
           <div class="tua-theme-buttons">
-            <button type="button" data-theme="konggomul">콩고물</button>
-            <button type="button" data-theme="chocoStrawberry">초코딸기</button>
-            <button type="button" data-theme="melonSoda">메론소다</button>
-            <button type="button" data-theme="blackWhite">심플 맥북</button>
-            <button type="button" data-theme="custom">커스텀</button>
+            <button type="button" data-theme="konggomul">${uiHtml('theme.konggomul')}</button>
+            <button type="button" data-theme="chocoStrawberry">${uiHtml('theme.chocoStrawberry')}</button>
+            <button type="button" data-theme="melonSoda">${uiHtml('theme.melonSoda')}</button>
+            <button type="button" data-theme="blackWhite">${uiHtml('theme.blackWhite')}</button>
+            <button type="button" data-theme="custom">${uiHtml('theme.custom')}</button>
           </div>
         </div>
-        <label>답변 문장 수
+        <label>${uiHtml('panel.sentences')}
           <select id="tua-panel-sentence-count">
-            <option value="auto">자동(기존)</option>
-            <option value="1-3">1~3문장</option>
-            <option value="2-5">2~5문장</option>
-            <option value="6-10">6~10문장</option>
-            <option value="11-18">11~18문장</option>
+            <option value="auto">${uiHtml('panel.auto')}</option>
+            <option value="1-3">${uiHtml('panel.sentences13')}</option>
+            <option value="2-5">${uiHtml('panel.sentences25')}</option>
+            <option value="6-10">${uiHtml('panel.sentences610')}</option>
+            <option value="11-18">${uiHtml('panel.sentences1118')}</option>
           </select>
         </label>
-        <label>출력 언어
+        <label>${uiHtml('panel.output')}
           <select id="tua-panel-output-language">
-            <option value="ko">한국어</option>
-            <option value="en">영어</option>
-            <option value="bilingual">영한 병기</option>
+            <option value="ko">${uiHtml('panel.korean')}</option>
+            <option value="en">${uiHtml('panel.english')}</option>
+            <option value="bilingual">${uiHtml('panel.bilingual')}</option>
           </select>
         </label>
-        <label class="tua-checkbox-row" title="켜면 테마별 고정 스크롤바를 사용하고, 끄면 브라우저 기본 스크롤바를 사용합니다.">
+        <label class="tua-checkbox-row" title="${uiHtml('panel.fixedScrollbarHint')}">
           <input id="tua-panel-fixed-scrollbar" type="checkbox">
-          <span>스크롤 바 고정</span>
+          <span>${uiHtml('panel.fixedScrollbar')}</span>
         </label>
-        <label>유저 콩톡 닉네임
-          <input id="tua-panel-user-nickname" type="text" maxlength="16" placeholder="me" title="유저 메시지 옆에 표시할 이름/이모지입니다. 최대 4글자, 비우면 표시하지 않습니다.">
+        <label>${uiHtml('panel.nickname')}
+          <input id="tua-panel-user-nickname" type="text" maxlength="16" placeholder="me" title="${uiHtml('panel.nicknameHint')}">
         </label>
-        <label>채팅창 폰트 크기(px)
+        <label>${uiHtml('panel.fontSize')}
           <input id="tua-panel-font" type="number" min="10" max="24" step="1">
         </label>
-        <label>캐릭터 말투 고정 메모
-          <textarea id="tua-panel-voice-note" rows="5" placeholder="예: 말투는 담백하고 약간 건조함. 과한 칭찬/애정표현 금지. 농담은 짧게, 위로는 현실적으로. 문장 끝을 너무 다정하게 늘리지 않기."></textarea>
+        <label>${uiHtml('panel.voiceNote')}
+          <textarea id="tua-panel-voice-note" rows="5" placeholder="${uiHtml('panel.voiceNoteHint')}"></textarea>
         </label>
         <details class="tua-advanced-settings">
-          <summary>고급 설정</summary>
-          <label class="tua-checkbox-row" title="끄면 전용 API 요청에서 프리셋을 빼 토큰 사용량을 줄입니다. 대신 기존 RP 프리셋의 문체/규칙 영향이 줄어들 수 있습니다.">
+          <summary>${uiHtml('panel.advanced')}</summary>
+          <label class="tua-checkbox-row" title="${uiHtml('panel.presetHint')}">
             <input id="tua-panel-include-preset" type="checkbox">
-            <span>프리셋 포함</span>
+            <span>${uiHtml('panel.preset')}</span>
           </label>
-          <label class="tua-checkbox-row" title="끄면 콩톡 프롬프트에서 활성 로어북/월드 인포 내용을 제외해 토큰 사용량을 줄입니다.">
+          <label class="tua-checkbox-row" title="${uiHtml('panel.lorebookHint')}">
             <input id="tua-panel-include-lorebook" type="checkbox">
-            <span>로어북 포함</span>
+            <span>${uiHtml('panel.lorebook')}</span>
           </label>
-          <label class="tua-checkbox-row" title="끄면 SillyTavern 또는 다른 확장이 제공하는 메모리/요약 텍스트를 콩톡 프롬프트에서 제외합니다. 이 정보가 현재 환경에서 노출되지 않으면 자동으로 비어 있습니다.">
+          <label class="tua-checkbox-row" title="${uiHtml('panel.extensionMemoryHint')}">
             <input id="tua-panel-include-extension-memory" type="checkbox">
-            <span>확장 메모리 포함</span>
+            <span>${uiHtml('panel.extensionMemory')}</span>
           </label>
-          <label>답변 목표 토큰 수
+          <label>${uiHtml('panel.tokens')}
             <input id="tua-panel-tokens" type="number" min="100" max="8000" step="50">
           </label>
-          <label>최근 RP 읽을 메시지 수
+          <label>${uiHtml('panel.recentRp')}
             <input id="tua-panel-recent" type="number" min="0" max="100" step="1">
           </label>
-          <label>콩톡 기억 범위
-            <input id="tua-panel-memory" type="number" min="5" max="80" step="1" title="답장할 때 참고할 이 방의 이전 메시지 수입니다. 방금 입력한 메시지는 여기에 추가로 들어갑니다.">
+          <label>${uiHtml('panel.roomMemory')}
+            <input id="tua-panel-memory" type="number" min="5" max="80" step="1" title="${uiHtml('panel.roomMemoryHint')}">
           </label>
-          <label>직장 동료 업무 메모
-            <textarea id="tua-panel-coworker-note" rows="5" placeholder="예: 유저는 유치원 선생님이다. 주 업무는 알림장 작성, 주간 놀이계획안 정리, 학부모 안내문 작성, 행사 준비, 교실 환경 정리, 아이들 관찰 기록, 출결 확인이다."></textarea>
+          <label>${uiHtml('panel.coworkerNote')}
+            <textarea id="tua-panel-coworker-note" rows="5" placeholder="${uiHtml('panel.coworkerNoteHint')}"></textarea>
           </label>
-          <button type="button" id="tua-export-rooms" class="tua-danger-light">이 캐릭터 대화 내보내기</button>
-          <button type="button" id="tua-import-rooms" class="tua-danger-light">이 캐릭터 대화 가져오기</button>
+          <button type="button" id="tua-export-rooms" class="tua-danger-light">${uiHtml('panel.export')}</button>
+          <button type="button" id="tua-import-rooms" class="tua-danger-light">${uiHtml('panel.import')}</button>
           <input id="tua-import-file" type="file" accept="application/json,.json" style="display:none">
-          <button type="button" id="tua-reset-all-rooms" class="tua-danger-light">모든 대화 내역 초기화</button>
-          <button type="button" id="tua-export-guest-rooms" class="tua-danger-light">게스트 OOC 대화 내보내기</button>
-          <button type="button" id="tua-import-guest-rooms" class="tua-danger-light">게스트 OOC 대화 가져오기</button>
+          <button type="button" id="tua-reset-all-rooms" class="tua-danger-light">${uiHtml('panel.reset')}</button>
+          <button type="button" id="tua-export-guest-rooms" class="tua-danger-light">${uiHtml('panel.guestExport')}</button>
+          <button type="button" id="tua-import-guest-rooms" class="tua-danger-light">${uiHtml('panel.guestImport')}</button>
           <input id="tua-import-guest-file" type="file" accept="application/json,.json" style="display:none">
-          <button type="button" id="tua-reset-guest-rooms" class="tua-danger-light">게스트 OOC 대화 초기화</button>
+          <button type="button" id="tua-reset-guest-rooms" class="tua-danger-light">${uiHtml('panel.guestReset')}</button>
         </details>
         <div id="tua-status" class="tua-status" aria-hidden="true" style="display:none"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
       <div class="tua-input-row">
-        <textarea id="tua-input" placeholder="메시지를 입력하세요…"></textarea>
-        <button type="button" id="tua-send" title="전송 / 빈 입력이면 이어쓰기" aria-label="전송 / 빈 입력이면 이어쓰기">🐶</button>
+        <textarea id="tua-input" placeholder="${uiHtml('panel.messagePlaceholder')}"></textarea>
+        <button type="button" id="tua-send" title="${uiHtml('panel.send')}" aria-label="${uiHtml('panel.send')}">🐶</button>
       </div>
-      <div id="tua-resize-handle" title="창 크기 조절" aria-hidden="true"></div>
+      <div id="tua-resize-handle" title="${uiHtml('panel.resize')}" aria-hidden="true"></div>
     </div>
-    <button type="button" id="tua-collapsed-button" title="콩고물 톡 펼치기"><span class="tua-collapsed-emoji">🐕</span></button>`;
+    <button type="button" id="tua-collapsed-button" title="${uiHtml('panel.reopen')}"><span class="tua-collapsed-emoji">🐕</span></button>`;
   document.body.appendChild(panelEl);
 
   $('#tua-close').on('click', () => setPanelVisible(false));
@@ -2535,7 +2693,7 @@ function renderModePicker() {
   for (const [key, mode] of Object.entries(MODES)) {
     if (targetRoom && key === 'guestOoc') continue;
     const active = targetRoom && getRoomMode(targetRoom) === key ? ' active' : '';
-    buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${escapeHtml(mode.label)}</button>`);
+    buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${uiHtml('mode.' + key)}</button>`);
   }
   picker.append(buttons);
   picker.find('button[data-mode]').on('click', async function () {
@@ -2644,7 +2802,7 @@ async function createGuestOocRoom(characterKey) {
   const room = createRoom(false, 'guestOoc', false);
   room.guestCharacterKey = selected.key;
   room.guestCharacterName = selected.name;
-  room.title = selected.name + ' · 게스트 OOC';
+  room.title = selected.name + ' · ' + uiText('mode.guestOoc');
   const now = Date.now();
   room.messages.push({ id: 'msg_intro_guest_' + now, role: 'assistant', content: getKongtalkIntroIcon(), at: now });
   rememberRecentGuest(selected.key);
@@ -3709,26 +3867,26 @@ function renderSettings() {
   const html = `
   <div id="tua-settings" class="inline-drawer tua-settings-mini">
     <div class="inline-drawer-toggle inline-drawer-header">
-      <b>🐕 콩고물 톡</b>
+      <b>🐕 ${uiHtml('app.title')}</b>
       <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
     </div>
     <div class="inline-drawer-content" style="display:none;">
       <div class="tua-settings-inner">
       <div class="tua-global-profile-box">
-        <div class="tua-global-profile-title">연결 프로필</div>
+        <div class="tua-global-profile-title">${uiHtml('settings.profile')}</div>
         <div class="tua-profile-row">
           <select id="tua-setting-profile" class="text_pole"></select>
         </div>
       </div>
       <div class="tua-global-debug-box">
-        <button type="button" id="tua-reset-character-rooms" class="menu_button tua-debug-settings-button">🗑️ <span>대화 데이터 정리</span></button>
-        <button type="button" id="tua-show-debug" class="menu_button tua-debug-settings-button">🐞 <span>디버그 로그</span></button>
+        <button type="button" id="tua-reset-character-rooms" class="menu_button tua-debug-settings-button">🗑️ <span>${uiHtml('settings.cleanup')}</span></button>
+        <button type="button" id="tua-show-debug" class="menu_button tua-debug-settings-button">🐞 <span>${uiHtml('settings.debug')}</span></button>
         <div id="tua-debug-panel" class="tua-settings-debug-panel" style="display:none;">
           <div class="tua-debug-actions">
-            <button type="button" id="tua-copy-debug" class="menu_button">로그 복사</button>
-            <button type="button" id="tua-clear-debug" class="menu_button">로그 비우기</button>
+            <button type="button" id="tua-copy-debug" class="menu_button">${uiHtml('settings.copyLog')}</button>
+            <button type="button" id="tua-clear-debug" class="menu_button">${uiHtml('settings.clearLog')}</button>
           </div>
-          <textarea id="tua-debug-output" readonly rows="8" placeholder="디버그 로그 버튼을 누르면 최근 콩고물 톡 요청 로그와 설정 정보가 여기에 표시됩니다."></textarea>
+          <textarea id="tua-debug-output" readonly rows="8" placeholder="${uiHtml('settings.debugPlaceholder')}"></textarea>
         </div>
       </div>
       </div>
@@ -4015,7 +4173,7 @@ function renderAll() {
   const s = getSettings();
   $('#tua-char-name').text(getSpeakerName());
   const currentMode = getRoomMode();
-  $('#tua-mode-badge').text(MODES[currentMode]?.label || 'Mode');
+  $('#tua-mode-badge').text(modeUiLabel(currentMode));
   const activeRoom = getActiveRoom();
   $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${activeRoom?.title || '대화방'}`);
   $('#tua-pin-room').toggleClass('active', !!activeRoom?.pinned).attr('title', activeRoom?.pinned ? '대화방 고정 해제' : '대화방 고정');
@@ -4058,7 +4216,7 @@ function renderRoomList() {
     const pinned = room.pinned ? 'pinned' : '';
     const visibleMessages = Array.isArray(room.messages) ? room.messages.filter(msg => isRoomSortConversationMessage(msg, room)) : [];
     const last = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].content : '대화 없음';
-    const roomMode = MODES[getRoomMode(room)]?.label || 'Mode';
+    const roomMode = modeUiLabel(getRoomMode(room));
     const title = (room.pinned ? '📌 ' : '') + (room.title || defaultRoomTitle(room.createdAt));
     list.append('<button class="tua-room-item ' + active + ' ' + pinned + '" data-id="' + escapeHtml(room.id) + '" data-owner="' + escapeHtml(ownerKey) + '"><span><b>' + escapeHtml(title) + '</b><small>' + escapeHtml(roomMode) + ' · ' + escapeHtml(String(last).slice(0, 34)) + '</small></span><em>' + count + '</em></button>');
   }
@@ -4408,7 +4566,7 @@ function ensureExtensionMenuEntry() {
   entry.className = 'list-group-item flex-container flexGap5 interactable tua-extension-menu-entry';
   entry.setAttribute('role', 'button');
   entry.setAttribute('tabindex', '0');
-  entry.innerHTML = `<span class="tua-extension-menu-icon extensionsMenuExtensionButton">${getTheme().menuIcon}</span><span class="tua-extension-menu-text">콩고물 톡</span>`;
+  entry.innerHTML = `<span class="tua-extension-menu-icon extensionsMenuExtensionButton">${getTheme().menuIcon}</span><span class="tua-extension-menu-text">${uiHtml('app.title')}</span>`;
   entry.addEventListener('click', () => {
     const st = getSettings();
     if (!st.enabled) {
