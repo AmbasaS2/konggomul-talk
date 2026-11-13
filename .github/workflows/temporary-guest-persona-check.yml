@@ -1,0 +1,42 @@
+name: Guest OOC targeted validation
+on:
+  push:
+    branches:
+      - fix/guest-persona-lorebook-20261113
+  pull_request:
+    branches:
+      - main
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check JavaScript syntax
+        run: node --check index.js
+      - name: Verify Guest OOC identity and lorebook scan
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const text=fs.readFileSync('index.js','utf8');
+          const from=text.indexOf('async function buildGuestOocSystemPrompt(');
+          const to=text.indexOf('\nasync function buildSystemPrompt(',from);
+          assert(from>=0 && to>from);
+          const guest=text.slice(from,to);
+          assert(guest.includes('await getLorebookBlock(currentUserText)'));
+          assert(guest.includes('the same person as the active RP persona'));
+          assert(guest.includes('[Current RP persona: this is {user}, the person speaking to you]'));
+          assert(guest.includes('your own lived experience when the RP establishes that you personally participated'));
+          assert(!guest.includes('do not automatically impose their backstory'));
+          assert(!guest.includes('await getLorebookBlock(\'\')'));
+          assert(text.includes('async function getWorldInfoScanChat(currentUserText ='));
+          assert(text.includes("if (latest) rows.push(`{{user}}: ${latest}`);"));
+          assert(text.includes('generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens'));
+          console.log('Guest persona and lorebook scan assertions passed');
+          NODE
+      - name: Check whitespace
+        run: git diff --check HEAD~1 HEAD
