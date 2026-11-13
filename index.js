@@ -778,7 +778,7 @@ async function persistRoomSnapshot(charKey, data, saveEpoch = persistenceEpoch) 
     if (cleanInProgress || saveEpoch !== persistenceEpoch) return snapshot;
     getServerRoomStore()[charKey] = JSON.parse(JSON.stringify(snapshot));
     saveSettings();
-    if (!cleanInProgress && saveEpoch === persistenceEpoch && roomStateCharKey === charKey && getCharKey() === charKey) {
+    if (!cleanInProgress && saveEpoch === persistenceEpoch && roomStateCharKey === charKey && (charKey === GUEST_ROOM_STORE_KEY || getCharKey() === charKey)) {
       roomState = snapshot;
       if (!activeRoomId || !roomState.rooms.some(room => room.id === activeRoomId)) {
         activeRoomId = getMostRecentRoomId(roomState) || roomState.rooms[0]?.id || null;
@@ -791,21 +791,22 @@ async function persistRoomSnapshot(charKey, data, saveEpoch = persistenceEpoch) 
   return roomSaveQueue;
 }
 
-async function loadRooms({ expectedLifecycleEpoch = lifecycleEpoch } = {}) {
+async function loadRooms({ expectedLifecycleEpoch = lifecycleEpoch, storageKey = null, selectedRoomId = null, skipRender = false } = {}) {
   if (!lifecycleEnabled || cleanInProgress) return false;
   const loadSequence = ++roomLoadSequence;
-  const charKey = getCharKey();
+  const charKey = storageKey || getCharKey();
+  const isGuestStore = charKey === GUEST_ROOM_STORE_KEY;
   const store = getServerRoomStore();
   const serverData = store[charKey] || null;
-
-  if (!lifecycleEnabled || cleanInProgress || expectedLifecycleEpoch !== lifecycleEpoch || loadSequence !== roomLoadSequence || getCharKey() !== charKey) return false;
-
+  const contextValid = () => lifecycleEnabled && !cleanInProgress
+    && expectedLifecycleEpoch === lifecycleEpoch && loadSequence === roomLoadSequence
+    && (isGuestStore || getCharKey() === charKey);
+  if (!contextValid()) return false;
+  const previousRoomId = roomStateCharKey === charKey ? activeRoomId : null;
   roomState = normalizeStoredRoomState(serverData);
   roomStateCharKey = charKey;
   let shouldPersist = roomStateFingerprint(roomState) !== roomStateFingerprint(serverData);
-
-  // Auto-create only when there is no room at all. Existing rooms must never receive a fresh intro on load.
-  if (!roomState.rooms.length) {
+  if (!roomState.rooms.length && !isGuestStore) {
     resetToDefaultKongtalkRoom('load-no-rooms');
     shouldPersist = true;
   } else {
@@ -815,17 +816,15 @@ async function loadRooms({ expectedLifecycleEpoch = lifecycleEpoch } = {}) {
       pruneOrphanGenerationPlaceholders(room);
     });
     if (roomStateFingerprint(roomState) !== beforeNormalize) shouldPersist = true;
-    activeRoomId = getMostRecentRoomId(roomState) || roomState.rooms[0]?.id || null;
   }
-
-  if (shouldPersist) {
-    const snapshot = JSON.parse(JSON.stringify(roomState));
-    await persistRoomSnapshot(charKey, snapshot);
+  activeRoomId = [selectedRoomId, previousRoomId].find(id => id && roomState.rooms.some(room => room.id === id))
+    || getMostRecentRoomId(roomState) || null;
+  if (shouldPersist) await persistRoomSnapshot(charKey, JSON.parse(JSON.stringify(roomState)));
+  if (!contextValid() || roomStateCharKey !== charKey) return false;
+  if (!skipRender && roomState.rooms.length) {
+    renderAll();
+    scrollMessagesToBottom();
   }
-
-  if (!lifecycleEnabled || cleanInProgress || expectedLifecycleEpoch !== lifecycleEpoch || loadSequence !== roomLoadSequence || getCharKey() !== charKey || roomStateCharKey !== charKey) return false;
-  renderAll();
-  scrollMessagesToBottom();
   return true;
 }
 
@@ -834,7 +833,7 @@ async function saveRooms() {
   const charKey = roomStateCharKey || getCharKey();
   if (!roomState || typeof roomState !== 'object') roomState = { rooms: [] };
   if (!Array.isArray(roomState.rooms)) roomState.rooms = [];
-  if (!roomState.rooms.length) {
+  if (!roomState.rooms.length && charKey !== GUEST_ROOM_STORE_KEY) {
     resetToDefaultKongtalkRoom('save-no-rooms');
   } else {
     roomState.rooms.forEach(room => {
@@ -878,7 +877,7 @@ function createRoom(save = true, modeKey = 'kongtalk', withIntro = false) {
 }
 
 function getActiveRoom() {
-  return roomState.rooms.find(r => r.id === activeRoomId) || roomState.rooms[0] || createRoom(false, 'kongtalk', true);
+  return roomState.rooms.find(r => r.id === activeRoomId) || roomState.rooms[0] || (roomStateCharKey === GUEST_ROOM_STORE_KEY ? null : createRoom(false, 'kongtalk', true));
 }
 
 function getRoomMode(room = getActiveRoom()) {
@@ -892,6 +891,7 @@ function setRoomModeById(id, mode) {
   const room = roomState.rooms.find(item => item.id === id);
   const next = migrateModeKey(mode);
   if (!room || !MODES[next]) return false;
+  if (next === 'guestOoc' || getRoomMode(room) === 'guestOoc') return false;
   if (generationInFlight && activeGenerationTask?.roomId === id) return false;
   if (room.mode === next) return true;
   room.mode = next;
@@ -915,6 +915,12 @@ function deleteRoom(id) {
   if (!roomState.deletedRooms || typeof roomState.deletedRooms !== 'object' || Array.isArray(roomState.deletedRooms)) roomState.deletedRooms = {};
   if (id) roomState.deletedRooms[String(id)] = deletedAt;
   roomState.rooms = roomState.rooms.filter(r => r.id !== id);
+  if (!roomState.rooms.length && roomStateCharKey === GUEST_ROOM_STORE_KEY) {
+    activeRoomId = null;
+    roomState.updatedAt = deletedAt;
+    void saveRooms().then(() => loadRooms({ storageKey: getCharKey() })).catch(error => console.error('[Konggomul] return to main rooms failed', error));
+    return true;
+  }
   if (!roomState.rooms.length) createRoom(false, 'kongtalk', true);
   if (!activeRoomId || activeRoomId === id || !roomState.rooms.some(room => room.id === activeRoomId)) {
     activeRoomId = roomState.rooms[0].id;
@@ -935,8 +941,8 @@ function toggleActiveRoomPinned() {
   setStatus(room.pinned ? '이 대화방을 상단에 고정했습니다.' : '이 대화방 고정을 해제했습니다.');
 }
 
-function getSortedRooms() {
-  return [...(roomState.rooms || [])].sort((a, b) => {
+function getSortedRooms(state = roomState) {
+  return [...(state?.rooms || [])].sort((a, b) => {
     if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
     const aLast = getRoomSortTime(a);
     const bLast = getRoomSortTime(b);
@@ -2868,6 +2874,10 @@ async function createRoomWithModeIntro(modeKey) {
   closeModePicker();
   closeRoomList();
   closeSettingsPanel();
+  if (roomStateCharKey === GUEST_ROOM_STORE_KEY) {
+    const loaded = await loadRooms({ storageKey: getCharKey(), skipRender: true });
+    if (!loaded) return null;
+  }
   const room = createRoom(false, mode, mode === 'kongtalk');
   renderAll();
   setPanelVisible(true);
@@ -2892,6 +2902,7 @@ async function createRoomWithModeIntro(modeKey) {
     loadingId,
     startedAt: introAt,
     requestCharKey: roomStateCharKey || getCharKey(),
+    rpSignature: getCurrentRpSignature(),
     persistenceEpoch,
     lifecycleEpoch,
     cancelCleanupComplete: false,
@@ -2978,7 +2989,13 @@ function isGenerationStorageContextCurrent(task) {
     && !cleanInProgress
     && task.persistenceEpoch === persistenceEpoch
     && roomStateCharKey === task.requestCharKey
-    && getCharKey() === task.requestCharKey;
+    && (task.requestCharKey === GUEST_ROOM_STORE_KEY || getCharKey() === task.requestCharKey)
+    && (!task.rpSignature || task.rpSignature === getCurrentRpSignature());
+}
+
+function getCurrentRpSignature() {
+  const context = ctx();
+  return String(context.characterId ?? '') + '|' + String(context.chatId || context.chatMetadata?.chat_id || '') + '|' + String(context.chat?.length || 0);
 }
 
 function isRoomIntroGenerationCurrent(task) {
@@ -3130,9 +3147,9 @@ async function cancelCurrentGeneration({ persist = true, render = true, announce
 
 async function runAssistantGeneration({ text = '', continuation = false }) {
   const input = $('#tua-input');
-  const currentCharKey = getCharKey();
+  const currentCharKey = roomStateCharKey === GUEST_ROOM_STORE_KEY ? GUEST_ROOM_STORE_KEY : getCharKey();
   if (roomStateCharKey !== currentCharKey) {
-    const loaded = await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch });
+    const loaded = await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch, storageKey: currentCharKey });
     if (!loaded || roomStateCharKey !== currentCharKey) return;
   }
   if (!activeRoomId || !getActiveRoom()) createRoom(false, 'kongtalk', true);
@@ -3148,6 +3165,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
     loadingId: '',
     startedAt: Date.now(),
     requestCharKey: roomStateCharKey || getCharKey(),
+    rpSignature: getCurrentRpSignature(),
     persistenceEpoch,
     lifecycleEpoch,
     cancelCleanupComplete: false,
@@ -3182,7 +3200,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
       const reply = continuation
         ? await generateAssistantContinuation(task)
         : await generateAssistantReply(text, task);
-      if (task.cancelled || getCharKey() !== task.requestCharKey) return;
+      if (task.cancelled || !isGenerationStorageContextCurrent(task)) return;
       const currentRoom = (roomState.rooms || []).find(item => item.id === task.roomId);
       const msg = currentRoom?.messages?.find(item => item.id === task.loadingId);
       if (msg) {
@@ -3199,7 +3217,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
       task.completed = true;
       task.loadingId = '';
     } catch (e) {
-      if (task.cancelled || isAbortError(e) || getCharKey() !== task.requestCharKey) {
+      if (task.cancelled || isAbortError(e) || !isGenerationStorageContextCurrent(task)) {
         removeGenerationLoadingMessages(task);
         if (!task.cancelCleanupComplete && !cleanInProgress && task.persistenceEpoch === persistenceEpoch) {
           await saveRooms();
@@ -3227,7 +3245,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
       console.error('[TUA] generation failed', e);
     }
 
-    if (!task.cancelled && getCharKey() === task.requestCharKey && task.persistenceEpoch === persistenceEpoch) {
+    if (!task.cancelled && isGenerationStorageContextCurrent(task) && task.persistenceEpoch === persistenceEpoch) {
       await saveRooms();
       if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
     }
@@ -3273,9 +3291,9 @@ function canRegenerateAssistantMessage(messageId, room = getActiveRoom()) {
 }
 
 async function regenerateAssistantMessage(messageId) {
-  const currentCharKey = getCharKey();
+  const currentCharKey = roomStateCharKey === GUEST_ROOM_STORE_KEY ? GUEST_ROOM_STORE_KEY : getCharKey();
   if (roomStateCharKey !== currentCharKey) {
-    const loaded = await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch });
+    const loaded = await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch, storageKey: currentCharKey });
     if (!loaded || roomStateCharKey !== currentCharKey) return;
   }
   if (generationInFlight) return;
@@ -3300,6 +3318,7 @@ async function regenerateAssistantMessage(messageId) {
     loadingId: '',
     startedAt: Date.now(),
     requestCharKey: roomStateCharKey || currentCharKey,
+    rpSignature: getCurrentRpSignature(),
     persistenceEpoch,
     lifecycleEpoch,
     cancelCleanupComplete: false,
@@ -3324,7 +3343,7 @@ async function regenerateAssistantMessage(messageId) {
 
     try {
       const reply = sanitizeAssistantReply(await generateAssistantReply(String(lastUserMessage.content || ''), task, sourceMessages));
-      if (task.cancelled || getCharKey() !== task.requestCharKey) return;
+      if (task.cancelled || !isGenerationStorageContextCurrent(task)) return;
       const currentRoom = (roomState.rooms || []).find(item => item.id === task.roomId);
       const currentTarget = currentRoom?.messages?.find(item => item.id === task.targetMessageId);
       if (!currentRoom || !currentTarget) return;
@@ -3340,7 +3359,7 @@ async function regenerateAssistantMessage(messageId) {
       task.completed = true;
       task.loadingId = '';
     } catch (error) {
-      if (task.cancelled || isAbortError(error) || getCharKey() !== task.requestCharKey) {
+      if (task.cancelled || isAbortError(error) || !isGenerationStorageContextCurrent(task)) {
         removeGenerationLoadingMessages(task);
         if (!task.cancelCleanupComplete && !cleanInProgress && task.persistenceEpoch === persistenceEpoch) {
           await saveRooms();
@@ -3357,7 +3376,7 @@ async function regenerateAssistantMessage(messageId) {
       alert(`다시 생성에 실패했습니다: ${error.message || error}`);
     }
 
-    if (!task.cancelled && getCharKey() === task.requestCharKey && task.persistenceEpoch === persistenceEpoch) {
+    if (!task.cancelled && isGenerationStorageContextCurrent(task) && task.persistenceEpoch === persistenceEpoch) {
       await saveRooms();
       if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
     }
@@ -4105,10 +4124,11 @@ function bindRuntimeEvents() {
         // The room state still belongs to the previous character until the new load
         // completes. Cancel first so loading placeholders are saved only to that
         // previous character and can never be copied into the next one.
-        if (generationInFlight && activeGenerationTask?.requestCharKey !== getCharKey()) {
+        if (generationInFlight && (roomStateCharKey === GUEST_ROOM_STORE_KEY || activeGenerationTask?.requestCharKey !== getCharKey())) {
           await cancelCurrentGeneration({ persist: true, render: false, announce: false });
         }
-        await loadRooms({ expectedLifecycleEpoch: eventEpoch });
+        if (roomStateCharKey === GUEST_ROOM_STORE_KEY) renderAll();
+        else await loadRooms({ expectedLifecycleEpoch: eventEpoch, storageKey: getCharKey() });
       } catch (error) {
         console.warn('[Konggomul] CHAT_CHANGED handler failed', error);
       }
