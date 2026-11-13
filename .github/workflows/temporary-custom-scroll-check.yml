@@ -1,0 +1,77 @@
+name: Custom scrollbar and data selector checks
+on:
+  push:
+    branches:
+      - fix/custom-scroll-data-select-20261113
+  pull_request:
+    branches:
+      - main
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check JavaScript syntax
+        run: node --check index.js
+      - name: Check targeted UI and regressions
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const js=fs.readFileSync('index.js','utf8');
+          const css=fs.readFileSync('style.css','utf8');
+          assert.equal((js.match(/id="tua-data-scope-select"/g)||[]).length,1);
+          assert(js.includes('<option value="character">'));
+          assert(js.includes('<option value="guest">'));
+          assert(js.includes("$('#tua-data-scope-select').on('change'"));
+          assert(js.includes("$('#tua-data-scope-select').val(scope)"));
+          assert(!js.includes('data-scope="character" aria-pressed="true"'));
+          assert(!js.includes('.tua-data-scope button[data-scope]'));
+          for(const id of ['tua-export-rooms','tua-import-rooms','tua-reset-all-rooms']) {
+            assert.equal((js.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
+          }
+          assert(js.includes("dataManageScope === 'guest' ? exportGuestRooms() : exportCurrentCharacterRooms()"));
+          assert(js.includes("dataManageScope === 'guest' ? resetGuestRooms() : resetAllRoomsForCurrentCharacter()"));
+          assert(js.includes("dataManageScope === 'guest' ? '#tua-import-guest-file' : '#tua-import-file'"));
+          assert(js.includes("$('#tua-import-guest-file').on('change', importGuestRooms)"));
+          assert(js.includes("$('#tua-import-file').on('change', importCurrentCharacterRooms)"));
+          assert(js.includes("const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';"));
+          assert(css.includes('#tua-panel #tua-data-scope-select {'));
+          assert(css.includes('grid-template-columns: repeat(3, minmax(0, 1fr));'));
+          assert(!css.includes('#tua-panel .tua-data-scope button'));
+          const customArrow = css.slice(css.indexOf('/* Custom theme: render real arrow glyph silhouettes'));
+          assert(customArrow.length>1000);
+          for(const region of ['.tua-messages','.tua-room-list','.tua-in-panel-settings','.tua-mode-picker','#tua-input']) {
+            assert(customArrow.includes('data-tua-theme="custom"].tua-fixed-scrollbar '+region+'::-webkit-scrollbar-button:vertical:start:decrement'));
+            assert(customArrow.includes('data-tua-theme="custom"].tua-fixed-scrollbar '+region+'::-webkit-scrollbar-button:vertical:end:increment'));
+          }
+          assert(customArrow.includes('background: var(--tua-scrollbar-arrow) !important'));
+          assert(customArrow.includes('-webkit-mask-image:'));
+          assert(customArrow.includes('-webkit-mask-size: 7px 5px !important'));
+          assert(css.includes('#tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:'));
+          assert(css.includes('#tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:'));
+          assert(css.includes('#tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:'));
+          assert(css.includes('#tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:'));
+          const marker='const UI_ENGLISH = Object.freeze(';
+          const a=js.indexOf(marker), b=js.indexOf(');\nfunction uiText',a);
+          assert(a>=0 && b>a);
+          const en=JSON.parse(js.slice(a+marker.length,b));
+          for(const lang of ['ko-kr','ja-jp','zh-cn','zh-tw','es-es']) {
+            const file=JSON.parse(fs.readFileSync('i18n/'+lang+'.json','utf8'));
+            assert.equal(Object.keys(file).length,Object.keys(en).length);
+            for(const [key,value] of Object.entries(en)) {
+              const text=file['konggomul.'+key];
+              assert.equal(typeof text,'string',lang+' missing '+key);
+              const params=s=>[...s.matchAll(/\{\d+\}/g)].map(x=>x[0]).sort().join(',');
+              assert.equal(params(text),params(value),lang+' placeholders '+key);
+            }
+          }
+          assert.equal(JSON.parse(fs.readFileSync('manifest.json')).version,'5.4.2');
+          console.log('PASS: custom scrollbar selectors, scope dropdown, saved actions, i18n');
+          NODE
+      - name: Check whitespace
+        run: git diff --check HEAD~1 HEAD
