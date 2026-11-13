@@ -1,6 +1,6 @@
 # 🐕 Konggomul Talk
 
-**Konggomul Talk is a SillyTavern assistant extension for chatting outside the active RP—with the current character or an invited Guest OOC character.**
+**Konggomul Talk is a SillyTavern assistant extension for chatting outside the active RP—with the current character or an invited Guest Talk character.**
 
 The character card, persona, and selected RP context can inform the conversation, but Konggomul Talk messages remain separate from the main RP. The former Apply to RP summary/injection feature has been removed.
 
@@ -9,7 +9,7 @@ The character card, persona, and selected RP context can inform the conversation
 Konggomul Talk automatically follows the **SillyTavern UI language**. No separate language selector is needed.
 
 - Localized interface: **English, Korean, Japanese, Simplified Chinese, Traditional Chinese, and Spanish**. Other SillyTavern locales fall back to English.
-- This applies to extension settings, room and mode controls, the Guest OOC picker, tooltips, and confirmation/error dialogs.
+- This applies to extension settings, room and mode controls, the Guest Talk picker, tooltips, and confirmation/error dialogs.
 - **Output language is separate**: the Korean / English / English–Korean bilingual options for AI replies work exactly as before. Character cards, role prompts, and saved conversations are not translated.
 - Existing room names that users previously created are kept as-is.
 
@@ -46,38 +46,34 @@ Choose **Konggomul Talk** from the Extensions menu to open the panel.
 
 | Control | Action |
 |---|---|
-| **Current room title** | Opens the current character's rooms alongside global Guest OOC rooms. |
+| **Current room title** | Opens the current character's rooms alongside global Guest Talk rooms. |
 | `⋯` | Shows or hides the new-room, pin, and delete buttons. |
 | `＋` | Selects a mode and creates a new room. |
 | `📌` | Pins or unpins the current room at the top of the list. |
 | `🗑️` | Deletes the current room. |
 
-Existing rooms remain stored separately for each main RP character. Guest OOC rooms are stored globally, so they can be reopened while any RP character is selected.
+Existing rooms remain stored separately for each main RP character. Guest Talk rooms are stored globally, so they can be reopened while any RP character is selected. Butler, Pet, and Coworker modes are retired; their existing rooms now behave as regular Kongtalk rooms while preserving messages and original stored mode identifiers for rollback.
 
 - Select any previous room from the room list. Pinned rooms stay at the top, while unpinned rooms are ordered by most recent conversation activity.
-- Right-click or long-press a room title to rename, change its mode, or delete it. Guest OOC rooms retain their chosen guest and cannot change modes.
+- Right-click or long-press a room title to rename, change its mode, or delete it. Guest Talk rooms retain their chosen guest and cannot change modes.
 - Changing an existing room's mode keeps its messages and does not generate a new opening message.
 - Each room keeps its mode, messages, answer variants, and pinned state.
-- If every normal room is deleted, one default Kongtalk room is created again. Deleting the last Guest OOC room returns you to normal rooms.
+- If every normal room is deleted, one default Kongtalk room is created again. Deleting the last Guest Talk room returns you to normal rooms.
 
 ## 🗂️ Conversation Modes
 
 | Mode | Description |
 |---|---|
 | **Kongtalk (콩톡)** | The default mode for freely chatting with the current character outside the RP. |
-| **Butler Mode (집사 모드)** | Assigns the character as the user's butler for schedules, questions, option comparisons, thought organization, decisions, and other practical help. The character remains useful while reacting to the role in their own personality. |
-| **Pet Mode (펫 모드)** | Assigns the character as the user's pet. The original personality and way of speaking remain intact, so willing affection, grumbling, pride, resistance, or spoiled behavior differ from character to character. |
-| **Coworker Mode (직장 동료 모드)** | Places the character on the user's real team to help with work wording, judgments, plans, drafts, checklists, and next steps. |
 | **RP Assistant Mode (RP 어시 모드)** | Discusses the current RP from outside the scene: situation and emotional-flow reading, scene direction, possible actions, and sample lines. It writes OOC only when the user explicitly asks for OOC. |
-| **Guest OOC (게스트 OOC)** | Invites any installed character—even from a different story—to talk privately with the **current RP persona** (the same person playing in the active RP). The guest card determines the speaker; the current RP character card, active lorebook, accessible memories, and recent RP messages provide context. Established guest relationships and first-hand RP events are respected; unrelated guests do not automatically know the persona. The latest Guest OOC question also participates in dynamic lorebook keyword scanning. |
+| **Guest Talk (게스트톡)** | Invites any installed character—even from a different story—to talk privately with the **current RP persona** (the same person playing in the active RP). The guest card determines the speaker; the current RP character card, active lorebook, accessible memories, and recent RP messages provide context. Established guest relationships and first-hand RP events are respected; unrelated guests do not automatically know the persona. The latest Guest Talk question also participates in dynamic lorebook keyword scanning. |
 | **Parallel Universe AU (Watching RP)** | Creates a separate modern AU person with the original character's name, face, age, core personality, and way of speaking, but a different modern job and a newly generated relationship with the current user. They watch the main RP together as a show. |
 | **Parallel Universe AU (Watching RP) 🙃** | Creates a separate modern AU person with the original character's name, face, and age, but an opposite core personality and way of speaking, a different life and job, and a newly generated relationship with the current user. They watch the main RP together as a show. |
 
 When a new room is created, its opening is prepared for the selected mode.
 
-- **Kongtalk and Guest OOC** open with the current theme's starting icon. Guest OOC first asks you to choose a character: the five most recently selected guests are shown first, with search and a scrollable full character list.
-- **Butler, Pet, and RP Assistant modes** begin with the character reading the assigned role declaration and reacting in their own way.
-- **Coworker mode** begins with a short, natural opening rather than inventing a work task.
+- **Kongtalk and Guest Talk** open with the current theme's starting icon. Guest Talk first asks you to choose a character: the five most recently selected guests are shown first, with search and a scrollable full character list.
+- **RP Assistant mode** begins with the character reading the assigned role declaration and reacting in their own way.
 - **Parallel Universe AU modes** begin with a newly generated AU profile and a reaction to the current RP scene as a show.
 
 ## ✉️ Chatting
@@ -119,8 +115,7 @@ Use `⚙` in the panel header to adjust the current character and Konggomul Talk
 
 | Setting | Description |
 |---|---|
-| **Character voice note** | Records speech style and answer preferences for the current speaker. Guest OOC keeps these notes per invited guest without modifying the main RP character's note. |
-| **Coworker work note** | Records the user's real job, work context, and needed help for Coworker mode. |
+| **Character voice note** | Records speech style and answer preferences for the current speaker. Guest Talk keeps these notes per invited guest without modifying the main RP character's note. |
 
 **Context settings**
 
@@ -154,9 +149,9 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 | **Export this character's conversations** | Saves the current character's rooms, messages, modes, answer variants, pinned states, and character voice note as a JSON file. |
 | **Import this character's conversations** | Loads a Konggomul Talk backup and replaces the current character's rooms, messages, and character voice note with its saved data. |
 | **Reset all conversation history** | Removes every normal room and message for the current character and creates one default Kongtalk room. The character voice note and extension settings are kept. |
-| **Guest OOC export / import / reset** | Separately backs up, restores, or clears global Guest OOC rooms. The guest backup includes selected-character identities, messages, answer variants, voice notes, and recent guest choices. |
+| **Guest Talk export / import / reset** | Separately backs up, restores, or clears global Guest Talk rooms. The guest backup includes selected-character identities, messages, answer variants, voice notes, and recent guest choices. |
 
-Normal rooms remain stored per main character in SillyTavern's extension settings; Guest OOC rooms live in a separate global store and stay accessible when the active RP changes. Guest OOC always reads the currently open RP, not a permanently pinned old chat. Phone and desktop connecting as the same user to the same server can access the same saved data. Browser-local copies from older versions are no longer read or merged.
+Normal rooms remain stored per main character in SillyTavern's extension settings; Guest Talk rooms live in a separate global store and stay accessible when the active RP changes. Guest Talk always reads the currently open RP, not a permanently pinned old chat. Phone and desktop connecting as the same user to the same server can access the same saved data. Browser-local copies from older versions are no longer read or merged.
 
 The panel position and size, theme, character voice note, coworker work note, reply settings, and context settings are also retained.
 
@@ -173,7 +168,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 콩고물 톡은 **SillyTavern에서 선택한 UI 언어를 자동으로 따라갑니다.** 콩톡에 별도 언어 선택기는 없습니다.
 
 - 화면 지원 언어: **영어·한국어·일본어·중국어 간체·중국어 번체·스페인어**. 그 외 SillyTavern 언어에서는 영어로 표시됩니다.
-- 확장 설정, 대화방·모드 관리, 게스트 OOC 캐릭터 선택, 버튼 설명, 확인·오류 창에 적용됩니다.
+- 확장 설정, 대화방·모드 관리, 게스트톡 캐릭터 선택, 버튼 설명, 확인·오류 창에 적용됩니다.
 - **AI 답변 언어는 별개의 설정**입니다. 기존 한국어·영어·영한 병기 옵션은 그대로 유지되며, 캐릭터 시트·역할 프롬프트·저장된 대화 내용은 번역하지 않습니다.
 - 기존에 저장한 대화방 이름은 변경하지 않습니다.
 
@@ -210,38 +205,34 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 | 조작 | 기능 |
 |---|---|
-| **현재 방 이름** | 현재 캐릭터의 대화방과 게스트 OOC 대화방 목록을 엽니다. |
+| **현재 방 이름** | 현재 캐릭터의 대화방과 게스트톡 대화방 목록을 엽니다. |
 | `⋯` | 새 방, 고정, 삭제 버튼을 펼치거나 접습니다. |
 | `＋` | 모드를 선택해 새 대화방을 만듭니다. |
 | `📌` | 현재 방을 목록 상단에 고정하거나 해제합니다. |
 | `🗑️` | 현재 방을 삭제합니다. |
 
-기존 대화방은 현재 RP 캐릭터별로 따로 저장되고, 게스트 OOC 대화방은 어느 RP에서도 접근할 수 있도록 별도 공통 저장 영역에 보관됩니다.
+기존 대화방은 현재 RP 캐릭터별로 따로 저장되고, 게스트톡 대화방은 어느 RP에서도 접근할 수 있도록 별도 공통 저장 영역에 보관됩니다. 집사·펫·직장 동료 모드는 제거했지만 예전 대화방과 메시지는 삭제하지 않습니다. 기존 방은 일반 콩톡으로 동작하며 되돌리기를 위해 기존 모드 식별자는 유지합니다.
 
 - 방 목록에서 이전 대화방으로 이동할 수 있습니다. 고정한 방은 상단에 유지되고, 고정하지 않은 방은 최근 대화 순으로 정렬됩니다.
-- 방 이름을 우클릭하거나 길게 누르면 이름을 바꾸고, 모드를 변경하거나, 방을 삭제할 수 있습니다. 게스트 OOC 방은 초대한 캐릭터와 모드를 유지하며 모드 변경은 지원하지 않습니다.
+- 방 이름을 우클릭하거나 길게 누르면 이름을 바꾸고, 모드를 변경하거나, 방을 삭제할 수 있습니다. 게스트톡 방은 초대한 캐릭터와 모드를 유지하며 모드 변경은 지원하지 않습니다.
 - 기존 방의 모드를 변경해도 메시지는 유지되며 새 시작 메시지는 생성되지 않습니다.
 - 각 방의 모드, 메시지, 답변 버전과 고정 상태가 그대로 유지됩니다.
-- 일반 대화방을 모두 삭제하면 기본 콩톡 방이 다시 만들어집니다. 게스트 OOC의 마지막 방을 삭제하면 일반 대화방 목록으로 돌아갑니다.
+- 일반 대화방을 모두 삭제하면 기본 콩톡 방이 다시 만들어집니다. 게스트톡의 마지막 방을 삭제하면 일반 대화방 목록으로 돌아갑니다.
 
 ## 🗂️ 대화 모드
 
 | 모드 | 설명 |
 |---|---|
 | **콩톡** | RP 밖에서 현재 캐릭터와 자유롭게 대화하는 기본 모드입니다. |
-| **집사 모드** | 캐릭터에게 집사 역할을 부여해 일정 정리, 질문, 선택지 비교, 생각 정리, 판단과 각종 실용적인 도움을 받습니다. 캐릭터는 자신의 성격대로 역할에 반응하면서도 유용하게 답합니다. |
-| **펫 모드** | 캐릭터에게 사용자의 펫 역할을 부여합니다. 캐릭터의 원래 성격과 말투가 그대로 유지되어, 애교를 부리거나 투덜대거나 자존심을 세우거나 제멋대로 구는 방식도 캐릭터마다 달라집니다. |
-| **직장 동료 모드** | 캐릭터에게 같은 팀의 직장 동료 역할을 부여해 실제 업무 문구, 판단, 계획, 초안, 체크리스트와 다음 할 일을 함께 처리합니다. |
 | **RP 어시 모드** | 현재 캐릭터와 RP 밖에서 장면 상황, 감정선, 다음 전개, 가능한 행동과 예시 대사를 상의합니다. OOC는 사용자가 명시적으로 요청했을 때만 작성합니다. |
-| **게스트 OOC** | 설치된 다른 캐릭터를 초대해 **현재 RP의 페르소나 본인**과 별도로 대화합니다. 다른 세계관 캐릭터도 초대할 수 있습니다. 게스트 캐릭터 시트는 화자의 인격, 현재 RP 캐릭터 시트·로어북·접근 가능한 메모리·최근 대화는 상황과 관계를 이해하는 자료입니다. 게스트가 RP에서 실제로 겪은 사건과 기존 관계는 유지하되, 인연 없는 캐릭터에게 친분을 만들어 주지는 않습니다. 방금 보낸 콩톡 질문도 로어북 키워드 검사에 포함됩니다. |
+| **게스트톡** | 설치된 다른 캐릭터를 초대해 **현재 RP의 페르소나 본인**과 별도로 대화합니다. 다른 세계관 캐릭터도 초대할 수 있습니다. 게스트 캐릭터 시트는 화자의 인격, 현재 RP 캐릭터 시트·로어북·접근 가능한 메모리·최근 대화는 상황과 관계를 이해하는 자료입니다. 게스트가 RP에서 실제로 겪은 사건과 기존 관계는 유지하되, 인연 없는 캐릭터에게 친분을 만들어 주지는 않습니다. 방금 보낸 콩톡 질문도 로어북 키워드 검사에 포함됩니다. |
 | **평행우주AU(Watching RP)** | 원래 캐릭터와 같은 이름, 얼굴, 나이, 핵심 성격과 말투를 가지지만, 다른 현대 직업과 새로 정해진 현재 사용자와의 관계를 가진 별개의 현대 AU 인물과 메인 RP를 작품처럼 함께 보며 대화합니다. |
 | **평행우주AU(Watching RP)🙃** | 원래 캐릭터와 같은 이름, 얼굴과 나이를 가지지만, 핵심 성격과 말투는 반대이고 삶·직업·현재 사용자와의 관계는 새로 정해진 별개의 현대 AU 인물과 메인 RP를 작품처럼 함께 보며 대화합니다. |
 
 새 대화방을 만들면 선택한 모드에 맞는 시작 메시지가 자동으로 준비됩니다.
 
-- **콩톡과 게스트 OOC**는 현재 테마의 시작 아이콘으로 열립니다. 게스트 OOC는 처음에 캐릭터를 선택하며, 최근 게스트 5명·이름 검색·스크롤되는 전체 목록을 제공합니다.
-- **집사·펫·RP 어시 모드**는 캐릭터가 부여된 역할 선언문을 읽고 자기 방식대로 반응하며 시작합니다.
-- **직장 동료 모드**는 임의의 업무를 만들어내지 않고 짧고 자연스러운 첫 대화로 시작합니다.
+- **콩톡과 게스트톡**는 현재 테마의 시작 아이콘으로 열립니다. 게스트톡는 처음에 캐릭터를 선택하며, 최근 게스트 5명·이름 검색·스크롤되는 전체 목록을 제공합니다.
+- **RP 어시 모드**는 캐릭터가 부여된 역할 선언문을 읽고 자기 방식대로 반응하며 시작합니다.
 - **평행우주AU**는 새로 생성된 AU 프로필과 현재 RP 장면을 작품으로 본 반응으로 시작합니다.
 
 ## ✉️ 대화하기
@@ -283,8 +274,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 | 설정 | 설명 |
 |---|---|
-| **캐릭터 말투 고정 메모** | 현재 대화 상대의 말투와 답변 성향을 적습니다. 게스트 OOC에서는 초대한 캐릭터별로 따로 저장되어 메인 RP 캐릭터의 메모를 덮어쓰지 않습니다. |
-| **직장 동료 업무 메모** | 직장 동료 모드가 참고할 사용자의 실제 직업, 업무와 필요한 도움을 적습니다. |
+| **캐릭터 말투 고정 메모** | 현재 대화 상대의 말투와 답변 성향을 적습니다. 게스트톡에서는 초대한 캐릭터별로 따로 저장되어 메인 RP 캐릭터의 메모를 덮어쓰지 않습니다. |
 
 **반영 범위 설정**
 
@@ -318,11 +308,11 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **이 캐릭터 대화 내보내기** | 현재 캐릭터의 대화방, 메시지, 모드, 답변 버전, 고정 상태와 캐릭터 말투 메모를 JSON 파일로 저장합니다. |
 | **이 캐릭터 대화 가져오기** | 백업 파일을 불러와 현재 캐릭터의 대화방, 메시지와 캐릭터 말투 메모를 저장된 데이터로 교체합니다. |
 | **모든 대화 내역 초기화** | 현재 캐릭터의 일반 대화방과 메시지를 삭제하고 기본 콩톡 방 1개를 새로 만듭니다. 말투 메모와 확장 설정은 유지됩니다. |
-| **게스트 OOC 내보내기·가져오기·초기화** | 게스트 대화방 전체를 별도로 백업·복원·정리합니다. 게스트의 캐릭터 정보 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록을 보존합니다. |
+| **게스트톡 내보내기·가져오기·초기화** | 게스트 대화방 전체를 별도로 백업·복원·정리합니다. 게스트의 캐릭터 정보 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록을 보존합니다. |
 
-일반 대화방은 현재 RP 캐릭터별로 저장되고 게스트 OOC 방은 별도 공통 저장 영역에 저장됩니다. 게스트 방은 메인 RP가 바뀌어도 접근할 수 있으며, 매번 현재 열려 있는 RP를 참고합니다(과거 RP 고정 기능은 아직 제공하지 않습니다). 같은 서버·사용자로 접속하면 폰과 컴퓨터에서 같은 내역을 사용합니다. 이전 버전의 브라우저 로컬 사본은 읽거나 병합하지 않습니다.
+일반 대화방은 현재 RP 캐릭터별로 저장되고 게스트톡 방은 별도 공통 저장 영역에 저장됩니다. 게스트 방은 메인 RP가 바뀌어도 접근할 수 있으며, 매번 현재 열려 있는 RP를 참고합니다(과거 RP 고정 기능은 아직 제공하지 않습니다). 같은 서버·사용자로 접속하면 폰과 컴퓨터에서 같은 내역을 사용합니다. 이전 버전의 브라우저 로컬 사본은 읽거나 병합하지 않습니다.
 
-패널 위치와 크기, 테마, 캐릭터 말투 메모, 직장 동료 업무 메모, 답변 설정과 반영 범위 설정도 유지됩니다.
+패널 위치와 크기, 테마, 캐릭터 말투 메모, 답변 설정과 반영 범위 설정도 유지됩니다. 이전 직장 동료 업무 메모 데이터는 삭제하지 않습니다.
 
 ---
 
