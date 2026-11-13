@@ -22,6 +22,7 @@ const UI_ENGLISH = Object.freeze({
   "mode.kongtalk": "Kongtalk",
   "mode.rpAssistant": "RP Assistant Mode",
   "mode.guestOoc": "Guest Talk",
+  "mode.guestOocPicker": "Guest Talk (Call Another Character)🛎️",
   "mode.parallelClassic": "Parallel Universe AU (Watching RP)",
   "mode.parallel": "Parallel Universe AU (Watching RP) 🙃",
   "theme.konggomul": "Konggomul",
@@ -2955,7 +2956,7 @@ function renderModePicker() {
   for (const [key, mode] of Object.entries(MODES)) {
     if (targetRoom && key === 'guestOoc') continue;
     const active = targetRoom && getRoomMode(targetRoom) === key ? ' active' : '';
-    buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${uiHtml('mode.' + key)}</button>`);
+    buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${key === 'guestOoc' ? uiHtml('mode.guestOocPicker') : uiHtml('mode.' + key)}</button>`);
   }
   picker.append(buttons);
   picker.find('button[data-mode]').on('click', async function () {
