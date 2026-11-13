@@ -143,5 +143,9 @@
   "konggomul.dialog.copyFailed": "复制失败。",
   "konggomul.dialog.noGuestRoom": "没有打开访客聊天室。",
   "konggomul.dialog.none": "无",
-  "konggomul.dialog.restoreError": "错误：{0}"
+  "konggomul.dialog.restoreError": "错误：{0}",
+  "konggomul.guest.missing": "找不到访客",
+  "konggomul.dialog.deleteBusy": "请先停止生成，再删除聊天室。",
+  "konggomul.dialog.unmatchedSaved": "未匹配的保存数据",
+  "konggomul.dialog.profileResolutionFailed": "无法验证连接配置：{0}"
 }
