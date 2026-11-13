@@ -82,6 +82,12 @@ const UI_ENGLISH = Object.freeze({
   "panel.guestExport": "Export Guest Talk conversations",
   "panel.guestImport": "Import Guest Talk conversations",
   "panel.guestReset": "Reset Guest Talk conversations",
+  "data.manage": "Conversation data management",
+  "data.character": "Current RP character",
+  "data.guest": "All Guest Talk",
+  "data.export": "Export",
+  "data.import": "Import",
+  "data.reset": "Reset",
   "panel.messagePlaceholder": "Type a message…",
   "panel.send": "Send / continue if empty",
   "panel.generating": "Generating · click to stop",
@@ -357,6 +363,7 @@ let roomState = { rooms: [] };
 let pendingPersonaChoice = false;
 let pendingQuote = null;
 let lastRequestPreview = null;
+let dataManageScope = 'character';
 let panelEl = null;
 let contextMenuEl = null;
 let roomContextMenuEl = null;
@@ -2604,14 +2611,20 @@ function ensurePanel() {
             <input id="tua-panel-memory" type="number" min="5" max="80" step="1" title="${uiHtml('panel.roomMemoryHint')}">
           </label>
           <button type="button" id="tua-preview-context" class="tua-danger-light">${uiHtml('preview.open')}</button>
-          <button type="button" id="tua-export-rooms" class="tua-danger-light">${uiHtml('panel.export')}</button>
-          <button type="button" id="tua-import-rooms" class="tua-danger-light">${uiHtml('panel.import')}</button>
-          <input id="tua-import-file" type="file" accept="application/json,.json" style="display:none">
-          <button type="button" id="tua-reset-all-rooms" class="tua-danger-light">${uiHtml('panel.reset')}</button>
-          <button type="button" id="tua-export-guest-rooms" class="tua-danger-light">${uiHtml('panel.guestExport')}</button>
-          <button type="button" id="tua-import-guest-rooms" class="tua-danger-light">${uiHtml('panel.guestImport')}</button>
-          <input id="tua-import-guest-file" type="file" accept="application/json,.json" style="display:none">
-          <button type="button" id="tua-reset-guest-rooms" class="tua-danger-light">${uiHtml('panel.guestReset')}</button>
+          <div class="tua-data-management">
+            <div class="tua-data-heading">${uiHtml('data.manage')}</div>
+            <div class="tua-data-scope" role="group" aria-label="${uiHtml('data.manage')}">
+              <button type="button" data-scope="character" aria-pressed="true">${uiHtml('data.character')}</button>
+              <button type="button" data-scope="guest" aria-pressed="false">${uiHtml('data.guest')}</button>
+            </div>
+            <div class="tua-data-actions">
+              <button type="button" id="tua-export-rooms" class="tua-danger-light">${uiHtml('data.export')}</button>
+              <button type="button" id="tua-import-rooms" class="tua-danger-light">${uiHtml('data.import')}</button>
+              <button type="button" id="tua-reset-all-rooms" class="tua-danger-light">${uiHtml('data.reset')}</button>
+            </div>
+            <input id="tua-import-file" type="file" accept="application/json,.json" style="display:none">
+            <input id="tua-import-guest-file" type="file" accept="application/json,.json" style="display:none">
+          </div>
         </details>
         <div id="tua-status" class="tua-status" aria-hidden="true" style="display:none"></div>
       </div>
@@ -2675,14 +2688,18 @@ function ensurePanel() {
     setStatus(`테마를 ${getTheme().label}(으)로 변경했습니다.`);
   });
   $('#tua-preview-context').on('click', showLastRequestPreview);
-  $('#tua-export-rooms').on('click', exportCurrentCharacterRooms);
-  $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
+  $('.tua-data-scope button[data-scope]').on('click', function () {
+    setDataManageScope($(this).attr('data-scope'));
+  });
+  $('#tua-export-rooms').on('click', () =>
+    dataManageScope === 'guest' ? exportGuestRooms() : exportCurrentCharacterRooms());
+  $('#tua-import-rooms').on('click', () => {
+    $(dataManageScope === 'guest' ? '#tua-import-guest-file' : '#tua-import-file').trigger('click');
+  });
   $('#tua-import-file').on('change', importCurrentCharacterRooms);
-  $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
-  $('#tua-export-guest-rooms').on('click', exportGuestRooms);
-  $('#tua-import-guest-rooms').on('click', () => $('#tua-import-guest-file').trigger('click'));
   $('#tua-import-guest-file').on('change', importGuestRooms);
-  $('#tua-reset-guest-rooms').on('click', resetGuestRooms);
+  $('#tua-reset-all-rooms').on('click', () =>
+    dataManageScope === 'guest' ? resetGuestRooms() : resetAllRoomsForCurrentCharacter());
   $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
 
   makePanelDraggable();
@@ -4161,8 +4178,18 @@ function readGlobalSettingsUI() {
   ensureLauncher();
 }
 
+function setDataManageScope(scope = 'character') {
+  if (scope !== 'character' && scope !== 'guest') return;
+  dataManageScope = scope;
+  $('.tua-data-scope button[data-scope]').each(function () {
+    const selected = $(this).attr('data-scope') === dataManageScope;
+    $(this).attr('aria-pressed', String(selected)).toggleClass('active', selected);
+  });
+}
+
 function hydratePanelSettingsUI() {
   const s = getSettings();
+  setDataManageScope(dataManageScope);
   $('#tua-panel-tokens').val(s.maxTokens);
   $('#tua-panel-recent').val(s.recentMessages);
   $('#tua-panel-memory').val(getChatMemoryLimit());
@@ -4932,6 +4959,7 @@ function cleanupRuntimeState() {
   pendingQuote = null;
   pendingPersonaChoice = false;
   lastRequestPreview = null;
+  dataManageScope = 'character';
   if (panelEl) setPanelVisible(false, { persistPreference: false });
 }
 
