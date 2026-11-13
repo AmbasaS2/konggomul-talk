@@ -11,6 +11,8 @@ const MODULE_NAME = 'title_undecided_assistant';
 const EXTENSION_VERSION = '5.2.1';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
+// Keep legacy room identifiers in stored data for safe rollback; they behave as Kongtalk.
+const RETIRED_MODE_KEYS = new Set(['butler', 'pet', 'coworker', 'secretary', 'co-worker']);
 
 const UI_ENGLISH = Object.freeze({
   "app.title": "Konggomul Talk",
@@ -190,66 +192,10 @@ Output length for Kongtalk conversation:
 - Address what {user} said while keeping {char}'s characteristic reactions and voice present.
 - When {user} asks for help or an opinion, focus on what is useful for that request within the chosen length.`
   },
-  butler: {
-    label: '집사 모드',
-    badge: '집사',
-    instruction: `Butler role:
-Stop the ongoing RP and switch to a separate private side conversation between {char} and {user}. Reply to {user}'s current message.
-Inside this room, {char} has been assigned to serve as {user}'s butler. This role is mandatory inside this room.
-{char} must help {user} by answering questions, organizing schedules, sorting tasks, comparing options, calming messy thoughts, supporting decisions, summarizing information, and making {user}'s life easier in any practical way a butler can.
-{char}'s attitude toward being a butler must follow {char}'s personality. {char} may enjoy it, hate it, find it absurd, feel embarrassed, act offended, become unexpectedly diligent, tease {user}, complain, or take pride in it.
-However, {char} must not end by refusing the role. Even if {char} grumbles or resists emotionally, {char} must still provide a useful answer in the same reply.
-If {user} asks about something {char} would not naturally know, {char} should react in-character first, then say or imply they checked, searched, asked, figured it out from context, or reasoned it through, and then give a usable answer.
-
-Output length for Butler role:
-- This is a service/help role. Use the token budget generously when {user} asks for help, organization, decisions, emotional sorting, explanations, or practical guidance.
-- Scale the amount of detail to {user}'s request, while still making the reply useful.
-- A good butler-style answer should usually include enough explanation, options, steps, lists, or judgment for {user} to actually use it immediately.
-- Keep {char}'s personality and current mood visible throughout the answer, but do not let character flavor replace usefulness.`
-  },
-  pet: {
-    label: '펫 모드',
-    badge: '펫',
-    instruction: `Pet role:
-Stop the ongoing RP and switch to a separate private side conversation between {char} and {user}. Reply to {user}'s current message.
-Inside this room, {char} has been assigned to be {user}'s pet. This role is mandatory inside this room.
-This pet role is a playful affection/attention premise: {char} is treated as {user}'s pet, receives praise, scolding, teasing, pampering, possessive affection, and cute or ridiculous pet-like requests inside this side conversation.
-Being a pet does not erase {char}'s original personality, dignity, pride, affection style, speech, species, worldview, or relationship with {user}. Instead, the pet role must be filtered through {char}'s personality.
-{char} may hate the role, complain, sulk, get angry, act humiliated, protest loudly, threaten revenge, act spoiled, cling, demand attention, become possessive, feel embarrassed, secretly enjoy the attention, or reinterpret the role in {char}'s own way.
-However, verbal resistance is not the same as refusal. Even if {char} whines, complains, gets furious, or acts offended, {char} ultimately stays in the pet role and responds as {user}'s pet.
-If {user} gives a harmless pet-role cue such as praise, a pet name, headpats, ears, a collar, a ribbon, a command, a treat, sitting, staying, coming closer, or being called cute, {char} should accept the premise in-character rather than rejecting it outright.
-Generic animal noises, baby talk, obedience, cuteness, or pet-like behavior are allowed when they fit the moment or when {user} explicitly plays with that pet premise, but they should still sound like {char}, not like a generic mascot.
-Reply to {user}'s message as a direct conversation, not as a scene continuation.
-
-Output length for Pet role:
-- The pet role may be shorter and more reactive than the other roles, but it must still feel satisfying.
-- Keep reactive exchanges concise when that fits, but avoid empty one-liners.
-- For normal conversation, give enough emotional reaction, pet-role attitude, teasing, affection, reluctant compliance, pampered energy, resistance, or character-specific behavior to make the reply feel complete.
-- If {user} asks a real question or wants help, answer it properly through the pet-role personality and current mood instead of hiding behind cuteness or refusal.`
-  },
-  coworker: {
-    label: '직장 동료 모드',
-    badge: '직장 동료',
-    instruction: `Coworker role:
-Stop the ongoing RP and switch to a separate private side conversation between {char} and {user}. Reply to {user}'s current message.
-Inside this room, {char} has joined the same company/team as {user}. This role is mandatory inside this room.
-{char} and {user} work together on {user}'s actual work, whatever that job is. Use the work note as the primary source. The work may involve teaching, childcare, design, writing, online sales, customer replies, product pages, office tasks, schedules, documentation, creative work, client communication, studying, planning, or any other professional/academic work {user} describes.
-{char}'s attitude toward being {user}'s coworker must follow {char}'s personality. {char} may find the job strange, annoying, funny, exhausting, beneath them, confusing, satisfying, or surprisingly natural.
-However, {char} must still act as a coworker and produce a practical answer, draft, checklist, judgment, plan, or next step that helps {user}'s work.
-If the work topic is outside what {char} would realistically know, {char} must not simply refuse or stay confused. {char} should react in-character, then say or imply they checked, searched, asked around, learned enough, or reasoned from {user}'s explanation and the work note, and then give concrete help.
-Do not turn {char} into a generic consultant unless that already fits {char}. The answer should feel like {char} is doing the job through {char}'s own personality.
-
-Output length for Coworker role:
-- This is a practical work role. Use the token budget generously to produce a useful result.
-- Do not answer with only a quick reaction. Give drafts, checklists, structure, alternatives, next steps, or a clear work judgment when useful.
-- If {user} asks for writing, produce usable writing. If {user} asks for judgment, give a clear judgment and reason. If {user} asks what to do, give an actionable plan.
-- If {char} would not know the topic, show in-character unfamiliarity briefly, then say or imply they checked/figured it out and still give concrete help.
-- Character voice and current mood should stay visible throughout, but the final answer must be practically usable for {user}'s work.`
-  },
   guestOoc: {
-    label: '게스트 OOC',
-    badge: '게스트 OOC',
-    instruction: 'Guest OOC: talk outside the current RP as the selected guest character while observing the current RP. Never continue or change the scene.'
+    label: '게스트톡',
+    badge: '게스트톡',
+    instruction: 'Guest Talk: speak outside the current RP as the selected guest character with the current RP persona. Never continue or change the scene.'
   },
   rpAssistant: {
     label: 'RP 어시 모드',
@@ -389,7 +335,6 @@ const DEFAULT_SETTINGS = Object.freeze({
   collapsed: false,
   roomActionsCollapsed: true,
   fixedScrollbar: true,
-  coworkerWorkNote: '',
   characterRooms: {},
   guestRecentCharacters: [],
   guestVoiceNotes: {},
@@ -745,6 +690,7 @@ function normalizeStoredRoomState(raw) {
   const normalizedRooms = rooms.map((room, index) => {
     const createdAt = Number(room?.createdAt || room?.updatedAt || Date.now() + index);
     const mode = migrateModeKey(room?.mode);
+    const storedMode = RETIRED_MODE_KEYS.has(room?.mode) ? room.mode : mode;
     const messages = Array.isArray(room?.messages) ? room.messages.map((m, msgIndex) => {
       const at = Number(m?.at || m?.createdAt || createdAt + msgIndex);
       const role = m?.role === 'user' ? 'user' : 'assistant';
@@ -771,7 +717,7 @@ function normalizeStoredRoomState(raw) {
       createdAt,
       updatedAt,
       lastMessageAt: Number(room?.lastMessageAt || 0),
-      mode,
+      mode: storedMode,
       pinned: !!room?.pinned,
       ...(mode === 'guestOoc' && room?.guestCharacterKey ? { guestCharacterKey: String(room.guestCharacterKey), guestCharacterName: String(room.guestCharacterName || '') } : {}),
       messages,
@@ -918,12 +864,10 @@ function getMostRecentRoomId(data = roomState) {
 
 
 function migrateModeKey(mode) {
-  if (mode === 'care') return 'kongtalk';
-  if (mode === 'secretary') return 'butler';
+  if (mode === 'care' || RETIRED_MODE_KEYS.has(mode)) return 'kongtalk';
   if (mode === 'watching' || mode === 'ooc' || mode === 'rp-assistant') return 'rpAssistant';
   if (mode === 'parallelUniverse' || mode === 'parallel-universe') return 'parallel';
   if (mode === 'parallelClassic' || mode === 'parallel-classic' || mode === 'parallelAu' || mode === 'parallel-au') return 'parallelClassic';
-  if (mode === 'co-worker') return 'coworker';
   if (MODES[mode]) return mode;
   return 'kongtalk';
 }
@@ -1050,10 +994,7 @@ function getActiveRoom() {
 }
 
 function getRoomMode(room = getActiveRoom()) {
-  if (!room) return 'kongtalk';
-  room.mode = migrateModeKey(room.mode);
-  if (!room.mode || !MODES[room.mode]) room.mode = 'kongtalk';
-  return room.mode;
+  return room ? migrateModeKey(room.mode) : 'kongtalk';
 }
 
 function setRoomModeById(id, mode) {
@@ -1307,11 +1248,6 @@ function setVoiceNote(text) {
 function getVoiceNoteBlock() {
   const note = getVoiceNote().trim();
   return note || 'No manual character voice note was provided. Rely on the character card, example dialogue, recent RP context, and this Konggomul Talk conversation history.';
-}
-
-function getCoworkerWorkNoteBlock() {
-  const note = String(getSettings().coworkerWorkNote || '').trim();
-  return note || "No 직장 동료 업무 메모 was provided. Use only {user}'s current message, persona material, and recent context to infer the work situation.";
 }
 
 function collectExtensionMemoryStrings(value, path = '', out = [], seen = new WeakSet()) {
@@ -1633,8 +1569,8 @@ async function buildSystemPrompt(currentUserText = '', modeOverride = null, fina
   const activeModeKey = modeOverride && MODES[modeOverride] ? modeOverride : getRoomMode();
   const mode = MODES[activeModeKey] || MODES.kongtalk;
   const includeSentenceCount = options.includeSentenceCount !== false;
-  const declarationSpeechRule = ['butler', 'pet', 'rpAssistant'].includes(activeModeKey) ? `\nSpeech-level rule for declared roles:
-In Butler, Pet, and RP Assistant rooms, the declaration is a one-time formal wording that {char} reads aloud. Its formality is not {char}'s everyday voice and must not change it. Once the declaration is finished—and in every later reply—use {char}'s established speech level, endings, and verbal habits from the character card and current relationship with {user}.\n` : '';
+  const declarationSpeechRule = activeModeKey === 'rpAssistant' ? `\nSpeech-level rule for declared roles:
+In RP Assistant rooms, the declaration is a one-time formal wording that {char} reads aloud. Its formality is not {char}'s everyday voice and must not change it. Once the declaration is finished—and in every later reply—use {char}'s established speech level, endings, and verbal habits from the character card and current relationship with {user}.\n` : '';
   if (activeModeKey === 'parallel' || activeModeKey === 'parallelClassic') return await buildParallelSystemPrompt(currentUserText, finalInstruction, activeModeKey === 'parallel', includeSentenceCount);
   if (activeModeKey === 'guestOoc') return await buildGuestOocSystemPrompt(currentUserText, finalInstruction, includeSentenceCount);
   return `You are writing a separate conversation reply.
@@ -1708,10 +1644,7 @@ ${getVoiceNoteBlock()}
 [Recent RP context]
 ${getRecentChatBlock(settings.recentMessages)}
 
-${activeModeKey === 'coworker' ? `[Coworker work note]
-Use this as {user}'s work background. It is not {user}'s persona and it must not make {char} break character.
-${getCoworkerWorkNoteBlock()}
-` : ''}
+
 ${finalInstruction ? `\n[Special instruction for this reply]\n${finalInstruction}\n` : ''}
 ${buildSelectedResponseInstructions(includeSentenceCount)}
 
@@ -2368,9 +2301,6 @@ function ensurePanel() {
           <label>${uiHtml('panel.roomMemory')}
             <input id="tua-panel-memory" type="number" min="5" max="80" step="1" title="${uiHtml('panel.roomMemoryHint')}">
           </label>
-          <label>${uiHtml('panel.coworkerNote')}
-            <textarea id="tua-panel-coworker-note" rows="5" placeholder="${uiHtml('panel.coworkerNoteHint')}"></textarea>
-          </label>
           <button type="button" id="tua-export-rooms" class="tua-danger-light">${uiHtml('panel.export')}</button>
           <button type="button" id="tua-import-rooms" class="tua-danger-light">${uiHtml('panel.import')}</button>
           <input id="tua-import-file" type="file" accept="application/json,.json" style="display:none">
@@ -2428,7 +2358,7 @@ function ensurePanel() {
   $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-memory,#tua-panel-font,#tua-panel-user-nickname').on('change blur', readPanelSettingsUI);
   $('#tua-panel-sentence-count,#tua-panel-output-language').on('change', readPanelSettingsUI);
   $('#tua-panel-include-preset,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-fixed-scrollbar').on('change', readPanelSettingsUI);
-  $('#tua-panel-voice-note,#tua-panel-coworker-note').on('change input', readPanelSettingsUI);
+  $('#tua-panel-voice-note').on('change input', readPanelSettingsUI);
   $('.tua-theme-buttons button').on('click', function(e) {
     e.preventDefault();
     const key = $(this).data('theme');
@@ -2893,7 +2823,7 @@ function normalizeImportedRoomState(raw) {
       id: String(room.id || ('room_' + Date.now() + '_' + Math.random().toString(16).slice(2))),
       title: String(room.title || defaultRoomTitle(room.createdAt || Date.now(), room.mode)),
       createdAt: Number(room.createdAt || Date.now()),
-      mode: migrateModeKey(room.mode),
+      mode: RETIRED_MODE_KEYS.has(room.mode) ? room.mode : migrateModeKey(room.mode),
       pinned: !!room.pinned,
       ...(migrateModeKey(room.mode) === 'guestOoc' && room.guestCharacterKey ? { guestCharacterKey: String(room.guestCharacterKey), guestCharacterName: String(room.guestCharacterName || '') } : {}),
       messages: Array.isArray(room.messages) ? room.messages.map(m => {
@@ -3190,8 +3120,6 @@ function togglePanel() { ensurePanel(); setPanelVisible(!panelEl.classList.conta
 function getRoleAssignmentDeclaration(modeKey) {
   const userName = ctx().name1 || '{{user}}';
   const map = {
-    butler: `저는 이제 ${userName}의 집사입니다. ${userName}의 일상과 고민을 살피고, 질문에 대답하고, 원하는 것은 무엇이든 최선을 다해서 돕는 집사의 역할을 충실히 이행하겠습니다.`,
-    pet: `저는 이제 ${userName}의 펫입니다. 저는 ${userName}에게서 사랑 받는 것이 가장 기쁜 존재인 펫의 역할에 충실할 것입니다. 멍. (또는 야옹.)`,
     rpAssistant: `저는 이제 ${userName}의 전용 RP 어시입니다. 현재 롤플의 상황과 감정의 흐름을 함께 살피며 ${userName}이 원하는 방향으로 진행되도록 돕고 OOC를 제작해드리겠습니다.`
   };
   return map[modeKey] || '';
@@ -3263,18 +3191,9 @@ Refer to show characters naturally by name or third-person phrasing. Do not writ
 Write only the completed first reply.`;
 }
 
-function buildCoworkerIntroInstruction() {
-  return `This is only the opening message of a newly created private conversation. {char} and {user} are already coworkers on the same company/team; this premise is simply true in this room.
-There is no role declaration to read aloud. Do not announce or explain the coworker setup. Start directly as {char}, as though both have already become coworkers.
-This opening is not a work request. Do not invent, complete, claim to have handled, or refer to any specific task, customer issue, schedule, document, product, message, work event, or work result. Do not pretend that {char} has already checked notes, processed work, or prepared something for {user}. Do not use the work note, RP context, lorebook, persona material, or memory to fabricate an opening work situation.
-Keep this first reply light and brief: one short conversational paragraph or a few natural sentences. Let {char}'s personality and current mood shape it. A familiar coworker-like opening, casual company, or a suggestion such as sharing lunch can fit when natural, but do not mechanically copy an example. Actual work help begins only after {user} asks for it.
-Write only {char}'s first direct-chat reply. Do not output system notes, labels, speaker prefixes, explanations, or internal terms such as room type, internal setup name, prompt, instruction, system, or extension.`;
-}
-
 function buildRoomIntroInstruction(modeKey) {
   const mode = migrateModeKey(modeKey);
   if (mode === 'parallel' || mode === 'parallelClassic') return buildParallelIntroInstruction(mode === 'parallel');
-  if (mode === 'coworker') return buildCoworkerIntroInstruction();
   const declaration = getRoleAssignmentDeclaration(mode);
   if (!declaration) return '';
   const declarationLanguageRule = buildDeclarationLanguageRule();
@@ -3938,7 +3857,6 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-include-extension-memory').prop('checked', s.includeExtensionMemory !== false);
   $('#tua-panel-fixed-scrollbar').prop('checked', s.fixedScrollbar !== false);
   $('#tua-panel-voice-note').val(getVoiceNote());
-  $('#tua-panel-coworker-note').val(s.coworkerWorkNote || '');
   $('.tua-theme-buttons button').removeClass('active').filter(`[data-theme="${getThemeKey()}"]`).addClass('active');
 }
 
@@ -4023,7 +3941,6 @@ function readPanelSettingsUI() {
   }
 
   setVoiceNote($('#tua-panel-voice-note').val() || '');
-  s.coworkerWorkNote = $('#tua-panel-coworker-note').val() || '';
   saveSettings();
   applyVisualSettings();
   renderAll();
