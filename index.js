@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, groupRoomFields, groupAmount, groupHistoryWithinBudget, estimateGroupTokens, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.1
+ * 🐕 콩고물 톡 v5.5.0-rc.2
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.1';
+const EXTENSION_VERSION = '5.5.0-rc.2';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -164,6 +164,7 @@ const UI_ENGLISH = Object.freeze({
   "group.importConfirm": "Importing replaces all Group Talk rooms. Continue?",
   "group.resetConfirm": "Delete all Group Talk rooms and messages?",
   "group.importWrong": "This is not a Group Talk backup.",
+  "group.parseFailed": "Could not read any Group Talk messages from the model response. Try a smaller message count or a higher output limit.",
   "message.copy": "Copy",
   "message.reply": "Reply",
   "message.quotedFrom": "Replying to {0}",
@@ -2742,7 +2743,14 @@ async function generateGroupCompletion(userText, generationTask) {
   }
   const raw = await generateWithSelectedProfile(system, [{ role: 'user', content: prompt }], outputTokens,
     'Return only the Group Talk JSON messages object.', generationTask);
-  return parseGroupCompletion(sanitizeAssistantReply(raw), participants, max + 20);
+  const bubbles = parseGroupCompletion(sanitizeAssistantReply(raw), participants, max + 20);
+  if (!bubbles.length) {
+    addDebugLog('group.parse.error', 'Group Talk response contained no valid speaker messages.', {
+      responseLength: String(raw || '').length,
+    });
+    throw new Error(uiText('group.parseFailed'));
+  }
+  return bubbles;
 }
 
 function ensurePanel() {

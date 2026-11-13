@@ -201,5 +201,6 @@
   "konggomul.group.data": "すべてのグループトーク",
   "konggomul.group.importConfirm": "インポートするとすべてのグループトークが置き換わります。続行しますか？",
   "konggomul.group.resetConfirm": "すべてのグループトークを削除しますか？",
-  "konggomul.group.importWrong": "グループトークのバックアップではありません。"
+  "konggomul.group.importWrong": "グループトークのバックアップではありません。",
+  "konggomul.group.parseFailed": "モデルの応答から有効なグループトークのメッセージを読み取れませんでした。生成数を減らすか、出力トークン上限を増やしてください。"
 }

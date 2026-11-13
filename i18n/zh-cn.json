@@ -201,5 +201,6 @@
   "konggomul.group.data": "全部群聊",
   "konggomul.group.importConfirm": "导入将替换所有群聊。继续吗？",
   "konggomul.group.resetConfirm": "删除全部群聊及消息？",
-  "konggomul.group.importWrong": "这不是群聊备份文件。"
+  "konggomul.group.importWrong": "这不是群聊备份文件。",
+  "konggomul.group.parseFailed": "无法从模型回复中识别有效的群聊消息。请减少每次生成的消息数或提高输出 Token 上限。"
 }

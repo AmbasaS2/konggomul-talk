@@ -98,7 +98,7 @@ Right-click or long-press a message to open its menu.
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
-## 👥 Group Talk (5.5.0-rc.1 preview)
+## 👥 Group Talk (5.5.0-rc.2 preview)
 
 Group Talk is an independent, multi-character messenger mode. It does not inject messages into the main RP or modify Guest Talk rooms.
 
@@ -273,7 +273,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
-## 👥 그룹톡 (5.5.0-rc.1 미리보기)
+## 👥 그룹톡 (5.5.0-rc.2 미리보기)
 
 그룹톡은 여러 캐릭터가 메신저에서 대화하는 독립 모드입니다. 메인 RP와 게스트톡의 기존 대화에는 자동으로 개입하지 않습니다.
 

@@ -89,11 +89,35 @@ export function parseGroupCompletion(raw, participants, limit = 100) {
       if (output.length >= limit) break;
     }
   } else {
-    for (const line of text.split(/\n+/)) {
-      const match = line.match(/^\s*\[?(\d+)\]?\s*[:：|.)-]\s*(.+)$/u);
-      if (match) add(match[1],match[2]);
+    // A provider can stop in the middle of the outer JSON object. Salvage the
+    // *complete* speaker/text strings without attributing the raw JSON to speaker 1.
+    // The format requested in buildGroupTalkSystemPrompt is speaker then text.
+    const pairs = /\{\s*"speaker"\s*:\s*("(?:\\.|[^"\\])*"|-?\d+)\s*,\s*"(?:text|message|content)"\s*:\s*("(?:\\.|[^"\\])*")/gu;
+    for (const match of text.matchAll(pairs)) {
+      if (output.length >= limit) break;
+      let who = match[1];
+      let value = match[2];
+      try {
+        if (who.startsWith('"')) who = JSON.parse(who);
+        value = JSON.parse(value);
+      } catch {
+        // Some models put literal newlines inside their quoted message strings.
+        // Repair that *single string*, not the whole response.
+        try { value = JSON.parse(match[2].replace(/\r?\n/g, '\\n')); }
+        catch { continue; }
+      }
+      add(who, value);
+    }
+    if (!output.length) {
+      // Also accept line-oriented numbered answers when JSON was not produced.
+      for (const line of text.split(/\n+/)) {
+        const match = line.match(/^\s*\[?(\d+)\]?\s*[:：|.)-]\s*(.+)$/u);
+        if (match) add(match[1], match[2]);
+        if (output.length >= limit) break;
+      }
     }
   }
-  if (!output.length && text && participants.length) add(1,text);
+  // Never show raw JSON or assign an unparsed batch to the first participant.
+  // An empty result becomes a visible *error* through the Group Talk caller.
   return output;
 }
