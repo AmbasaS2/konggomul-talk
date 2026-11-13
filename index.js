@@ -69,6 +69,13 @@ const UI_ENGLISH = Object.freeze({
   "panel.recentRp": "Recent RP messages to read",
   "panel.roomMemory": "Kongtalk memory range",
   "panel.roomMemoryHint": "Number of earlier messages in this room to include for replies, in addition to your latest message.",
+  "preview.open": "View last AI request context",
+  "preview.none": "No AI request for this room has been captured in this session yet.",
+  "preview.title": "Last AI request context",
+  "preview.note": "Shows the exact prompt parts Konggomul Talk submitted. A dedicated connection profile or provider may add its own preset after this point. Stored only in memory; never added to the RP or saved with chats.",
+  "preview.summary": "Route: {0} · Speaker: {1} · Persona: {2} · RP: {3}",
+  "preview.copy": "Copy request",
+  "preview.close": "Close",
   "panel.export": "Export this character's conversations",
   "panel.import": "Import this character's conversations",
   "panel.reset": "Reset all conversation history",
@@ -349,6 +356,7 @@ let activeRoomId = null;
 let roomState = { rooms: [] };
 let pendingPersonaChoice = false;
 let pendingQuote = null;
+let lastRequestPreview = null;
 let panelEl = null;
 let contextMenuEl = null;
 let roomContextMenuEl = null;
@@ -2237,6 +2245,53 @@ function getEffectiveProfileMaxTokens(requestedMaxTokens, profile) {
   };
 }
 
+// One request only, memory-only: never write generated prompt content into extension settings or chat data.
+function rememberOutgoingPrompt(route, text, profileName = '') {
+  const room = getActiveRoom();
+  lastRequestPreview = {
+    roomId: room?.id || '',
+    storeKey: roomStateCharKey,
+    at: Date.now(),
+    route: profileName ? route + ': ' + profileName : route,
+    speaker: getSpeakerName(room),
+    persona: getUserName(),
+    rpCharacter: getCharName(),
+    prompt: String(text || ''),
+  };
+}
+
+async function showLastRequestPreview() {
+  const item = lastRequestPreview;
+  if (!item || item.roomId !== getActiveRoom()?.id || item.storeKey !== roomStateCharKey) {
+    alert(uiText('preview.none'));
+    return;
+  }
+  const body = document.createElement('div');
+  body.className = 'tua-context-preview';
+  const heading = document.createElement('strong');
+  heading.textContent = uiText('preview.title');
+  const summary = document.createElement('p');
+  summary.textContent = uiText('preview.summary', item.route, item.speaker, item.persona, item.rpCharacter);
+  const note = document.createElement('p');
+  note.textContent = uiText('preview.note');
+  const textarea = document.createElement('textarea');
+  textarea.className = 'tua-context-preview-data';
+  textarea.readOnly = true;
+  textarea.rows = 18;
+  textarea.value = item.prompt;
+  const copy = document.createElement('button');
+  copy.type = 'button';
+  copy.className = 'menu_button';
+  copy.textContent = uiText('preview.copy');
+  copy.addEventListener('click', () => void copyTextToClipboard(item.prompt));
+  body.append(heading, summary, note, textarea, copy);
+  await new Popup(body, POPUP_TYPE.TEXT, null, {
+    okButton: uiText('preview.close'),
+    cancelButton: false,
+    leftAlign: true,
+  }).show();
+}
+
 async function generateWithSelectedProfile(systemPrompt, prompt, maxTokens, tail = 'Answer now.', generationTask = null) {
   const context = ctx();
   const s = getSettings();
@@ -2293,6 +2348,7 @@ ${safePrompt}`;
       });
 
       const messages = [{ role: 'user', content: mergedPrompt }];
+      rememberOutgoingPrompt('Connection Manager', mergedPrompt, profile.name);
       const raw = await Service.sendRequest(
         profile.id,
         messages,
@@ -2327,6 +2383,7 @@ ${safePrompt}`;
       maxTokens: safeMaxTokens,
       responseLength: safeMaxTokens,
     });
+    rememberOutgoingPrompt('Main API · generateRaw', '[System prompt]\n' + String(systemPrompt || '') + '\n\n[Conversation prompt]\n' + safePrompt);
     const raw = await context.generateRaw({
       systemPrompt,
       prompt: safePrompt,
@@ -2348,6 +2405,7 @@ ${safePrompt}`;
       maxTokens: safeMaxTokens,
       responseLength: safeMaxTokens,
     });
+    rememberOutgoingPrompt('Main API · generateQuietPrompt', mergedPrompt);
     const raw = await context.generateQuietPrompt({ quietPrompt: mergedPrompt, responseLength: safeMaxTokens, maxTokens: safeMaxTokens, max_tokens: safeMaxTokens, signal: generationTask?.controller?.signal });
     const extracted = extractAssistantText(raw);
     addDebugLog('response.received', `메인 generateQuietPrompt 응답 수신: ${extracted.length}자`, {
@@ -2507,6 +2565,7 @@ function ensurePanel() {
           <label>${uiHtml('panel.roomMemory')}
             <input id="tua-panel-memory" type="number" min="5" max="80" step="1" title="${uiHtml('panel.roomMemoryHint')}">
           </label>
+          <button type="button" id="tua-preview-context" class="tua-danger-light">${uiHtml('preview.open')}</button>
           <button type="button" id="tua-export-rooms" class="tua-danger-light">${uiHtml('panel.export')}</button>
           <button type="button" id="tua-import-rooms" class="tua-danger-light">${uiHtml('panel.import')}</button>
           <input id="tua-import-file" type="file" accept="application/json,.json" style="display:none">
@@ -2577,6 +2636,7 @@ function ensurePanel() {
     applyVisualSettings();
     setStatus(`테마를 ${getTheme().label}(으)로 변경했습니다.`);
   });
+  $('#tua-preview-context').on('click', showLastRequestPreview);
   $('#tua-export-rooms').on('click', exportCurrentCharacterRooms);
   $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
   $('#tua-import-file').on('change', importCurrentCharacterRooms);
@@ -4833,6 +4893,7 @@ function cleanupRuntimeState() {
   }
   pendingQuote = null;
   pendingPersonaChoice = false;
+  lastRequestPreview = null;
   if (panelEl) setPanelVisible(false, { persistPreference: false });
 }
 
