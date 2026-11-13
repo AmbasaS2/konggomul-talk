@@ -20,11 +20,8 @@ const UI_ENGLISH = Object.freeze({
   "app.settings": "Konggomul Talk Settings",
   "app.settingsShort": "Settings",
   "mode.kongtalk": "Kongtalk",
-  "mode.butler": "Butler Mode",
-  "mode.pet": "Pet Mode",
-  "mode.coworker": "Coworker Mode",
   "mode.rpAssistant": "RP Assistant Mode",
-  "mode.guestOoc": "Guest OOC",
+  "mode.guestOoc": "Guest Talk",
   "mode.parallelClassic": "Parallel Universe AU (Watching RP)",
   "mode.parallel": "Parallel Universe AU (Watching RP) 🙃",
   "theme.konggomul": "Konggomul",
@@ -71,14 +68,12 @@ const UI_ENGLISH = Object.freeze({
   "panel.recentRp": "Recent RP messages to read",
   "panel.roomMemory": "Kongtalk memory range",
   "panel.roomMemoryHint": "Number of earlier messages in this room to include for replies, in addition to your latest message.",
-  "panel.coworkerNote": "Coworker work note",
-  "panel.coworkerNoteHint": "Example: Describe your actual job, tasks, and the kind of help needed.",
   "panel.export": "Export this character's conversations",
   "panel.import": "Import this character's conversations",
   "panel.reset": "Reset all conversation history",
-  "panel.guestExport": "Export Guest OOC conversations",
-  "panel.guestImport": "Import Guest OOC conversations",
-  "panel.guestReset": "Reset Guest OOC conversations",
+  "panel.guestExport": "Export Guest Talk conversations",
+  "panel.guestImport": "Import Guest Talk conversations",
+  "panel.guestReset": "Reset Guest Talk conversations",
   "panel.messagePlaceholder": "Type a message…",
   "panel.send": "Send / continue if empty",
   "panel.generating": "Generating · click to stop",
@@ -101,7 +96,7 @@ const UI_ENGLISH = Object.freeze({
   "room.changeMode": "Change mode",
   "room.delete": "Delete room",
   "room.pin": "Pin room",
-  "guest.selectTitle": "Guest OOC · Who would you like to invite?",
+  "guest.selectTitle": "Guest Talk · Who would you like to invite?",
   "guest.search": "Search characters…",
   "guest.noCharacters": "No installed characters found.",
   "guest.allCount": "All characters · {0}",
@@ -123,21 +118,21 @@ const UI_ENGLISH = Object.freeze({
   "dialog.renameRoom": "Rename this room?",
   "dialog.newName": "New room name",
   "dialog.modeBusy": "Wait until the current reply finishes before changing the mode.",
-  "dialog.guestModeLocked": "A Guest OOC room keeps its chosen character and mode. Create another guest room to choose someone else.",
-  "dialog.noGuest": "The invited character is missing. Reinstall it or create a new Guest OOC room.",
+  "dialog.guestModeLocked": "A Guest Talk room keeps its chosen character and mode. Create another guest room to choose someone else.",
+  "dialog.noGuest": "The invited character is missing. Reinstall it or create a new Guest Talk room.",
   "dialog.disabled": "Konggomul Talk is disabled. Enable it in Extension Settings.",
-  "dialog.guestCreateFailed": "Could not create Guest OOC room: {0}",
+  "dialog.guestCreateFailed": "Could not create Guest Talk room: {0}",
   "dialog.missingGuest": "The selected character is no longer installed.",
-  "dialog.guestStoreFailed": "Could not load Guest OOC conversations.",
-  "dialog.exportGuestFailed": "Could not export Guest OOC conversations.",
+  "dialog.guestStoreFailed": "Could not load Guest Talk conversations.",
+  "dialog.exportGuestFailed": "Could not export Guest Talk conversations.",
   "dialog.importMainConfirm": "Importing replaces all conversations for the current character. Continue?",
-  "dialog.importGuestConfirm": "Importing replaces all Guest OOC conversations. Continue?",
-  "dialog.deleteGuestConfirm": "Delete every Guest OOC room and message? Character voice notes will be kept.",
+  "dialog.importGuestConfirm": "Importing replaces all Guest Talk conversations. Continue?",
+  "dialog.deleteGuestConfirm": "Delete every Guest Talk room and message? Character voice notes will be kept.",
   "dialog.invalidBackup": "This is not a valid Konggomul Talk backup.",
-  "dialog.guestBackupWrong": "Use Guest OOC import for a Guest OOC backup.",
+  "dialog.guestBackupWrong": "Use Guest Talk import for a Guest Talk backup.",
   "dialog.mainImportFailed": "Import failed: {0}",
-  "dialog.guestImportFailed": "Guest OOC import failed: {0}",
-  "dialog.invalidGuestBackup": "This is not a Guest OOC backup.",
+  "dialog.guestImportFailed": "Guest Talk import failed: {0}",
+  "dialog.invalidGuestBackup": "This is not a Guest Talk backup.",
   "dialog.resetMainConfirm": "Reset all conversations for the current character?",
   "dialog.noResetData": "No saved Konggomul Talk conversations to reset.",
   "dialog.resetQuestion": "Which character's conversations do you want to reset?",
@@ -2907,7 +2902,7 @@ function exportGuestRooms() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'konggomul-talk-guest-ooc-' + new Date().toISOString().slice(0, 10) + '.json';
+    link.download = 'konggomul-talk-guest-talk-' + new Date().toISOString().slice(0, 10) + '.json';
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -3218,21 +3213,16 @@ async function generateRoomIntroReply(modeKey, generationTask = null) {
   assertRoomIntroGenerationCurrent(generationTask);
   const systemPrompt = await buildSystemPrompt('', mode, instruction, { includeSentenceCount: false });
   assertRoomIntroGenerationCurrent(generationTask);
-  const isCoworker = mode === 'coworker';
   const isParallel = mode === 'parallel' || mode === 'parallelClassic';
   const declarationLanguageRule = buildDeclarationLanguageRule();
-  const promptContent = isCoworker
-    ? 'Begin the coworker conversation now in direct chat. The coworker premise is already true. This is only a light opening, not a work request. Do not read or announce a declaration, explain the setup, invent any work situation, or claim to have completed or prepared work.'
-    : isParallel
-      ? 'Begin the Parallel Universe AU first reply now. First output the required profile block, then react to the RP show that {char} and {user} are watching together in the same shared present. Do not read or announce a role declaration. Do not frame this as a remote text or call, tell {user} to come, return, hurry, or wait, or start arranging food, orders, preparations, or later activities. Keep the final hook on the show scene.'
+  const promptContent = isParallel
+    ? 'Begin the Parallel Universe AU first reply now. First output the required profile block, then react to the RP show that {char} and {user} are watching together in the same shared present. Do not read or announce a role declaration. Do not frame this as a remote text or call, tell {user} to come, return, hurry, or wait, or start arranging food, orders, preparations, or later activities. Keep the final hook on the show scene.'
       : `Read the following role declaration aloud in your first reply. Complete the reading first. Small in-character reactions are allowed while reading, but keep them brief and immediately continue from the next part; do not turn the reading into a long commentary before the declaration is finished. ${declarationLanguageRule} After it is fully read, return to {char}'s normal speech level, endings, and verbal habits from the character card. Then continue with your reaction to receiving the role and begin the conversation. Do not introduce it as a system note or use a label.
 
 ${declaration}`;
   const prompt = [{ role: 'user', content: promptContent }];
-  const tail = isCoworker
-    ? 'Answer now. Begin as {char} in direct coworker chat only. Keep it to a light opening; do not announce or explain the setup, do not turn the reply into a scene, and do not invent, mention, complete, or claim to have handled any task, work event, customer issue, document, schedule, or deliverable. Wait until {user} asks before giving work help.'
-    : isParallel
-      ? 'Answer now. Output the required AU profile block, then one direct-chat reaction to the show being watched together. Do not use remote/call wording, tell {user} to come or hurry, or arrange what to order, prepare, or do next. End on an immediately answerable show reaction.'
+  const tail = isParallel
+    ? 'Answer now. Output the required AU profile block, then one direct-chat reaction to the show being watched together. Do not use remote/call wording, tell {user} to come or hurry, or arrange what to order, prepare, or do next. End on an immediately answerable show reaction.'
       : 'Answer now. Read the assigned declaration aloud in character, prioritizing completion of the reading before any longer reaction. Once the reading ends, return to {char}\'s normal speech level and verbal habits from the character card. Then continue as {char} in direct chat only. Do not turn the reply into a scene.';
   const reply = await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens || 1000, tail, generationTask);
   assertRoomIntroGenerationCurrent(generationTask);
