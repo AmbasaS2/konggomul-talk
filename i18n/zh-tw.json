@@ -164,5 +164,6 @@
   "konggomul.data.guest": "所有訪客聊天",
   "konggomul.data.export": "匯出",
   "konggomul.data.import": "匯入",
-  "konggomul.data.reset": "重設"
+  "konggomul.data.reset": "重設",
+  "konggomul.mode.guestOocPicker": "訪客聊天（呼叫其他角色）🛎️"
 }
