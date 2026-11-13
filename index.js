@@ -2448,6 +2448,7 @@ function renderModePicker() {
   picker.append(`<div class="tua-mode-picker-title">${targetRoom ? `“${escapeHtml(targetRoom.title || '대화방')}” 모드 변경` : '어떤 모드로 시작할까요?'}</div>`);
   const buttons = $('<div class="tua-mode-picker-buttons"></div>');
   for (const [key, mode] of Object.entries(MODES)) {
+    if (targetRoom && key === 'guestOoc') continue;
     const active = targetRoom && getRoomMode(targetRoom) === key ? ' active' : '';
     buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${escapeHtml(mode.label)}</button>`);
   }
@@ -2462,6 +2463,8 @@ function renderModePicker() {
       if (targetRoomId) {
         closeModePicker();
         setRoomModeById(targetRoomId, modeKey);
+      } else if (modeKey === 'guestOoc') {
+        renderGuestCharacterPicker();
       } else {
         await createRoomWithModeIntro(modeKey);
       }
@@ -2469,6 +2472,106 @@ function renderModePicker() {
       button.data('busy', false).prop('disabled', false);
     }
   });
+}
+
+
+function getInstalledGuestCharacters() {
+  const characters = ctx().characters;
+  const entries = Array.isArray(characters) ? characters : Object.values(characters || {});
+  const unique = new Map();
+  for (const character of entries) {
+    if (!character) continue;
+    const key = getCharKey(character);
+    if (key && key !== 'no-character' && !unique.has(key)) unique.set(key, { key, name: getCharName(character) });
+  }
+  return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+}
+
+function rememberRecentGuest(characterKey) {
+  const settings = getSettings();
+  const key = String(characterKey || '');
+  if (!key) return;
+  settings.guestRecentCharacters = [key, ...settings.guestRecentCharacters.filter(item => item !== key)].slice(0, 5);
+  saveSettings();
+}
+
+function renderGuestCharacterPicker() {
+  const picker = $('#tua-mode-picker');
+  if (!picker.length) return;
+  const characters = getInstalledGuestCharacters();
+  if (!characters.length) {
+    picker.empty().append('<div class="tua-mode-picker-title">설치된 캐릭터가 없어 게스트를 선택할 수 없어요.</div>');
+    return;
+  }
+  const recentKeys = getSettings().guestRecentCharacters.slice(0, 5);
+  const recent = recentKeys.map(key => characters.find(item => item.key === key)).filter(Boolean);
+  let expanded = recent.length === 0;
+  picker.empty();
+  picker.append('<div class="tua-mode-picker-title">게스트 OOC · 누구를 초대할까요?</div>');
+  picker.append('<input id="tua-guest-search" class="tua-guest-search" type="search" placeholder="캐릭터 이름 검색..." aria-label="게스트 캐릭터 검색">');
+  picker.append('<div id="tua-guest-caption" class="tua-guest-caption"></div>');
+  picker.append('<div id="tua-guest-results" class="tua-guest-results" role="list"></div>');
+  picker.append('<button id="tua-guest-more" class="tua-guest-more" type="button"></button>');
+  picker.append('<button id="tua-guest-back" class="tua-guest-back" type="button">← 모드 선택으로</button>');
+
+  const renderResults = () => {
+    const query = String($('#tua-guest-search').val() || '').trim().toLocaleLowerCase();
+    const showAll = expanded || !!query;
+    const entries = (showAll ? characters : recent).filter(item => item.name.toLocaleLowerCase().includes(query));
+    $('#tua-guest-caption').text(showAll ? '전체 캐릭터 · ' + entries.length + '명' : '최근 게스트 · 최대 5명');
+    const results = $('#tua-guest-results');
+    results.empty();
+    for (const item of entries) {
+      const button = $('<button type="button" class="tua-guest-option"></button>');
+      button.text(item.name).attr('data-guest-key', item.key);
+      results.append(button);
+    }
+    if (!entries.length) results.append('<div class="tua-guest-empty">일치하는 캐릭터가 없어요.</div>');
+    $('#tua-guest-more').toggle(!query && recent.length > 0).text(expanded ? '최근 5명만 보기' : '모든 캐릭터 보기');
+  };
+  $('#tua-guest-search').on('input', renderResults);
+  $('#tua-guest-more').on('click', () => { expanded = !expanded; renderResults(); });
+  $('#tua-guest-back').on('click', renderModePicker);
+  $('#tua-guest-results').on('click', 'button[data-guest-key]', async function () {
+    const button = $(this);
+    if (button.prop('disabled')) return;
+    const key = String(button.attr('data-guest-key') || '');
+    picker.find('button').prop('disabled', true);
+    try {
+      await createGuestOocRoom(key);
+    } catch (error) {
+      console.error('[Konggomul] guest room creation failed', error);
+      alert('게스트 OOC 방 생성에 실패했습니다: ' + String(error?.message || error));
+      picker.find('button').prop('disabled', false);
+    }
+  });
+  picker.addClass('open');
+  renderResults();
+  $('#tua-guest-search').trigger('focus');
+}
+
+async function createGuestOocRoom(characterKey) {
+  const selected = getInstalledGuestCharacters().find(item => item.key === characterKey);
+  if (!selected) throw new Error('선택한 캐릭터가 삭제되었거나 목록에서 사라졌습니다.');
+  if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+  const loaded = await loadRooms({ storageKey: GUEST_ROOM_STORE_KEY, skipRender: true });
+  if (!loaded) throw new Error('게스트 OOC 저장 영역을 불러오지 못했습니다.');
+  const room = createRoom(false, 'guestOoc', false);
+  room.guestCharacterKey = selected.key;
+  room.guestCharacterName = selected.name;
+  room.title = selected.name + ' · 게스트 OOC';
+  const now = Date.now();
+  room.messages.push({ id: 'msg_intro_guest_' + now, role: 'assistant', content: getKongtalkIntroIcon(), at: now });
+  rememberRecentGuest(selected.key);
+  await saveRooms();
+  closeModePicker();
+  closeRoomList();
+  closeSettingsPanel();
+  renderAll();
+  setPanelVisible(true);
+  scrollMessagesToBottom();
+  $('#tua-input').trigger('focus');
+  return room;
 }
 
 function applyRoomActionsCollapseState() {
@@ -3745,27 +3848,52 @@ function toggleRoomList(force) {
 
 function renderRoomList() {
   const list = $('#tua-room-list');
+  if (!list.length) return;
   list.empty();
-  for (const room of getSortedRooms()) {
+  const currentMainKey = getCharKey();
+  const keys = [currentMainKey, GUEST_ROOM_STORE_KEY];
+  const entries = [];
+  for (const ownerKey of keys) {
+    const state = roomStateCharKey === ownerKey ? roomState : getServerRoomStore()[ownerKey];
+    for (const room of getSortedRooms(state)) entries.push({ room, ownerKey });
+  }
+  entries.sort((a, b) => {
+    if (!!a.room.pinned !== !!b.room.pinned) return a.room.pinned ? -1 : 1;
+    const aLast = getRoomSortTime(a.room);
+    const bLast = getRoomSortTime(b.room);
+    if (aLast !== bLast) return bLast - aLast;
+    return Number(b.room.createdAt || 0) - Number(a.room.createdAt || 0);
+  });
+  for (const { room, ownerKey } of entries) {
     const count = Array.isArray(room.messages) ? room.messages.length : 0;
-    const active = room.id === activeRoomId ? 'active' : '';
+    const active = room.id === activeRoomId && ownerKey === roomStateCharKey ? 'active' : '';
     const pinned = room.pinned ? 'pinned' : '';
     const visibleMessages = Array.isArray(room.messages) ? room.messages.filter(msg => isRoomSortConversationMessage(msg, room)) : [];
     const last = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].content : '대화 없음';
     const roomMode = MODES[getRoomMode(room)]?.label || 'Mode';
-    const title = `${room.pinned ? '📌 ' : ''}${room.title || defaultRoomTitle(room.createdAt)}`;
-    list.append(`<button class="tua-room-item ${active} ${pinned}" data-id="${escapeHtml(room.id)}"><span><b>${escapeHtml(title)}</b><small>${escapeHtml(roomMode)} · ${escapeHtml(String(last).slice(0, 34))}</small></span><em>${count}</em></button>`);
+    const title = (room.pinned ? '📌 ' : '') + (room.title || defaultRoomTitle(room.createdAt));
+    list.append('<button class="tua-room-item ' + active + ' ' + pinned + '" data-id="' + escapeHtml(room.id) + '" data-owner="' + escapeHtml(ownerKey) + '"><span><b>' + escapeHtml(title) + '</b><small>' + escapeHtml(roomMode) + ' · ' + escapeHtml(String(last).slice(0, 34)) + '</small></span><em>' + count + '</em></button>');
   }
   list.find('.tua-room-item').off('.tuaRoom')
-    .on('click.tuaRoom', function (e) {
+    .on('click.tuaRoom', async function (e) {
       if (roomContextSuppressClick) {
         e.preventDefault();
         roomContextSuppressClick = false;
         return;
       }
+      const id = String($(this).attr('data-id') || '');
+      const ownerKey = String($(this).attr('data-owner') || '');
       hideRoomContextMenu();
       closeSettingsPanel();
-      activeRoomId = $(this).data('id');
+      if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+      if (ownerKey !== roomStateCharKey) {
+        const loaded = await loadRooms({ storageKey: ownerKey, selectedRoomId: id, skipRender: true });
+        if (!loaded) return;
+      } else {
+        activeRoomId = id;
+      }
+      const selectedRoom = getActiveRoom();
+      if (getRoomMode(selectedRoom) === 'guestOoc' && selectedRoom?.guestCharacterKey) rememberRecentGuest(selectedRoom.guestCharacterKey);
       $('#tua-room-list').removeClass('open');
       renderAll();
       scrollMessagesToBottom();
@@ -3773,12 +3901,12 @@ function renderRoomList() {
     .on('contextmenu.tuaRoom', function (e) {
       e.preventDefault();
       cancelRoomLongPress();
-      openRoomContextMenuForRoom($(this).data('id'), e.clientX, e.clientY);
+      void openRoomContextMenuForRoom($(this).attr('data-id'), e.clientX, e.clientY, $(this).attr('data-owner'));
     })
     .on('pointerdown.tuaRoom', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
       if (e.pointerType === 'mouse' && e.buttons !== 1) return;
-      scheduleRoomLongPress($(this).data('id'), e.clientX, e.clientY);
+      scheduleRoomLongPress($(this).attr('data-id'), e.clientX, e.clientY, $(this).attr('data-owner'));
     })
     .on('pointermove.tuaRoom', e => moveRoomLongPress(e.clientX, e.clientY))
     .on('pointerup.tuaRoom pointercancel.tuaRoom pointerleave.tuaRoom', finishRoomLongPress);
@@ -3988,7 +4116,7 @@ function openRoomContextMenuForRoom(roomId, x, y) {
   menu.dataset.roomId = roomId;
   menu.dataset.tuaTheme = getThemeKey();
   const modeButton = menu.querySelector('[data-action="change-mode"]');
-  if (modeButton) modeButton.disabled = generationInFlight;
+  if (modeButton) modeButton.disabled = generationInFlight || getRoomMode(roomState.rooms.find(item => item.id === roomId)) === 'guestOoc';
   showContextMenuAt(menu, x, y);
 }
 
@@ -3997,7 +4125,12 @@ function beginRoomModeChange(roomId) {
     alert('답변 생성이 끝난 뒤 모드를 변경해 주세요.');
     return;
   }
-  if (!roomState.rooms.some(room => room.id === roomId)) return;
+  const room = roomState.rooms.find(item => item.id === roomId);
+  if (!room) return;
+  if (getRoomMode(room) === 'guestOoc') {
+    alert('게스트 OOC 방의 캐릭터와 모드는 고정돼 있어요. 다른 캐릭터를 원하면 새 게스트 방을 만들어 주세요.');
+    return;
+  }
   closeSettingsPanel();
   closeRoomList();
   toggleModePicker(true, roomId);
