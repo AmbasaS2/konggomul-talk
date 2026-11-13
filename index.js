@@ -112,6 +112,9 @@ const UI_ENGLISH = Object.freeze({
   "guest.showRecent": "Show recent 5",
   "guest.back": "← Back to modes",
   "message.copy": "Copy",
+  "message.reply": "Reply",
+  "message.quotedFrom": "Replying to {0}",
+  "message.cancelQuote": "Cancel reply",
   "message.regenerate": "Regenerate",
   "message.delete": "Delete",
   "message.pressHint": "Long-press for message actions",
@@ -345,6 +348,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 let activeRoomId = null;
 let roomState = { rooms: [] };
 let pendingPersonaChoice = false;
+let pendingQuote = null;
 let panelEl = null;
 let contextMenuEl = null;
 let roomContextMenuEl = null;
@@ -795,6 +799,7 @@ function normalizeStoredRoomState(raw) {
         ...(variantState.variants ? { variants: variantState.variants, variantIndex: variantState.variantIndex } : {}),
         ...(loading ? { loading: true } : {}),
         ...(m?.error ? { error: true } : {}),
+        ...(role === 'user' && normalizeQuotedReference(m?.quote) ? { quote: normalizeQuotedReference(m.quote) } : {}),
       };
     }) : [];
     const updatedAt = Number(room?.updatedAt || 0) || (messages.length ? Math.max(...messages.map(getMessageUpdatedAt)) : createdAt);
@@ -1190,10 +1195,72 @@ function deleteMessage(id) {
   renderMessages();
 }
 
-function appendMessage(role, content) {
+function normalizeQuotedReference(value) {
+  if (!value || typeof value !== 'object' || !String(value.content || '').trim()) return null;
+  return {
+    messageId: String(value.messageId || ''),
+    speaker: String(value.speaker || '').slice(0, 100),
+    content: String(value.content).slice(0, 1200),
+  };
+}
+
+function formatQuotedMessageContent(content, quote = null) {
+  const reference = normalizeQuotedReference(quote);
+  if (!reference) return String(content || '');
+  return '[Reply to earlier message from ' + (reference.speaker || 'the conversation') + ']\n'
+    + reference.content + '\n[End of quoted message]\n' + String(content || '');
+}
+
+function renderPendingQuote() {
+  const preview = $('#tua-reply-preview');
+  if (!preview.length) return;
+  if (pendingQuote && (pendingQuote.roomId !== getActiveRoom()?.id || pendingQuote.storeKey !== roomStateCharKey)) pendingQuote = null;
+  if (!pendingQuote) {
+    preview.empty().hide();
+    return;
+  }
+  const ref = normalizeQuotedReference(pendingQuote);
+  preview.empty()
+    .append($('<div class="tua-reply-preview-text"></div>')
+      .append($('<strong></strong>').text(uiText('message.quotedFrom', ref.speaker)))
+      .append($('<span></span>').text(ref.content.slice(0, 140))))
+    .append($('<button type="button" class="tua-reply-cancel"></button>')
+      .text('×').attr('aria-label', uiText('message.cancelQuote'))
+      .on('click', () => { pendingQuote = null; renderPendingQuote(); }));
+  preview.show();
+}
+
+function beginQuotedReply(messageId) {
+  if (generationInFlight) return;
+  const room = getActiveRoom();
+  const message = room?.messages?.find(m => String(m.id) === String(messageId));
+  if (!message || message.loading || message.error) return;
+  const excerpt = String(message.content || '').trim();
+  if (!excerpt) return;
+  const speaker = message.role === 'user'
+    ? (getUserKongtalkNickname() || getUserName()) : getSpeakerName(room);
+  pendingQuote = {
+    ...normalizeQuotedReference({ messageId: message.id, speaker, content: excerpt }),
+    roomId: room.id,
+    storeKey: roomStateCharKey,
+  };
+  renderPendingQuote();
+  $('#tua-input').trigger('focus');
+}
+
+function getCurrentUserQuote(userText, sourceMessages = null) {
+  const source = Array.isArray(sourceMessages) ? sourceMessages : getActiveRoom()?.messages || [];
+  for (let i = source.length - 1; i >= 0; i--) {
+    const item = source[i];
+    if (item?.role === 'user' && String(item.content || '') === String(userText || '')) return normalizeQuotedReference(item.quote);
+  }
+  return null;
+}
+
+function appendMessage(role, content, quote = null) {
   const room = getActiveRoom();
   const now = Date.now();
-  room.messages.push({ id: 'msg_' + now + '_' + Math.random().toString(16).slice(2), role, content, at: now });
+  room.messages.push({ id: 'msg_' + now + '_' + Math.random().toString(16).slice(2), role, content, at: now, ...(role === 'user' && normalizeQuotedReference(quote) ? { quote: normalizeQuotedReference(quote) } : {}) });
   room.lastMessageAt = now;
   room.updatedAt = now;
   const savePromise = saveRooms();
@@ -1553,9 +1620,9 @@ function buildPromptMessages(userText, sourceMessages = null) {
   const historyLimit = getChatMemoryLimit();
   const history = getPromptRoomMessages(userText, historyLimit, sourceMessages).map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
-    content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : String(m.content || '')
+    content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : formatQuotedMessageContent(m.content, m.role === 'user' ? m.quote : null)
   }));
-  history.push({ role: 'user', content: String(userText || '') });
+  history.push({ role: 'user', content: formatQuotedMessageContent(userText, getCurrentUserQuote(userText, sourceMessages)) });
   return history;
 }
 
@@ -2324,7 +2391,7 @@ async function generateAssistantReply(userText, generationTask = null, sourceMes
 function buildContinuationPromptMessages() {
   const history = getPromptRoomMessages('', getChatMemoryLimit()).map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
-    content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : String(m.content || '')
+    content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : formatQuotedMessageContent(m.content, m.role === 'user' ? m.quote : null)
   }));
   history.push({ role: 'user', content: 'Continue naturally from the latest message in this conversation. Add the next useful, responsive part in your own voice without repeating earlier wording or mentioning this instruction.' });
   return history;
@@ -2452,6 +2519,7 @@ function ensurePanel() {
         <div id="tua-status" class="tua-status" aria-hidden="true" style="display:none"></div>
       </div>
       <div id="tua-messages" class="tua-messages"></div>
+      <div id="tua-reply-preview" class="tua-reply-preview" style="display:none"></div>
       <div class="tua-input-row">
         <textarea id="tua-input" placeholder="${uiHtml('panel.messagePlaceholder')}"></textarea>
         <button type="button" id="tua-send" title="${uiHtml('panel.send')}" aria-label="${uiHtml('panel.send')}">🐶</button>
@@ -2977,7 +3045,8 @@ function normalizeImportedRoomState(raw) {
           content: variantState.content,
           at: Number(m.at || Date.now()),
           ...(variantState.variants ? { variants: variantState.variants, variantIndex: variantState.variantIndex } : {}),
-          ...(m.error ? { error: true } : {})
+          ...(m.error ? { error: true } : {}),
+          ...(role === 'user' && normalizeQuotedReference(m.quote) ? { quote: normalizeQuotedReference(m.quote) } : {})
         };
       }) : []
     })),
@@ -3702,7 +3771,11 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
     if (!continuation) {
       input.val('');
       autoGrowInput();
-      await appendMessage('user', text);
+      const quote = pendingQuote && pendingQuote.roomId === activeRoomId && pendingQuote.storeKey === roomStateCharKey
+        ? normalizeQuotedReference(pendingQuote) : null;
+      await appendMessage('user', text, quote);
+      pendingQuote = null;
+      renderPendingQuote();
     }
     setPanelVisible(true);
 
@@ -4254,6 +4327,7 @@ function renderAll() {
   hydratePanelSettingsUI();
   renderRoomList();
   renderMessages();
+  renderPendingQuote();
   applyVisualSettings();
 }
 
@@ -4355,6 +4429,8 @@ function renderMessages() {
     const roleClass = m.role === 'declaration' ? 'declaration' : (m.role === 'user' ? 'user' : 'assistant');
     const name = m.role === 'declaration' ? '' : (m.role === 'user' ? getUserKongtalkNickname() : getSpeakerName());
     const nameHtml = name ? `<div class="tua-msg-name">${escapeHtml(name)}</div>` : '';
+    const reference = normalizeQuotedReference(m.quote);
+    const quoteHtml = reference ? `<div class="tua-quoted-message"><b>${uiHtml('message.quotedFrom', reference.speaker)}</b><span>${escapeHtml(reference.content.slice(0, 220))}</span></div>` : '';
     const lockedClass = m.role === 'declaration' ? ' tua-locked' : '';
     const title = uiText(m.role === 'declaration' ? 'message.declaration' : 'message.pressHint');
     const variantState = getAssistantVariantState(m);
@@ -4368,7 +4444,7 @@ function renderMessages() {
     const html = `
       <div class="tua-msg tua-${roleClass}${lockedClass} ${m.error ? 'tua-error' : ''} ${m.loading ? 'tua-loading' : ''}" data-id="${escapeHtml(m.id)}" tabindex="0" title="${title}">
         ${nameHtml}
-        <div class="tua-bubble">${normalizeNewlines(m.content)}</div>
+        <div class="tua-bubble">${quoteHtml}${normalizeNewlines(m.content)}</div>
         ${variantNavigation}
       </div>`;
     box.append(html);
@@ -4445,6 +4521,7 @@ function ensureContextMenu() {
   contextMenuEl.id = 'tua-context-menu';
   contextMenuEl.innerHTML = `
     <button data-action="copy">${uiHtml('message.copy')}</button>
+    <button data-action="reply">${uiHtml('message.reply')}</button>
     <button data-action="regenerate">${uiHtml('message.regenerate')}</button>
     <button data-action="delete" class="danger">${uiHtml('message.delete')}</button>`;
   document.body.appendChild(contextMenuEl);
@@ -4457,6 +4534,7 @@ function ensureContextMenu() {
     const action = btn.dataset.action;
     hideContextMenu();
     if (action === 'copy') await copyTextToClipboard(msg.content);
+    if (action === 'reply') beginQuotedReply(id);
     if (action === 'delete') deleteMessage(id);
     if (action === 'regenerate') await regenerateAssistantMessage(id);
   };
@@ -4478,6 +4556,8 @@ function openContextMenuForMessage(id, x, y) {
   menu.dataset.msgId = id;
   menu.dataset.tuaTheme = getThemeKey();
   menu.querySelector('[data-action="regenerate"]')?.toggleAttribute('hidden', !canRegenerateAssistantMessage(id));
+  const replyButton = menu.querySelector('[data-action="reply"]');
+  if (replyButton) replyButton.disabled = generationInFlight;
   const deleteButton = menu.querySelector('[data-action="delete"]');
   if (deleteButton) deleteButton.disabled = generationInFlight;
   showContextMenuAt(menu, x, y);
@@ -4751,6 +4831,8 @@ function cleanupRuntimeState() {
     roomContextMenuButtonClickHandler = null;
     roomContextMenuDocumentClickHandler = null;
   }
+  pendingQuote = null;
+  pendingPersonaChoice = false;
   if (panelEl) setPanelVisible(false, { persistPreference: false });
 }
 
