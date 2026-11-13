@@ -69,7 +69,7 @@ Existing rooms remain stored separately for each main RP character. Guest OOC ro
 | **Pet Mode (펫 모드)** | Assigns the character as the user's pet. The original personality and way of speaking remain intact, so willing affection, grumbling, pride, resistance, or spoiled behavior differ from character to character. |
 | **Coworker Mode (직장 동료 모드)** | Places the character on the user's real team to help with work wording, judgments, plans, drafts, checklists, and next steps. |
 | **RP Assistant Mode (RP 어시 모드)** | Discusses the current RP from outside the scene: situation and emotional-flow reading, scene direction, possible actions, and sample lines. It writes OOC only when the user explicitly asks for OOC. |
-| **Guest OOC (게스트 OOC)** | Invites any installed character—even from a different story—to observe the currently open RP and discuss it in the guest's own voice. The guest card determines the speaker; the current RP character card, persona, lorebook, accessible memories, and recent RP messages remain reference material. |
+| **Guest OOC (게스트 OOC)** | Invites any installed character—even from a different story—to talk privately with the **current RP persona** (the same person playing in the active RP). The guest card determines the speaker; the current RP character card, active lorebook, accessible memories, and recent RP messages provide context. Established guest relationships and first-hand RP events are respected; unrelated guests do not automatically know the persona. The latest Guest OOC question also participates in dynamic lorebook keyword scanning. |
 | **Parallel Universe AU (Watching RP)** | Creates a separate modern AU person with the original character's name, face, age, core personality, and way of speaking, but a different modern job and a newly generated relationship with the current user. They watch the main RP together as a show. |
 | **Parallel Universe AU (Watching RP) 🙃** | Creates a separate modern AU person with the original character's name, face, and age, but an opposite core personality and way of speaking, a different life and job, and a newly generated relationship with the current user. They watch the main RP together as a show. |
 
@@ -233,7 +233,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **펫 모드** | 캐릭터에게 사용자의 펫 역할을 부여합니다. 캐릭터의 원래 성격과 말투가 그대로 유지되어, 애교를 부리거나 투덜대거나 자존심을 세우거나 제멋대로 구는 방식도 캐릭터마다 달라집니다. |
 | **직장 동료 모드** | 캐릭터에게 같은 팀의 직장 동료 역할을 부여해 실제 업무 문구, 판단, 계획, 초안, 체크리스트와 다음 할 일을 함께 처리합니다. |
 | **RP 어시 모드** | 현재 캐릭터와 RP 밖에서 장면 상황, 감정선, 다음 전개, 가능한 행동과 예시 대사를 상의합니다. OOC는 사용자가 명시적으로 요청했을 때만 작성합니다. |
-| **게스트 OOC** | 설치된 다른 캐릭터를 초대해 현재 열려 있는 RP를 함께 보며 대화합니다. 다른 세계관 캐릭터도 가능하며, 게스트 캐릭터 시트는 말하는 인격으로 사용하고 현재 RP의 캐릭터 시트·페르소나·로어북·접근 가능한 메모리·최근 대화는 참고 자료로 사용합니다. |
+| **게스트 OOC** | 설치된 다른 캐릭터를 초대해 **현재 RP의 페르소나 본인**과 별도로 대화합니다. 다른 세계관 캐릭터도 초대할 수 있습니다. 게스트 캐릭터 시트는 화자의 인격, 현재 RP 캐릭터 시트·로어북·접근 가능한 메모리·최근 대화는 상황과 관계를 이해하는 자료입니다. 게스트가 RP에서 실제로 겪은 사건과 기존 관계는 유지하되, 인연 없는 캐릭터에게 친분을 만들어 주지는 않습니다. 방금 보낸 콩톡 질문도 로어북 키워드 검사에 포함됩니다. |
 | **평행우주AU(Watching RP)** | 원래 캐릭터와 같은 이름, 얼굴, 나이, 핵심 성격과 말투를 가지지만, 다른 현대 직업과 새로 정해진 현재 사용자와의 관계를 가진 별개의 현대 AU 인물과 메인 RP를 작품처럼 함께 보며 대화합니다. |
 | **평행우주AU(Watching RP)🙃** | 원래 캐릭터와 같은 이름, 얼굴과 나이를 가지지만, 핵심 성격과 말투는 반대이고 삶·직업·현재 사용자와의 관계는 새로 정해진 별개의 현대 AU 인물과 메인 RP를 작품처럼 함께 보며 대화합니다. |
 
