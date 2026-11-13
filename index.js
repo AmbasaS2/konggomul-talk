@@ -2073,6 +2073,11 @@ function sanitizeAssistantReply(text) {
 
 async function generateAssistantReply(userText, generationTask = null, sourceMessages = null) {
   const systemPrompt = await buildSystemPrompt(userText);
+  if (generationTask && (generationTask.cancelled || !isGenerationStorageContextCurrent(generationTask))) {
+    const error = new Error('RP context changed before generation.');
+    error.name = 'AbortError';
+    throw error;
+  }
   const prompt = buildPromptMessages(userText, sourceMessages);
   const settings = getSettings();
   return await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens, 'Answer now. Reply as direct chat only. Do not turn the reply into a scene or RP continuation.', generationTask);
@@ -2090,6 +2095,11 @@ function buildContinuationPromptMessages() {
 async function generateAssistantContinuation(generationTask = null) {
   const settings = getSettings();
   const systemPrompt = await buildSystemPrompt('', null, 'The user pressed the send button with no new message. Continue naturally from the latest message in the current conversation. Do not mention the button, an empty input, or this instruction.');
+  if (generationTask && (generationTask.cancelled || !isGenerationStorageContextCurrent(generationTask))) {
+    const error = new Error('RP context changed before generation.');
+    error.name = 'AbortError';
+    throw error;
+  }
   return await generateWithSelectedProfile(systemPrompt, buildContinuationPromptMessages(), settings.maxTokens, 'Answer now. Continue naturally from the latest message as {char}. Reply as direct chat only. Do not turn the reply into a scene or RP continuation.', generationTask);
 }
 
@@ -3431,6 +3441,10 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
   }
   if (!activeRoomId || !getActiveRoom()) createRoom(false, 'kongtalk', true);
   const initialRoom = getActiveRoom();
+  if (getRoomMode(initialRoom) === 'guestOoc' && !getGuestCharacter(initialRoom)) {
+    alert('초대한 게스트 캐릭터를 찾을 수 없어요. 캐릭터를 다시 설치하거나 새 게스트 OOC 방을 만들어 주세요.');
+    return;
+  }
   if (continuation && !hasRealConversationMessage(initialRoom)) {
     setStatus('이을 대화가 아직 없어요. 먼저 메시지를 보내 주세요.');
     return;
