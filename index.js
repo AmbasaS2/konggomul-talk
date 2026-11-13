@@ -2410,7 +2410,7 @@ function ensurePanel() {
     .on('pointerup pointercancel pointerleave', finishRoomLongPress);
   $('#tua-new-room').on('click', (e) => { e.preventDefault(); hideRoomContextMenu(); closeSettingsPanel(); closeRoomList(); toggleModePicker(); });
   $('#tua-roombar-toggle').on('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleRoomActionsCollapsed(); });
-  $('#tua-delete-room').on('click', () => { hideRoomContextMenu(); closeSettingsPanel(); closeRoomList(); closeModePicker(); if (confirm('채팅방을 삭제하시겠습니까?')) deleteRoom(activeRoomId); });
+  $('#tua-delete-room').on('click', () => { hideRoomContextMenu(); closeSettingsPanel(); closeRoomList(); closeModePicker(); if (confirm(uiText('dialog.deleteRoom'))) deleteRoom(activeRoomId); });
   $('#tua-pin-room').on('click', () => { closeSettingsPanel(); toggleActiveRoomPinned(); });
   $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); });
   $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
@@ -2688,7 +2688,7 @@ function renderModePicker() {
   if (!picker.length) return;
   picker.empty();
   const targetRoom = modePickerTargetRoomId ? roomState.rooms.find(room => room.id === modePickerTargetRoomId) : null;
-  picker.append(`<div class="tua-mode-picker-title">${targetRoom ? `“${escapeHtml(targetRoom.title || '대화방')}” 모드 변경` : '어떤 모드로 시작할까요?'}</div>`);
+  picker.append(`<div class="tua-mode-picker-title">${uiHtml(targetRoom ? 'room.changeModeTitle' : 'room.modePicker', targetRoom?.title || uiText('room.name'))}</div>`);
   const buttons = $('<div class="tua-mode-picker-buttons"></div>');
   for (const [key, mode] of Object.entries(MODES)) {
     if (targetRoom && key === 'guestOoc') continue;
@@ -2743,25 +2743,25 @@ function renderGuestCharacterPicker() {
   if (!picker.length) return;
   const characters = getInstalledGuestCharacters();
   if (!characters.length) {
-    picker.empty().append('<div class="tua-mode-picker-title">설치된 캐릭터가 없어 게스트를 선택할 수 없어요.</div>');
+    picker.empty().append(`<div class="tua-mode-picker-title">${uiHtml('guest.noCharacters')}</div>`);
     return;
   }
   const recentKeys = getSettings().guestRecentCharacters.slice(0, 5);
   const recent = recentKeys.map(key => characters.find(item => item.key === key)).filter(Boolean);
   let expanded = recent.length === 0;
   picker.empty();
-  picker.append('<div class="tua-mode-picker-title">게스트 OOC · 누구를 초대할까요?</div>');
-  picker.append('<input id="tua-guest-search" class="tua-guest-search" type="search" placeholder="캐릭터 이름 검색..." aria-label="게스트 캐릭터 검색">');
+  picker.append(`<div class="tua-mode-picker-title">${uiHtml('guest.selectTitle')}</div>`);
+  picker.append(`<input id="tua-guest-search" class="tua-guest-search" type="search" placeholder="${uiHtml('guest.search')}" aria-label="${uiHtml('guest.search')}">`);
   picker.append('<div id="tua-guest-caption" class="tua-guest-caption"></div>');
   picker.append('<div id="tua-guest-results" class="tua-guest-results" role="list"></div>');
   picker.append('<button id="tua-guest-more" class="tua-guest-more" type="button"></button>');
-  picker.append('<button id="tua-guest-back" class="tua-guest-back" type="button">← 모드 선택으로</button>');
+  picker.append(`<button id="tua-guest-back" class="tua-guest-back" type="button">${uiHtml('guest.back')}</button>`);
 
   const renderResults = () => {
     const query = String($('#tua-guest-search').val() || '').trim().toLocaleLowerCase();
     const showAll = expanded || !!query;
     const entries = (showAll ? characters : recent).filter(item => item.name.toLocaleLowerCase().includes(query));
-    $('#tua-guest-caption').text(showAll ? '전체 캐릭터 · ' + entries.length + '명' : '최근 게스트 · 최대 5명');
+    $('#tua-guest-caption').text(showAll ? uiText('guest.allCount', entries.length) : uiText('guest.recentCount'));
     const results = $('#tua-guest-results');
     results.empty();
     for (const item of entries) {
@@ -2769,8 +2769,8 @@ function renderGuestCharacterPicker() {
       button.text(item.name).attr('data-guest-key', item.key);
       results.append(button);
     }
-    if (!entries.length) results.append('<div class="tua-guest-empty">일치하는 캐릭터가 없어요.</div>');
-    $('#tua-guest-more').toggle(!query && recent.length > 0).text(expanded ? '최근 5명만 보기' : '모든 캐릭터 보기');
+    if (!entries.length) results.append(`<div class="tua-guest-empty">${uiHtml('guest.noMatch')}</div>`);
+    $('#tua-guest-more').toggle(!query && recent.length > 0).text(uiText(expanded ? 'guest.showRecent' : 'guest.showAll'));
   };
   $('#tua-guest-search').on('input', renderResults);
   $('#tua-guest-more').on('click', () => { expanded = !expanded; renderResults(); });
@@ -2784,7 +2784,7 @@ function renderGuestCharacterPicker() {
       await createGuestOocRoom(key);
     } catch (error) {
       console.error('[Konggomul] guest room creation failed', error);
-      alert('게스트 OOC 방 생성에 실패했습니다: ' + String(error?.message || error));
+      alert(uiText('dialog.guestCreateFailed', String(error?.message || error)));
       picker.find('button').prop('disabled', false);
     }
   });
@@ -2795,10 +2795,10 @@ function renderGuestCharacterPicker() {
 
 async function createGuestOocRoom(characterKey) {
   const selected = getInstalledGuestCharacters().find(item => item.key === characterKey);
-  if (!selected) throw new Error('선택한 캐릭터가 삭제되었거나 목록에서 사라졌습니다.');
+  if (!selected) throw new Error(uiText('dialog.missingGuest'));
   if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
   const loaded = await loadRooms({ storageKey: GUEST_ROOM_STORE_KEY, skipRender: true });
-  if (!loaded) throw new Error('게스트 OOC 저장 영역을 불러오지 못했습니다.');
+  if (!loaded) throw new Error(uiText('dialog.guestStoreFailed'));
   const room = createRoom(false, 'guestOoc', false);
   room.guestCharacterKey = selected.key;
   room.guestCharacterName = selected.name;
@@ -2824,8 +2824,8 @@ function applyRoomActionsCollapseState() {
   const button = $('#tua-roombar-toggle');
   if (button.length) {
     button.text(collapsed ? '⋯' : '‹')
-      .attr('title', collapsed ? '대화방 관리 버튼 펼치기' : '대화방 관리 버튼 접기')
-      .attr('aria-label', collapsed ? '대화방 관리 버튼 펼치기' : '대화방 관리 버튼 접기');
+      .attr('title', uiText(collapsed ? 'panel.expandActions' : 'panel.collapseActions'))
+      .attr('aria-label', uiText(collapsed ? 'panel.expandActions' : 'panel.collapseActions'));
   }
 }
 
@@ -3944,13 +3944,13 @@ function renderProfileOptions(options = {}) {
   selects.each(function () {
     const sel = $(this);
     sel.empty();
-    sel.append(`<option value="">메인 API 사용</option>`);
+    sel.append(`<option value="">${uiHtml('settings.mainApi')}</option>`);
     if (selected && !selectedProfile) {
       const label = resolveConnectionProfileName(selected, s.cachedProfiles);
-      sel.append(`<option value="${escapeHtml(selected)}">현재 확인되지 않음 · ${escapeHtml(label)}</option>`);
+      sel.append(`<option value="${escapeHtml(selected)}">${uiHtml('settings.missingProfile', label)}</option>`);
     }
     if (!profiles.length) {
-      sel.append(`<option value="" disabled>사용 가능한 프로필 없음</option>`);
+      sel.append(`<option value="" disabled>${uiHtml('settings.noProfiles')}</option>`);
     } else {
       for (const p of profiles) {
         sel.append(`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`);
@@ -4129,14 +4129,14 @@ function applyThemeUI() {
   const themeKey = getThemeKey();
   const theme = getTheme();
   const simple = isSimpleThemeKey(themeKey);
-  $('.tua-theme-buttons button[data-theme="custom"]').text(themeKey === 'custom' ? theme.label : readCssTextVariable('--tua-custom-theme-name', THEMES.custom.label));
+  $('.tua-theme-buttons button[data-theme="custom"]').text(readCssTextVariable('--tua-custom-theme-name', uiText('theme.custom')));
   if (panelEl) {
     panelEl.setAttribute('data-tua-theme', themeKey);
     panelEl.style.setProperty('--tua-current-intro-icon', JSON.stringify(theme.introIcon || ''));
     $('#tua-title-icon').text(theme.titleIcon).toggle(!!theme.titleIcon);
-    $('#tua-title-text').text(simple ? '' : '콩톡');
+    $('#tua-title-text').text(simple ? '' : uiText('app.short'));
     $('#tua-settings-icon').text(theme.titleIcon).toggle(!!theme.titleIcon);
-    $('#tua-settings-title-text').text(simple ? '설정' : '콩고물 톡 설정');
+    $('#tua-settings-title-text').text(uiText(simple ? 'app.settingsShort' : 'app.settings'));
     $('#tua-settings-open').text('⚙');
     $('#tua-new-room').text(simple ? '+' : '＋');
     $('#tua-pin-room').text(simple ? '⌖' : '📌');
@@ -4175,8 +4175,8 @@ function renderAll() {
   const currentMode = getRoomMode();
   $('#tua-mode-badge').text(modeUiLabel(currentMode));
   const activeRoom = getActiveRoom();
-  $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${activeRoom?.title || '대화방'}`);
-  $('#tua-pin-room').toggleClass('active', !!activeRoom?.pinned).attr('title', activeRoom?.pinned ? '대화방 고정 해제' : '대화방 고정');
+  $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${activeRoom?.title || uiText('room.name')}`);
+  $('#tua-pin-room').toggleClass('active', !!activeRoom?.pinned).attr('title', uiText(activeRoom?.pinned ? 'panel.unpinRoom' : 'panel.pinRoom'));
   hydratePanelSettingsUI();
   renderRoomList();
   renderMessages();
@@ -4215,7 +4215,7 @@ function renderRoomList() {
     const active = room.id === activeRoomId && ownerKey === roomStateCharKey ? 'active' : '';
     const pinned = room.pinned ? 'pinned' : '';
     const visibleMessages = Array.isArray(room.messages) ? room.messages.filter(msg => isRoomSortConversationMessage(msg, room)) : [];
-    const last = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].content : '대화 없음';
+    const last = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].content : uiText('room.noMessages');
     const roomMode = modeUiLabel(getRoomMode(room));
     const title = (room.pinned ? '📌 ' : '') + (room.title || defaultRoomTitle(room.createdAt));
     list.append('<button class="tua-room-item ' + active + ' ' + pinned + '" data-id="' + escapeHtml(room.id) + '" data-owner="' + escapeHtml(ownerKey) + '"><span><b>' + escapeHtml(title) + '</b><small>' + escapeHtml(roomMode) + ' · ' + escapeHtml(String(last).slice(0, 34)) + '</small></span><em>' + count + '</em></button>');
@@ -4281,13 +4281,13 @@ function renderMessages() {
     const name = m.role === 'declaration' ? '' : (m.role === 'user' ? getUserKongtalkNickname() : getSpeakerName());
     const nameHtml = name ? `<div class="tua-msg-name">${escapeHtml(name)}</div>` : '';
     const lockedClass = m.role === 'declaration' ? ' tua-locked' : '';
-    const title = m.role === 'declaration' ? '역할 선언' : '오래 누르면 메시지 메뉴';
+    const title = uiText(m.role === 'declaration' ? 'message.declaration' : 'message.pressHint');
     const variantState = getAssistantVariantState(m);
     const variantNavigation = m.role === 'assistant' && variantState.variants.length > 1
-      ? `<div class="tua-variant-nav" aria-label="답변 버전 ${variantState.variantIndex + 1}/${variantState.variants.length}">
-          <button type="button" data-variant-direction="-1" title="이전 답변" aria-label="이전 답변" ${generationInFlight ? 'disabled' : ''}>‹</button>
+      ? `<div class="tua-variant-nav" aria-label="${uiHtml('message.variant', variantState.variantIndex + 1, variantState.variants.length)}">
+          <button type="button" data-variant-direction="-1" title="${uiHtml('message.previous')}" aria-label="${uiHtml('message.previous')}" ${generationInFlight ? 'disabled' : ''}>‹</button>
           <span>${variantState.variantIndex + 1}/${variantState.variants.length}</span>
-          <button type="button" data-variant-direction="1" title="다음 답변" aria-label="다음 답변" ${generationInFlight ? 'disabled' : ''}>›</button>
+          <button type="button" data-variant-direction="1" title="${uiHtml('message.next')}" aria-label="${uiHtml('message.next')}" ${generationInFlight ? 'disabled' : ''}>›</button>
         </div>`
       : '';
     const html = `
@@ -4369,9 +4369,9 @@ function ensureContextMenu() {
   contextMenuEl = document.createElement('div');
   contextMenuEl.id = 'tua-context-menu';
   contextMenuEl.innerHTML = `
-    <button data-action="copy">복사</button>
-    <button data-action="regenerate">다시 생성</button>
-    <button data-action="delete" class="danger">삭제</button>`;
+    <button data-action="copy">${uiHtml('message.copy')}</button>
+    <button data-action="regenerate">${uiHtml('message.regenerate')}</button>
+    <button data-action="delete" class="danger">${uiHtml('message.delete')}</button>`;
   document.body.appendChild(contextMenuEl);
   contextMenuButtonClickHandler = async e => {
     const btn = e.target.closest('button');
@@ -4425,9 +4425,9 @@ function ensureRoomContextMenu() {
   roomContextMenuEl = document.createElement('div');
   roomContextMenuEl.id = 'tua-room-context-menu';
   roomContextMenuEl.innerHTML = `
-    <button data-action="rename">이름 변경</button>
-    <button data-action="change-mode">모드 변경</button>
-    <button data-action="delete" class="danger">방 삭제</button>`;
+    <button data-action="rename">${uiHtml('room.rename')}</button>
+    <button data-action="change-mode">${uiHtml('room.changeMode')}</button>
+    <button data-action="delete" class="danger">${uiHtml('room.delete')}</button>`;
   document.body.appendChild(roomContextMenuEl);
 
   roomContextMenuButtonClickHandler = e => {
@@ -4440,7 +4440,7 @@ function ensureRoomContextMenu() {
     if (!room) return;
     if (action === 'rename') renameRoomById(roomId);
     if (action === 'change-mode') beginRoomModeChange(roomId);
-    if (action === 'delete' && confirm(`“${room.title || '대화방'}”을(를) 삭제할까요?`)) deleteRoom(roomId);
+    if (action === 'delete' && confirm(uiText('dialog.deleteNamedRoom', room.title || uiText('room.name')))) deleteRoom(roomId);
   };
   roomContextMenuDocumentClickHandler = e => {
     if (!roomContextMenuEl) return;
@@ -4474,13 +4474,13 @@ async function openRoomContextMenuForRoom(roomId, x, y, ownerKey = roomStateChar
 
 function beginRoomModeChange(roomId) {
   if (generationInFlight) {
-    alert('답변 생성이 끝난 뒤 모드를 변경해 주세요.');
+    alert(uiText('dialog.modeBusy'));
     return;
   }
   const room = roomState.rooms.find(item => item.id === roomId);
   if (!room) return;
   if (getRoomMode(room) === 'guestOoc') {
-    alert('게스트 OOC 방의 캐릭터와 모드는 고정돼 있어요. 다른 캐릭터를 원하면 새 게스트 방을 만들어 주세요.');
+    alert(uiText('dialog.guestModeLocked'));
     return;
   }
   closeSettingsPanel();
