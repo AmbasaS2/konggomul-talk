@@ -24,7 +24,7 @@ jobs:
           const assert=require('node:assert/strict');
           const js=fs.readFileSync('index.js','utf8');
           const modes=js.slice(js.indexOf('const MODES = {'),js.indexOf('\nconst THEMES = {'));
-          const names=[...modes.matchAll(/^  ([A-Za-z0-9]+): \\{/gm)].map(m=>m[1]);
+          const names=[...modes.matchAll(/^  ([A-Za-z0-9]+): \{/gm)].map(m=>m[1]);
           assert.deepEqual(names,['kongtalk','guestOoc','rpAssistant','parallelClassic','parallel']);
           assert(js.includes("const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';"));
           assert(js.includes("const MODULE_NAME = 'title_undecided_assistant';"));
@@ -54,7 +54,7 @@ jobs:
             for(const key of expected){
               assert.equal(typeof data[key],'string',locale+' missing '+key);
               assert(data[key].length>0);
-              const markers=(text)=>[...text.matchAll(/\\{\\d+\\}/g)].map(x=>x[0]).sort().join(',');
+              const markers=(text)=>[...text.matchAll(/\{\d+\}/g)].map(x=>x[0]).sort().join(',');
               assert.equal(markers(data[key]),markers(en[key.slice(10)]),locale+' placeholder mismatch '+key);
             }
             for(const key of removed)assert(!Object.hasOwn(data,'konggomul.'+key));
