@@ -164,5 +164,6 @@
   "konggomul.data.guest": "すべてのゲストトーク",
   "konggomul.data.export": "エクスポート",
   "konggomul.data.import": "インポート",
-  "konggomul.data.reset": "初期化"
+  "konggomul.data.reset": "初期化",
+  "konggomul.mode.guestOocPicker": "ゲストトーク（別のキャラを呼ぶ）🛎️"
 }
