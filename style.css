@@ -1394,9 +1394,6 @@ body.tua-panel-resizing-body {
 .tua-settings-mini .tua-global-profile-title {
   font-weight: 500 !important;
 }
-.tua-settings-mini .tua-profile-row select {
-  font-weight: 400 !important;
-}
 
 
 /* v4.0.10 palette refinement: sweeter milk-tea konggomul + more balanced milk-chocolate strawberry */
@@ -1926,14 +1923,6 @@ body.tua-panel-resizing-body {
   gap: 6px;
 }
 
-.tua-settings-mini #tua-copy-debug {
-  width: fit-content;
-  min-height: 28px;
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 8px;
-}
-
 .tua-settings-mini #tua-debug-output {
   width: 100%;
   min-height: 120px;
@@ -1953,25 +1942,17 @@ body.tua-panel-resizing-body {
   gap: 6px;
 }
 
+/* Let SillyTavern's menu_button class own its colors, corners, font and padding.
+   Only constrain layout in the extension settings drawer. */
 .tua-settings-mini .tua-debug-settings-button {
-  box-sizing: border-box !important;
-  display: inline-flex !important;
-  flex: 0 0 auto !important;
-  align-self: flex-start !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 5px !important;
-  width: max-content !important;
-  inline-size: max-content !important;
-  max-width: 124px !important;
-  min-width: 0 !important;
-  min-height: 28px !important;
-  height: auto !important;
-  padding: 5px 8px !important;
-  margin: 0 !important;
-  font-size: 11.5px !important;
-  line-height: 1.1 !important;
-  white-space: nowrap !important;
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
 }
 
 .tua-settings-mini .tua-settings-debug-panel {
@@ -1988,10 +1969,7 @@ body.tua-panel-resizing-body {
 
 .tua-settings-mini .tua-debug-actions button {
   width: fit-content;
-  min-height: 28px;
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 8px;
+  max-width: 100%;
 }
 
 
@@ -2010,32 +1988,10 @@ body.tua-panel-resizing-body {
   align-items: center !important;
 }
 
-#tua-settings #tua-setting-profile.text_pole {
-  box-sizing: border-box !important;
-  font-family: inherit !important;
-  width: min(100%, 320px) !important;
-  max-width: 320px !important;
-  min-width: 0 !important;
-  min-height: 28px !important;
-  height: 28px !important;
-  padding: 3px 28px 3px 6px !important;
-  font-size: 12px !important;
-  line-height: 1.2 !important;
-  margin: 0 !important;
-}
-
 .tua-settings-mini .tua-global-debug-box {
   margin-top: 0 !important;
   margin-bottom: 8px !important;
   padding-bottom: 4px !important;
-}
-
-.tua-settings-mini .tua-debug-settings-button,
-.tua-settings-mini .tua-debug-actions button,
-.tua-settings-mini #tua-copy-debug,
-.tua-settings-mini #tua-clear-debug {
-  border-radius: 0 !important;
-  font-family: inherit !important;
 }
 
 
