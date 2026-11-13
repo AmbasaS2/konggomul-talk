@@ -157,7 +157,11 @@ const UI_ENGLISH = Object.freeze({
   "dialog.copyFailed": "Failed to copy.",
   "dialog.noGuestRoom": "No guest room is open.",
   "dialog.none": "None",
-  "dialog.restoreError": "Error: {0}"
+  "dialog.restoreError": "Error: {0}",
+  "guest.missing": "Missing guest",
+  "dialog.deleteBusy": "Stop generating before deleting the room.",
+  "dialog.unmatchedSaved": "Unmatched saved data",
+  "dialog.profileResolutionFailed": "Could not verify connection profile: {0}"
 });
 function uiText(key, ...values) {
   const fallback = UI_ENGLISH[key] ?? key;
@@ -601,7 +605,7 @@ function getSpeakerCharacter(room = getActiveRoom()) {
 function getSpeakerName(room = getActiveRoom()) {
   if (getRoomMode(room) !== 'guestOoc') return getCharName();
   const guest = getGuestCharacter(room);
-  return guest ? getCharName(guest) : (room?.guestCharacterName || '삭제된 게스트');
+  return guest ? getCharName(guest) : (room?.guestCharacterName || uiText('guest.missing'));
 }
 
 function getUserName() {
@@ -640,7 +644,7 @@ function getStoredCharacterRoomEntries() {
       matched,
       label: matched
         ? `${names.join(' / ')} · ${key}`
-        : `[미매칭 저장 데이터] ${key}`,
+        : `${uiText('dialog.unmatchedSaved')} · ${key}`,
     };
   }).sort((a, b) => {
     if (a.matched !== b.matched) return a.matched ? -1 : 1;
@@ -1068,7 +1072,7 @@ function setRoomMode(mode) {
 
 function deleteRoom(id) {
   if (generationInFlight && activeGenerationTask?.roomId === id) {
-    alert('답변 생성을 중지한 뒤 대화방을 삭제해 주세요.');
+    alert(uiText('dialog.deleteBusy'));
     return false;
   }
   const deletedAt = Date.now();
@@ -1568,7 +1572,7 @@ Now stop the active RP and answer as the alternate modern ${characterName}. Keep
 async function buildGuestOocSystemPrompt(currentUserText = '', finalInstruction = '', includeSentenceCount = true) {
   const room = getActiveRoom();
   const guest = getGuestCharacter(room);
-  if (!guest) throw new Error('게스트 캐릭터를 찾을 수 없어요. 삭제되었거나 캐릭터 목록에서 사라졌는지 확인해 주세요.');
+  if (!guest) throw new Error(uiText('dialog.noGuest'));
   const settings = getSettings();
   const guestName = getCharName(guest);
   const rpName = getCharName(getCurrentCharacter());
@@ -1804,7 +1808,7 @@ async function resolveSelectedConnectionProfileFresh() {
       : (s.cachedProfiles || []).map(normalizeConnectionProfile).filter(Boolean);
     const found = effectiveProfiles.find(p => p.id === selected || p.name === selected);
     if (!found) {
-      throw new Error(`선택한 콩고물 톡 전용 API 프로필을 찾을 수 없습니다: ${selected}`);
+      throw new Error(uiText('dialog.profileResolutionFailed', selected));
     }
     return found;
   }
@@ -1812,7 +1816,7 @@ async function resolveSelectedConnectionProfileFresh() {
   const cached = (s.cachedProfiles || []).map(normalizeConnectionProfile).filter(Boolean);
   const foundCached = cached.find(p => p.id === selected || p.name === selected);
   if (!foundCached) {
-    throw new Error(`선택한 콩고물 톡 전용 API 프로필을 확인할 수 없습니다: ${selected}`);
+    throw new Error(uiText('dialog.profileResolutionFailed', selected));
   }
   return foundCached;
 }
@@ -3413,9 +3417,9 @@ function refreshSendButtonState() {
   const send = $('#tua-send');
   if (!send.length) return;
   if (generationInFlight) {
-    send.text('...').attr('title', '생성 중 · 누르면 중지').attr('aria-label', '생성 중 · 누르면 중지').prop('disabled', false);
+    send.text('...').attr('title', uiText('panel.generating')).attr('aria-label', uiText('panel.generating')).prop('disabled', false);
   } else {
-    send.text(getTheme().sendIcon).attr('title', '전송 / 빈 입력이면 이어쓰기').attr('aria-label', '전송 / 빈 입력이면 이어쓰기').prop('disabled', false);
+    send.text(getTheme().sendIcon).attr('title', uiText('panel.send')).attr('aria-label', uiText('panel.send')).prop('disabled', false);
   }
 }
 
