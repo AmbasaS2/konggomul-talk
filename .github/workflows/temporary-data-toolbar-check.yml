@@ -1,0 +1,74 @@
+name: Conversation data toolbar checks
+on:
+  push:
+    branches:
+      - fix/data-action-toolbar-20261113
+  pull_request:
+    branches:
+      - main
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check JavaScript syntax
+        run: node --check index.js
+      - name: Verify scoped actions, storage handlers and translations
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const assert = require('assert/strict');
+          const js = fs.readFileSync('index.js', 'utf8');
+          const css = fs.readFileSync('style.css', 'utf8');
+          const start = js.indexOf('const UI_ENGLISH = Object.freeze(');
+          const end = js.indexOf(');\nfunction uiText', start);
+          assert(start >= 0 && end > start);
+          const en = JSON.parse(js.slice(start+'const UI_ENGLISH = Object.freeze('.length, end));
+          const keys = ['data.manage','data.character','data.guest','data.export','data.import','data.reset'];
+          for(const key of keys) assert.equal(typeof en[key], 'string');
+          for(const locale of ['ko-kr','ja-jp','zh-cn','zh-tw','es-es']) {
+            const map = JSON.parse(fs.readFileSync('i18n/'+locale+'.json','utf8'));
+            assert.equal(Object.keys(map).length, Object.keys(en).length);
+            for(const [key,value] of Object.entries(en)) {
+              const v=map['konggomul.'+key];
+              assert.equal(typeof v,'string',locale+' missing '+key);
+              const params = str => [...str.matchAll(/\{\d+\}/g)].map(x=>x[0]).sort().join(',');
+              assert.equal(params(v),params(value),locale+' placeholder '+key);
+            }
+          }
+          const panel = js.slice(js.indexOf('function ensurePanel() {'),js.indexOf('function makePanelDraggable()'));
+          assert(panel.includes('class="tua-data-management"'));
+          assert(panel.includes('class="tua-data-scope" role="group"'));
+          assert(panel.includes('class="tua-data-actions"'));
+          for(const id of ['tua-export-rooms','tua-import-rooms','tua-reset-all-rooms']) {
+            assert.equal(panel.split('id="'+id+'"').length-1,1);
+          }
+          for(const id of ['tua-export-guest-rooms','tua-import-guest-rooms','tua-reset-guest-rooms']) {
+            assert(!js.includes('id="'+id+'"'));
+          }
+          assert(panel.includes('data-scope="character" aria-pressed="true"'));
+          assert(panel.includes('data-scope="guest" aria-pressed="false"'));
+          assert(js.includes("dataManageScope === 'guest' ? exportGuestRooms() : exportCurrentCharacterRooms()"));
+          assert(js.includes("dataManageScope === 'guest' ? resetGuestRooms() : resetAllRoomsForCurrentCharacter()"));
+          assert(js.includes("dataManageScope === 'guest' ? '#tua-import-guest-file' : '#tua-import-file'"));
+          assert(js.includes("$('#tua-import-file').on('change', importCurrentCharacterRooms)"));
+          assert(js.includes("$('#tua-import-guest-file').on('change', importGuestRooms)"));
+          assert(js.includes("scope: 'guestOoc'"));
+          assert(js.includes("function importGuestRooms(event)"));
+          assert(js.includes("function importCurrentCharacterRooms(e)"));
+          assert(js.includes("function resetAllRoomsForCurrentCharacter()"));
+          assert(js.includes("async function resetGuestRooms()"));
+          assert(js.includes("const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__'"));
+          assert(css.includes('grid-template-columns: repeat(3, minmax(0, 1fr))'));
+          assert(css.includes('grid-template-columns: repeat(2, minmax(0, 1fr))'));
+          assert(css.includes('min-height: 27px !important'));
+          const manifest = JSON.parse(fs.readFileSync('manifest.json','utf8'));
+          assert.equal(manifest.version,'5.4.1');
+          console.log('Scoped 3-button data toolbar, existing handlers, 166 locale keys: PASS');
+          NODE
+      - name: Check patch whitespace
+        run: git diff --check HEAD~1 HEAD
