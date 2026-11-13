@@ -4296,6 +4296,8 @@ function getActiveGenerationKeepLoadingId(roomId) {
 function isGenerationPlaceholderMessage(item) {
   const id = String(item?.id || '');
   if (item?.role !== 'assistant') return false;
+  // A real Group Talk speaker can legitimately send a one-character ellipsis.
+  if (!item?.loading && item?.speakerKey) return false;
   const ellipsisOnly = isStandaloneEllipsisContent(item?.content);
   if (item?.loading) return true;
   // A msg_loading_* id alone is not enough: older builds could accidentally keep that id on a completed reply.
