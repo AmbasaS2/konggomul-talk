@@ -10,7 +10,7 @@ Konggomul Talk automatically follows the **SillyTavern UI language**. No separat
 
 - Localized interface: **English, Korean, Japanese, Simplified Chinese, Traditional Chinese, and Spanish**. Other SillyTavern locales fall back to English.
 - This applies to extension settings, room and mode controls, the Guest Talk picker, tooltips, and confirmation/error dialogs.
-- **Output language is separate**: the Korean / English / English–Korean bilingual options for AI replies work exactly as before. Character cards, role prompts, and saved conversations are not translated.
+- **Output language is separate**: the Korean / English / English–Korean bilingual options for AI replies work as before. An optional **Auto (SillyTavern UI language)** setting is also available. Character cards, role prompts, and saved conversations are not translated.
 - Existing room names that users previously created are kept as-is.
 
 ## ⚙️ Extension Settings
@@ -59,6 +59,7 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 - Changing an existing room's mode keeps its messages and does not generate a new opening message.
 - Each room keeps its mode, messages, answer variants, and pinned state.
 - If every normal room is deleted, one default Kongtalk room is created again. Deleting the last Guest Talk room returns you to normal rooms.
+- Guest Talk remembers which RP persona and main RP character were last used. If the persona changes, it asks whether to **create a fresh Guest Talk room** or **continue the existing conversation**, preserving all past messages. Changing only the RP with the same persona does not trigger this choice.
 
 ## 🗂️ Conversation Modes
 
@@ -93,6 +94,7 @@ Right-click or long-press a message to open its menu.
 | **Copy** | Copies the message text. |
 | **Regenerate (다시 생성)** | Regenerates the latest eligible AI response. The new response is saved as another answer variant instead of replacing the previous one. |
 | **Delete** | Deletes the selected message. |
+| **Reply** | Quotes a chosen message above the composer. Send a normal reply and both the quote and message are saved; the model receives the quoted text as part of the conversation. |
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
@@ -106,7 +108,7 @@ Use `⚙` in the panel header to adjust the current character and Konggomul Talk
 |---|---|
 | **Theme** | Selects Konggomul, Choco Strawberry, Melon Soda, Simple MacBook, or Custom. |
 | **Response sentence count** | Uses automatic length or targets 1–3, 2–5, 6–10, or 11–18 sentences for normal replies. |
-| **Output language** | Selects Korean, English, or English/Korean bilingual output. In bilingual mode, every English sentence is followed on the next line by its Korean translation in brackets. |
+| **Output language** | Selects Korean, English, English/Korean bilingual, or optional **Auto** (the current SillyTavern interface language). Existing preferences are not changed. In bilingual mode, every English sentence is followed on the next line by its Korean translation in brackets. |
 | **Fixed scrollbar** | Switches between the themed fixed scrollbar and the browser's default scrollbar. |
 | **User Kongtalk nickname** | Sets the name or emoji shown beside user messages. Up to four characters are displayed; leave it blank to hide the label. |
 | **Chat font size** | Adjusts the font size of Konggomul Talk messages. |
@@ -128,6 +130,7 @@ The character card, user/persona information, the current room's previous conver
 | **Include extension memory** | Determines whether accessible memory and summary text exposed by SillyTavern or other extensions is included. If none is exposed in the current environment, this context remains empty. |
 | **Recent RP messages to read** | Sets how many recent main RP messages are used as reference for the character's voice, relationship, and current situation. |
 | **Kongtalk memory range** | Sets how many previous messages from the current room are used when generating a reply. |
+| **View last AI request context** | In Advanced settings, shows the exact prompt parts Konggomul Talk sent on the last request for this room, without another AI call. It is kept only in memory, not chat data; a connection profile/provider may add preset material later. |
 | **Target response tokens** | Sets the target capacity for Konggomul Talk responses. The selected sentence count and the current request still determine the actual length. |
 
 ## 🎨 Themes
@@ -153,7 +156,7 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 
 Normal rooms remain stored per main character in SillyTavern's extension settings; Guest Talk rooms live in a separate global store and stay accessible when the active RP changes. Guest Talk always reads the currently open RP, not a permanently pinned old chat. Phone and desktop connecting as the same user to the same server can access the same saved data. Browser-local copies from older versions are no longer read or merged.
 
-The panel position and size, theme, character voice note, coworker work note, reply settings, and context settings are also retained.
+The panel position and size, theme, character voice note, coworker work note, reply settings, and context settings are also retained. Quoted-message references and Guest Talk persona history are included in room backups. No automatic retrieval of old RP messages or spontaneous first messages was added.
 
 ---
 
@@ -169,7 +172,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 - 화면 지원 언어: **영어·한국어·일본어·중국어 간체·중국어 번체·스페인어**. 그 외 SillyTavern 언어에서는 영어로 표시됩니다.
 - 확장 설정, 대화방·모드 관리, 게스트톡 캐릭터 선택, 버튼 설명, 확인·오류 창에 적용됩니다.
-- **AI 답변 언어는 별개의 설정**입니다. 기존 한국어·영어·영한 병기 옵션은 그대로 유지되며, 캐릭터 시트·역할 프롬프트·저장된 대화 내용은 번역하지 않습니다.
+- **AI 답변 언어는 별개의 설정**입니다. 기존 한국어·영어·영한 병기 옵션은 그대로 유지되고, 원하는 사람만 **자동(실리태번 UI 언어)**을 선택할 수 있습니다. 또한 캐릭터 시트·역할 프롬프트·저장된 대화 내용은 번역하지 않습니다.
 - 기존에 저장한 대화방 이름은 변경하지 않습니다.
 
 ## ⚙️ 확장 설정
@@ -218,6 +221,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 - 기존 방의 모드를 변경해도 메시지는 유지되며 새 시작 메시지는 생성되지 않습니다.
 - 각 방의 모드, 메시지, 답변 버전과 고정 상태가 그대로 유지됩니다.
 - 일반 대화방을 모두 삭제하면 기본 콩톡 방이 다시 만들어집니다. 게스트톡의 마지막 방을 삭제하면 일반 대화방 목록으로 돌아갑니다.
+- 게스트톡은 마지막 페르소나와 RP 캐릭터를 기록합니다. 페르소나가 바뀌면 **새 게스트톡 방 만들기 / 기존 방 이어가기**를 선택할 수 있어. 이전 메시지는 삭제하지 않으며, 페르소나는 그대로이고 RP만 바뀌었다면 묻지 않습니다.
 
 ## 🗂️ 대화 모드
 
@@ -252,6 +256,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **복사** | 메시지 내용을 복사합니다. |
 | **다시 생성** | 다시 생성할 수 있는 가장 최근 AI 답변을 새로 생성합니다. 새 답변은 기존 답변을 덮어쓰지 않고 다른 답변 버전으로 저장됩니다. |
 | **삭제** | 선택한 메시지를 삭제합니다. |
+| **답장** | 기존 메시지를 골라 인용한 뒤 답장합니다. 인용 내용은 대화 기록과 AI 요청에도 함께 포함됩니다. |
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
@@ -265,7 +270,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 |---|---|
 | **테마** | 콩고물, 초코딸기, 메론소다, 심플 맥북, 커스텀 중에서 선택합니다. |
 | **답변 문장 수** | 자동 길이를 사용하거나 일반 답변을 1~3, 2~5, 6~10, 11~18문장 중 하나의 범위로 생성하도록 지정합니다. |
-| **출력 언어** | 한국어, 영어, 영한 병기 중에서 선택합니다. 영한 병기는 영문 한 문장 다음 줄에 해당 한국어 번역을 대괄호로 표시합니다. |
+| **출력 언어** | 한국어·영어·영한 병기 또는 **자동(실리태번 UI 언어)** 중 선택합니다. 기존 사용자 설정은 변경하지 않습니다. 영한 병기는 영문 한 문장 다음 줄에 한국어 번역을 대괄호로 표시합니다. |
 | **스크롤 바 고정** | 테마에 맞춘 고정 스크롤바와 브라우저 기본 스크롤바를 전환합니다. |
 | **유저 콩톡 닉네임** | 유저 메시지 옆에 표시할 이름이나 이모지를 정합니다. 화면에는 최대 4글자까지 표시되며, 비워두면 표시하지 않습니다. |
 | **채팅창 폰트 크기** | 콩고물 톡 메시지의 글씨 크기를 조절합니다. |
@@ -287,6 +292,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **확장 메모리 포함** | SillyTavern이나 다른 확장이 접근 가능하게 제공한 메모리·요약 정보를 반영할지 정합니다. 현재 환경에서 노출된 정보가 없으면 이 맥락은 빈 상태로 남습니다. |
 | **최근 RP 읽을 메시지 수** | 캐릭터의 말투, 관계성과 현재 상황을 참고할 메인 RP 범위를 정합니다. |
 | **콩톡 기억 범위** | 답변할 때 참고할 현재 대화방의 이전 메시지 수를 정합니다. |
+| **마지막 AI 요청 맥락 확인** | 고급 설정에서 현재 방의 마지막 AI 요청에 콩톡이 보낸 프롬프트를 보여줍니다. AI를 추가 호출하지 않고, 내용은 채팅 데이터가 아닌 메모리에만 남습니다. 연결 프로필·제공자가 추가하는 프리셋은 별도로 적용될 수 있습니다. |
 | **답변 목표 토큰 수** | 콩고물 톡 답변의 목표 용량을 조절합니다. 실제 길이는 선택한 문장 수와 현재 요청에 따라 달라집니다. |
 
 ## 🎨 테마
@@ -312,7 +318,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 일반 대화방은 현재 RP 캐릭터별로 저장되고 게스트톡 방은 별도 공통 저장 영역에 저장됩니다. 게스트 방은 메인 RP가 바뀌어도 접근할 수 있으며, 매번 현재 열려 있는 RP를 참고합니다(과거 RP 고정 기능은 아직 제공하지 않습니다). 같은 서버·사용자로 접속하면 폰과 컴퓨터에서 같은 내역을 사용합니다. 이전 버전의 브라우저 로컬 사본은 읽거나 병합하지 않습니다.
 
-패널 위치와 크기, 테마, 캐릭터 말투 메모, 답변 설정과 반영 범위 설정도 유지됩니다. 이전 직장 동료 업무 메모 데이터는 삭제하지 않습니다.
+패널 위치와 크기, 테마, 캐릭터 말투 메모, 답변 설정과 반영 범위 설정도 유지됩니다. 이전 직장 동료 업무 메모 데이터는 삭제하지 않습니다. 인용 답장 정보와 게스트톡 페르소나 전환 기록은 백업에 포함됩니다. 오래된 RP 자동 검색이나 캐릭터 자동 선톡 기능은 추가하지 않았습니다.
 
 ---
 
