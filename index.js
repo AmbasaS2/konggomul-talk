@@ -2111,13 +2111,13 @@ CURRENT KONGGOMUL TALK CONVERSATION:
 ${safePrompt}`;
 
   if (selectedBefore && !resolvedProfile) {
-    throw new Error('콩고물 톡 전용 API 프로필을 찾지 못해 메인 API로 대체하지 않았습니다.');
+    throw new Error(uiText('dialog.profileMissing'));
   }
 
   if (resolvedProfile) {
     const Service = await getConnectionManagerRequestService();
     if (!Service?.sendRequest) {
-      throw new Error('ConnectionManagerRequestService를 찾지 못해 콩고물 톡 전용 프로필 요청을 보낼 수 없습니다.');
+      throw new Error(uiText('dialog.serviceMissing'));
     }
 
     const profile = resolvedProfile;
@@ -2224,9 +2224,9 @@ function sanitizeAssistantReply(text) {
   out = out.replace(/\n{3,}/g, '\n\n').trim();
   if (isImageOrFileOnlyReply(out)) {
     console.warn('[Konggomul] image/file-only response suppressed', out);
-    return '텍스트 응답 대신 이미지/링크가 반환되어 표시하지 않았습니다. 전용 API 프로필이 텍스트 생성 모델인지 확인해 주세요.';
+    return uiText('dialog.nonText');
   }
-  return out || '(빈 응답)';
+  return out || uiText('dialog.noContent');
 }
 
 async function generateAssistantReply(userText, generationTask = null, sourceMessages = null) {
@@ -2878,7 +2878,7 @@ function exportCurrentCharacterRooms() {
 
 function normalizeImportedRoomState(raw) {
   const imported = raw?.data && Array.isArray(raw.data.rooms) ? raw.data : raw;
-  if (!imported || !Array.isArray(imported.rooms)) throw new Error('올바른 콩고물 톡 백업 파일이 아닙니다.');
+  if (!imported || !Array.isArray(imported.rooms)) throw new Error(uiText('dialog.invalidBackup'));
   const next = {
     rooms: imported.rooms.map(room => ({
       id: String(room.id || ('room_' + Date.now() + '_' + Math.random().toString(16).slice(2))),
@@ -2912,7 +2912,7 @@ function importCurrentCharacterRooms(e) {
   const input = e?.target;
   const file = input?.files?.[0];
   if (!file) return;
-  if (!confirm('가져오면 현재 캐릭터의 콩고물 톡 대화가 백업 파일 내용으로 교체됩니다. 계속할까요?')) {
+  if (!confirm(uiText('dialog.importMainConfirm'))) {
     input.value = '';
     return;
   }
@@ -2920,7 +2920,7 @@ function importCurrentCharacterRooms(e) {
   reader.onload = async () => {
     try {
       const parsed = JSON.parse(String(reader.result || '{}'));
-      if (parsed.scope === 'guestOoc') throw new Error('게스트 백업은 게스트 OOC 가져오기 버튼을 이용해 주세요.');
+      if (parsed.scope === 'guestOoc') throw new Error(uiText('dialog.guestBackupWrong'));
       if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
       const imported = normalizeImportedRoomState(parsed);
       imported.rooms = imported.rooms.filter(room => getRoomMode(room) !== 'guestOoc');
@@ -2943,7 +2943,7 @@ function importCurrentCharacterRooms(e) {
       setStatus('현재 캐릭터 대화를 가져왔습니다.');
     } catch (err) {
       console.error('[Konggomul] import failed', err);
-      alert('가져오기에 실패했습니다: ' + String(err.message || err));
+      alert(uiText('dialog.mainImportFailed', String(err.message || err)));
     } finally {
       input.value = '';
     }
@@ -2975,7 +2975,7 @@ function exportGuestRooms() {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error('[Konggomul] guest export failed', error);
-    alert('게스트 OOC 내보내기에 실패했습니다.');
+    alert(uiText('dialog.exportGuestFailed'));
   }
 }
 
@@ -2983,7 +2983,7 @@ function importGuestRooms(event) {
   const input = event?.target;
   const file = input?.files?.[0];
   if (!file) return;
-  if (!confirm('게스트 OOC의 모든 방과 메시지가 백업 내용으로 교체됩니다. 계속할까요?')) {
+  if (!confirm(uiText('dialog.importGuestConfirm'))) {
     input.value = '';
     return;
   }
@@ -2991,7 +2991,7 @@ function importGuestRooms(event) {
   reader.onload = async () => {
     try {
       const parsed = JSON.parse(String(reader.result || '{}'));
-      if (parsed.scope !== 'guestOoc' || !Array.isArray(parsed.data?.rooms)) throw new Error('게스트 OOC 전용 백업 파일이 아닙니다.');
+      if (parsed.scope !== 'guestOoc' || !Array.isArray(parsed.data?.rooms)) throw new Error(uiText('dialog.invalidGuestBackup'));
       if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
       const imported = normalizeImportedRoomState(parsed);
       imported.rooms = imported.rooms.filter(room => getRoomMode(room) === 'guestOoc' && room.guestCharacterKey);
@@ -3017,7 +3017,7 @@ function importGuestRooms(event) {
       renderAll();
     } catch (error) {
       console.error('[Konggomul] guest import failed', error);
-      alert('게스트 OOC 가져오기에 실패했습니다: ' + String(error?.message || error));
+      alert(uiText('dialog.guestImportFailed', String(error?.message || error)));
     } finally {
       input.value = '';
     }
@@ -3026,7 +3026,7 @@ function importGuestRooms(event) {
 }
 
 async function resetGuestRooms() {
-  if (!confirm('모든 게스트 OOC 대화방과 메시지를 삭제할까요? 캐릭터 말투 메모는 유지됩니다.')) return;
+  if (!confirm(uiText('dialog.deleteGuestConfirm'))) return;
   if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
   const empty = normalizeStoredRoomState({ rooms: [], resetAt: Date.now(), updatedAt: Date.now() });
   if (roomStateCharKey === GUEST_ROOM_STORE_KEY) {
@@ -3093,27 +3093,27 @@ async function resetRoomsForCharacterKey(charKey) {
 }
 
 async function resetAllRoomsForCurrentCharacter() {
-  if (!confirm('현재 캐릭터의 모든 대화 내역을 초기화하시겠습니까?')) return;
+  if (!confirm(uiText('dialog.resetMainConfirm'))) return;
   await resetRoomsForCharacterKey(getCharKey());
 }
 
 async function openStoredCharacterRoomResetPopup() {
   const entries = getStoredCharacterRoomEntries();
   if (!entries.length) {
-    alert('초기화할 콩고물 톡 저장 데이터가 없습니다.');
+    alert(uiText('dialog.noResetData'));
     return;
   }
 
   const content = document.createElement('div');
   const question = document.createElement('strong');
-  question.textContent = '어떤 캐릭터의 콩고물 톡 대화를 초기화할까요?';
+  question.textContent = uiText('dialog.resetQuestion');
   const explanation = document.createElement('p');
-  explanation.textContent = '선택한 캐릭터의 모든 방과 메시지가 삭제되고 기본 콩톡 방 1개가 새로 생성됩니다. 캐릭터 말투 메모와 확장 설정·테마·연결 프로필은 유지됩니다.';
+  explanation.textContent = uiText('dialog.resetExplanation');
   const select = document.createElement('select');
   select.className = 'text_pole';
   select.style.width = '100%';
   select.style.maxWidth = '100%';
-  select.setAttribute('aria-label', '초기화할 캐릭터');
+  select.setAttribute('aria-label', uiText('dialog.resetLabel'));
   const currentKey = getCharKey();
   for (const entry of entries) {
     const option = document.createElement('option');
@@ -3123,12 +3123,12 @@ async function openStoredCharacterRoomResetPopup() {
     select.appendChild(option);
   }
   const warning = document.createElement('p');
-  warning.textContent = '다른 기기의 SillyTavern을 닫거나 새로고침한 뒤 진행해 주세요.';
+  warning.textContent = uiText('dialog.resetDeviceWarning');
   content.append(question, explanation, select, warning);
 
   const popup = new Popup(content, POPUP_TYPE.CONFIRM, null, {
-    okButton: '대화 초기화',
-    cancelButton: '취소',
+    okButton: uiText('dialog.resetButton'),
+    cancelButton: uiText('dialog.cancel'),
     leftAlign: true,
   });
   const result = await popup.show();
@@ -3136,7 +3136,7 @@ async function openStoredCharacterRoomResetPopup() {
 
   const selectedKey = String(select.value || '');
   if (!selectedKey || !Object.hasOwn(getServerRoomStore(), selectedKey)) {
-    alert('선택한 캐릭터의 저장 데이터를 찾지 못했습니다. 목록을 다시 열어 주세요.');
+    alert(uiText('dialog.resetMissing'));
     return;
   }
   await resetRoomsForCharacterKey(selectedKey);
@@ -3145,8 +3145,8 @@ async function openStoredCharacterRoomResetPopup() {
 function renameRoomById(id) {
   const room = roomState.rooms.find(r => r.id === id);
   if (!room) return;
-  if (!confirm('채팅방 이름을 변경하시겠습니까?')) return;
-  const next = prompt('새 채팅방 이름', room.title || '');
+  if (!confirm(uiText('dialog.renameRoom'))) return;
+  const next = prompt(uiText('dialog.newName'), room.title || '');
   if (!next || !next.trim()) return;
   room.title = next.trim();
   room.updatedAt = Date.now();
@@ -3390,13 +3390,13 @@ async function createRoomWithModeIntro(modeKey) {
     } else {
       const currentRoom = (roomState.rooms || []).find(item => item.id === task.roomId);
       const msg = currentRoom?.messages?.find(m => m.id === loadingId);
-      if (msg) { msg.content = `오류: ${e.message || e}`; msg.loading = false; msg.error = true; }
+      if (msg) { msg.content = uiText('dialog.restoreError', e.message || e); msg.loading = false; msg.error = true; }
       if (currentRoom) currentRoom.updatedAt = Date.now();
       task.completed = true;
       task.loadingId = '';
       await saveRooms();
       if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch && activeRoomId === task.roomId) renderAll();
-      setStatus('첫 톡 생성에 실패했습니다. 다시 시도해 주세요.');
+      setStatus(uiText('dialog.firstReplyFailed'));
       console.error('[Konggomul] room intro failed', e);
     }
   } finally {
@@ -3600,11 +3600,11 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
   if (!activeRoomId || !getActiveRoom()) createRoom(false, 'kongtalk', true);
   const initialRoom = getActiveRoom();
   if (getRoomMode(initialRoom) === 'guestOoc' && !getGuestCharacter(initialRoom)) {
-    alert('초대한 게스트 캐릭터를 찾을 수 없어요. 캐릭터를 다시 설치하거나 새 게스트 OOC 방을 만들어 주세요.');
+    alert(uiText('dialog.noGuest'));
     return;
   }
   if (continuation && !hasRealConversationMessage(initialRoom)) {
-    setStatus('이을 대화가 아직 없어요. 먼저 메시지를 보내 주세요.');
+    setStatus(uiText('dialog.noContinuation'));
     return;
   }
 
@@ -3681,7 +3681,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
         const doneAt = Date.now();
         const oldLoadingId = String(task.loadingId || '');
         msg.id = 'msg_' + doneAt + '_' + Math.random().toString(16).slice(2);
-        msg.content = `오류: ${e.message || e}`;
+        msg.content = uiText('dialog.restoreError', e.message || e);
         msg.loading = false;
         msg.error = true;
         msg.at = doneAt;
@@ -3749,7 +3749,7 @@ async function regenerateAssistantMessage(messageId) {
 
   const room = getActiveRoom();
   if (!canRegenerateAssistantMessage(messageId, room)) {
-    setStatus('가장 마지막 AI 답변만 다시 생성할 수 있습니다.');
+    setStatus(uiText('dialog.lastReplyOnly'));
     return;
   }
 
@@ -3822,7 +3822,7 @@ async function regenerateAssistantMessage(messageId) {
       task.loadingId = '';
       addDebugLog('generation.regenerate.error', '답변 다시 생성 실패', { error: String(error?.message || error), stack: String(error?.stack || '') });
       console.error('[Konggomul] regeneration failed', error);
-      alert(`다시 생성에 실패했습니다: ${error.message || error}`);
+      alert(uiText('dialog.regenerateFailed', error.message || error));
     }
 
     if (!task.cancelled && isGenerationStorageContextCurrent(task) && task.persistenceEpoch === persistenceEpoch) {
@@ -3853,7 +3853,7 @@ async function regenerateAssistantMessage(messageId) {
 
 async function sendCurrentInput() {
   const settings = getSettings();
-  if (!settings.enabled) { alert('🐕 콩고물 톡가 비활성화되어 있습니다. 확장 설정에서 활성화해 주세요.'); return; }
+  if (!settings.enabled) { alert(uiText('dialog.disabled')); return; }
   if (generationInFlight) {
     await cancelCurrentGeneration();
     return;
