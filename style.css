@@ -964,23 +964,6 @@ body.tua-panel-resizing-body {
   flex: 1;
   min-width: 0;
 }
-.tua-settings-mini #tua-setting-profile-select-wrap select {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid rgba(159, 122, 54, .34);
-  border-radius: 8px;
-  padding: 5px 7px;
-  background-color: #fffdf6;
-  color: var(--tua-text);
-  font-size: 12px;
-}
-.tua-settings-mini #tua-setting-profile-select-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-top: 7px;
-  font-size: 12px;
-}
 
 /* v4.0.4 theme system */
 #tua-panel[data-tua-theme="konggomul"] {
