@@ -110,7 +110,6 @@ const UI_ENGLISH = Object.freeze({
   "guest.newPersonaRoom": "New room",
   "guest.continueOldRoom": "Continue here",
   "guest.personaLabel": "Persona: {0} · RP: {1}",
-  "guest.oldPersonaContext": "Earlier guest conversations were with the persona {0}. Current user is {1}. Treat earlier persona-specific experiences and relationships as belonging to {0}, not automatically to {1}.",
   "guest.noCharacters": "No installed characters found.",
   "guest.allCount": "All characters · {0}",
   "guest.recentCount": "Recent guests · up to 5",
@@ -581,7 +580,7 @@ function normalizeGuestPersonaBinding(value) {
 
 function getGuestPersonaHistoryNote(room = getActiveRoom()) {
   const latest = Array.isArray(room?.personaTransitions) ? room.personaTransitions.at(-1) : null;
-  return latest ? uiText('guest.oldPersonaContext', latest.fromName, latest.toName) : '';
+  return latest ? `A prior Guest Talk conversation was with persona ${latest.fromName}. The current {user} persona is ${latest.toName}. Earlier messages may refer to someone else; keep each persona's experiences and relationships distinct.` : '';
 }
 
 async function checkGuestPersonaBeforeGeneration() {
@@ -1256,6 +1255,18 @@ function beginQuotedReply(messageId) {
   $('#tua-input').trigger('focus');
 }
 
+function formatRoomMessageForPrompt(message) {
+  const base = formatQuotedMessageContent(message?.content, message?.role === 'user' ? message?.quote : null);
+  const room = getActiveRoom();
+  if (getRoomMode(room) !== 'guestOoc' || !Array.isArray(room?.personaTransitions)) return base;
+  const firstLaterTransition = room.personaTransitions.find(item => Number(message?.at || 0) < Number(item.at || 0));
+  const previous = firstLaterTransition?.fromName;
+  const current = room.personaBinding?.name;
+  return previous && current && previous !== current
+    ? '[Earlier Guest Talk conversation with persona ' + previous + ', not current persona ' + current + ']\n' + base
+    : base;
+}
+
 function getCurrentUserQuote(userText, sourceMessages = null) {
   const source = Array.isArray(sourceMessages) ? sourceMessages : getActiveRoom()?.messages || [];
   for (let i = source.length - 1; i >= 0; i--) {
@@ -1628,7 +1639,7 @@ function buildPromptMessages(userText, sourceMessages = null) {
   const historyLimit = getChatMemoryLimit();
   const history = getPromptRoomMessages(userText, historyLimit, sourceMessages).map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
-    content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : formatQuotedMessageContent(m.content, m.role === 'user' ? m.quote : null)
+    content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : formatRoomMessageForPrompt(m)
   }));
   history.push({ role: 'user', content: formatQuotedMessageContent(userText, getCurrentUserQuote(userText, sourceMessages)) });
   return history;
@@ -2449,7 +2460,7 @@ async function generateAssistantReply(userText, generationTask = null, sourceMes
 function buildContinuationPromptMessages() {
   const history = getPromptRoomMessages('', getChatMemoryLimit()).map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
-    content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : formatQuotedMessageContent(m.content, m.role === 'user' ? m.quote : null)
+    content: m.role === 'declaration' ? `[Role declaration shown to {char}]\n${String(m.content || '')}` : formatRoomMessageForPrompt(m)
   }));
   history.push({ role: 'user', content: 'Continue naturally from the latest message in this conversation. Add the next useful, responsive part in your own voice without repeating earlier wording or mentioning this instruction.' });
   return history;
