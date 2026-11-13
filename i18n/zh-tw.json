@@ -202,5 +202,6 @@
   "konggomul.group.importConfirm": "匯入會取代所有群組聊天。要繼續嗎？",
   "konggomul.group.resetConfirm": "刪除所有群組聊天與訊息？",
   "konggomul.group.importWrong": "這不是群組聊天備份檔。",
-  "konggomul.group.parseFailed": "無法從模型回覆中辨識有效的群組聊天訊息。請減少每次生成的訊息數，或提高輸出 Token 上限。"
+  "konggomul.group.parseFailed": "無法從模型回覆中辨識有效的群組聊天訊息。請減少每次生成的訊息數，或提高輸出 Token 上限。",
+  "konggomul.group.contextTooSmall": "上下文空間不足，無法同時包含角色卡和最近的群組聊天紀錄。請增大上下文視窗或減少參與角色。"
 }

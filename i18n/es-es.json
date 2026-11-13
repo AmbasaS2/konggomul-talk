@@ -202,5 +202,6 @@
   "konggomul.group.importConfirm": "Importar reemplazará todos los chats grupales. ¿Continuar?",
   "konggomul.group.resetConfirm": "¿Eliminar todos los grupos y mensajes?",
   "konggomul.group.importWrong": "Este archivo no es una copia de chat grupal.",
-  "konggomul.group.parseFailed": "No se pudieron extraer mensajes válidos del chat grupal. Reduce la cantidad de mensajes o aumenta el límite de tokens de salida."
+  "konggomul.group.parseFailed": "No se pudieron extraer mensajes válidos del chat grupal. Reduce la cantidad de mensajes o aumenta el límite de tokens de salida.",
+  "konggomul.group.contextTooSmall": "No hay suficiente contexto para las fichas de los personajes y la conversación grupal reciente. Aumenta la ventana de contexto o reduce los participantes."
 }

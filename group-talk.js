@@ -33,6 +33,39 @@ export function estimateGroupTokens(text) {
   const bytes = typeof TextEncoder === 'function' ? new TextEncoder().encode(str).length : str.length * 2;
   return Math.ceil(bytes / 2.7);
 }
+/**
+ * Reserve room for recent group history before deciding the output allowance.
+ * An inadequate context window returns an explicit failure, never 0 history.
+ * This is a request budget, not a change to the stored message history.
+ */
+export function planGroupRequestBudget({
+  contextWindow, fixedTokens, requestedOutputTokens, maxHistoryTokens,
+  minimumHistoryTokens = 0, reservedTokens = 512, minimumOutputTokens = 1200
+}) {
+  const safe = (x, fallback) => Number.isFinite(Number(x)) ? Math.max(0, Math.floor(Number(x))) : fallback;
+  const outputTarget = Math.max(100, Math.min(8000, safe(requestedOutputTokens, 3600)));
+  const historyCap = safe(maxHistoryTokens, 8000);
+  const historyRequired = safe(minimumHistoryTokens, 0);
+  const window = safe(contextWindow, 0);
+  if (!window) return {
+    ok: true, outputTokens: outputTarget, historyTokens: historyCap, constrained: false
+  };
+  const available = window - safe(fixedTokens, 0) - safe(reservedTokens, 512);
+  const outputFloor = Math.min(outputTarget, Math.max(100, safe(minimumOutputTokens, 1200)));
+  if (historyRequired > historyCap || available < outputFloor + historyRequired) {
+    return {
+      ok: false, reason: 'context-too-small', availableTokens: available,
+      requiredTokens: outputFloor + historyRequired
+    };
+  }
+  const outputTokens = Math.min(outputTarget, available - historyRequired);
+  const historyTokens = Math.min(historyCap, Math.max(0, available - outputTokens));
+  return {
+    ok: true, outputTokens, historyTokens,
+    constrained: outputTokens < outputTarget || historyTokens < historyCap
+  };
+}
+
 export async function groupHistoryWithinBudget(messages, budget, format, count) {
   const list = (Array.isArray(messages) ? messages : []).filter(m => m && !m.loading && !m.error && String(m.content || '').trim());
   const limit = Math.max(0, Number(budget) || 0);
@@ -76,7 +109,10 @@ export function parseGroupCompletion(raw, participants, limit = 100) {
     || (arrStart >= 0 && arrEnd > arrStart ? parse(text.slice(arrStart, arrEnd+1)) : null);
   const output = [];
   const add = (id, value) => {
-    const who = ids.get(String(id)) || names.get(String(id || '').toLowerCase());
+    const speaker = String(id ?? '').trim();
+    // USER is an input-only identity, never a model-generated speaker.
+    if (/^(?:user|\{\{user\}\}|human|0)$/iu.test(speaker)) return;
+    const who = ids.get(speaker) || names.get(speaker.toLowerCase());
     if (!who || !String(value || '').trim()) return;
     for (const bubble of splitBubble(value)) {
       if (output.length >= limit) break;

@@ -98,7 +98,7 @@ Right-click or long-press a message to open its menu.
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
-## 👥 Group Talk (5.5.0-rc.2 preview)
+## 👥 Group Talk (5.5.0-rc.3 preview)
 
 Group Talk is an independent, multi-character messenger mode. It does not inject messages into the main RP or modify Guest Talk rooms.
 
@@ -107,6 +107,7 @@ Group Talk is an independent, multi-character messenger mode. It does not inject
 - One API request generates a batch of short character messages, aiming for **20–30 bubbles by default**. Each bubble is typically one or two sentences. Speakers are chosen by conversational relevance; not everyone has to participate. Character cards remain separate.
 - Generated bubbles arrive separately at **0.5–1 second intervals**. **Show all** reveals the pending batch immediately. While bubbles are arriving, sending a new message cancels the remaining undisplayed bubbles without erasing those already delivered.
 - An empty send starts or continues character-to-character chat. Group Talk does **not** offer response regeneration.
+- Continuity: the most recent group messages are reserved in the prompt before allocating output tokens. Character cards define existing relationships, while first-message greetings are not replayed. Only the actual human sends USER messages. If the context cannot fit the selected cards plus recent conversation, the request stops with an explicit error before an API call.
 - In the room's **Advanced settings**, customize message volume (6–10 / 12–20 / 20–30 / custom) and recent Group Talk memory (5,000 / **8,000 default** / 15,000 / custom tokens). The selected token limit applies to group conversation history, not character cards or reference material.
 - Each group has independent participants, reference checkboxes, memory/volume settings and saved messages. The group data has its own export, import and reset scope.
 - If the linked RP or persona changes, Group Talk asks whether to use the current RP or retain the last saved linked context. When the old RP is not currently open, saved reference excerpts may be stale.
@@ -273,7 +274,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
-## 👥 그룹톡 (5.5.0-rc.2 미리보기)
+## 👥 그룹톡 (5.5.0-rc.3 미리보기)
 
 그룹톡은 여러 캐릭터가 메신저에서 대화하는 독립 모드입니다. 메인 RP와 게스트톡의 기존 대화에는 자동으로 개입하지 않습니다.
 
@@ -282,6 +283,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 - **한 번의 AI 호출**로 여러 캐릭터의 짧은 메시지를 묶음 생성합니다. 기본 목표는 **말풍선 20~30개**, 말풍선마다 보통 1~2문장입니다. 모든 캐릭터가 대답할 필요는 없고, 같은 캐릭터가 연속 발언할 수도 있습니다.
 - 생성된 말풍선은 **0.5~1초 간격**으로 하나씩 나타납니다. **모두 표시**를 누르면 남은 내용을 바로 보여줍니다. 도착 도중 새 메시지를 보내면 미표시 메시지만 취소하고, 이미 도착한 말풍선은 유지합니다.
 - 빈 입력으로 전송해도 캐릭터들이 먼저 대화를 시작하거나 이어갈 수 있습니다. 그룹톡에는 **답변 재생성**이 없습니다.
+- **대화 연속성:** 출력 토큰보다 먼저 최근 그룹톡 메시지의 기억 공간을 확보합니다. 캐릭터 관계는 각 캐릭터 시트를 따르며 첫 인사는 다시 주입하지 않습니다. USER 메시지는 실제 사용자만 작성합니다. 캐시트와 최근 대화를 함께 담을 공간이 부족하면 API 호출 전에 오류를 알립니다.
 - **고급 설정**에서 한 번의 생성량(6~10 / 12~20 / **20~30 기본** / 사용자 지정)과 대화 기억 범위(5,000 / **8,000 기본** / 15,000 / 사용자 지정 토큰)를 방별로 조절합니다. 토큰 범위는 그룹톡 자체 대화 기록에만 적용됩니다.
 - 그룹톡방마다 참여자·참고 자료 체크·기억량·대화량·기록을 독립 저장합니다. 그룹톡 데이터는 별도 항목에서 내보내기·가져오기·초기화할 수 있습니다.
 - 연결된 RP나 페르소나가 바뀌면 현재 RP로 전환할지, 마지막으로 저장된 이전 RP 참고 내용을 유지할지 묻습니다. 이전 RP가 열려 있지 않으면 저장된 참고 내용은 최신 상태가 아닐 수 있습니다.

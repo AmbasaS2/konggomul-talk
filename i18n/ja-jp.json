@@ -202,5 +202,6 @@
   "konggomul.group.importConfirm": "インポートするとすべてのグループトークが置き換わります。続行しますか？",
   "konggomul.group.resetConfirm": "すべてのグループトークを削除しますか？",
   "konggomul.group.importWrong": "グループトークのバックアップではありません。",
-  "konggomul.group.parseFailed": "モデルの応答から有効なグループトークのメッセージを読み取れませんでした。生成数を減らすか、出力トークン上限を増やしてください。"
+  "konggomul.group.parseFailed": "モデルの応答から有効なグループトークのメッセージを読み取れませんでした。生成数を減らすか、出力トークン上限を増やしてください。",
+  "konggomul.group.contextTooSmall": "キャラクターカードと直近のグループ会話を同時に含めるためのコンテキストが不足しています。コンテキスト長を増やすか、参加キャラを減らしてください。"
 }

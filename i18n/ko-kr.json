@@ -202,5 +202,6 @@
   "konggomul.group.importConfirm": "가져오면 기존 그룹톡 전체가 교체돼. 계속할까?",
   "konggomul.group.resetConfirm": "모든 그룹톡방과 메시지를 삭제할까?",
   "konggomul.group.importWrong": "그룹톡 백업 파일이 아니야.",
-  "konggomul.group.parseFailed": "모델 응답에서 올바른 그룹톡 메시지를 찾지 못했어. 생성할 말풍선 수를 줄이거나 출력 토큰 한도를 높여봐."
+  "konggomul.group.parseFailed": "모델 응답에서 올바른 그룹톡 메시지를 찾지 못했어. 생성할 말풍선 수를 줄이거나 출력 토큰 한도를 높여봐.",
+  "konggomul.group.contextTooSmall": "캐릭터 카드와 최근 그룹톡 대화를 함께 넣을 공간이 부족해. 컨텍스트 길이를 늘리거나 참여 캐릭터 수를 줄여줘."
 }

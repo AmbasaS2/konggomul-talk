@@ -1,15 +1,15 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
-import { GROUP_MEMORY_DEFAULT, groupRoomFields, groupAmount, groupHistoryWithinBudget, estimateGroupTokens, parseGroupCompletion } from './group-talk.js';
+import { GROUP_MEMORY_DEFAULT, groupRoomFields, groupAmount, groupHistoryWithinBudget, planGroupRequestBudget, estimateGroupTokens, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.2
+ * 🐕 콩고물 톡 v5.5.0-rc.3
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.2';
+const EXTENSION_VERSION = '5.5.0-rc.3';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -165,6 +165,7 @@ const UI_ENGLISH = Object.freeze({
   "group.resetConfirm": "Delete all Group Talk rooms and messages?",
   "group.importWrong": "This is not a Group Talk backup.",
   "group.parseFailed": "Could not read any Group Talk messages from the model response. Try a smaller message count or a higher output limit.",
+  "group.contextTooSmall": "There is not enough context for all character cards and the recent group conversation. Increase the context window or invite fewer characters.",
   "message.copy": "Copy",
   "message.reply": "Reply",
   "message.quotedFrom": "Replying to {0}",
@@ -1381,7 +1382,7 @@ function escapeHtml(str) {
 
 function normalizeNewlines(str) { return escapeHtml(str).replace(/\n/g, '<br>'); }
 
-function getCharacterBlock(character = getCurrentCharacter()) {
+function getCharacterBlock(character = getCurrentCharacter(), { omitOpening = false } = {}) {
   if (!character) return 'No character is currently selected.';
   const data = character.data || character;
   const fields = [
@@ -1389,7 +1390,7 @@ function getCharacterBlock(character = getCurrentCharacter()) {
     ['Description', data.description || character.description],
     ['Personality', data.personality || character.personality],
     ['Scenario', data.scenario || character.scenario],
-    ['First Message', data.first_mes || character.first_mes],
+    ['First Message', omitOpening ? '' : data.first_mes || character.first_mes],
     ['Example Dialogues', data.mes_example || character.mes_example],
     ['Creator Notes', data.creator_notes || data.creator_notes_multilingual || ''],
     ['Character System Prompt', data.system_prompt || ''],
@@ -2390,13 +2391,15 @@ async function showLastRequestPreview() {
   }).show();
 }
 
-async function generateWithSelectedProfile(systemPrompt, prompt, maxTokens, tail = 'Answer now.', generationTask = null) {
+async function generateWithSelectedProfile(systemPrompt, prompt, maxTokens, tail = 'Answer now.', generationTask = null, options = {}) {
   const context = ctx();
   const s = getSettings();
   const selectedBefore = String(s.selectedProfile || '').trim();
   const resolvedProfile = selectedBefore ? await resolveSelectedConnectionProfileFresh() : null;
   const safeMaxTokens = Math.max(100, Math.min(8000, Number(maxTokens || s.maxTokens || 1000)));
-  const safePrompt = stringifyPromptMessages(appendTailToMessages(prompt, textOnlyTail(tail)));
+  // Structured Group Talk output must not inherit the plain-text/NO-JSON instruction.
+  const outputTail = options.outputFormat === 'json' ? String(tail || '').trim() : textOnlyTail(tail);
+  const safePrompt = stringifyPromptMessages(appendTailToMessages(prompt, outputTail));
   const includePreset = s.includePreset !== false;
   addDebugLog('request.start', '콩고물 톡 생성 요청 시작', {
     selectedProfile: selectedBefore,
@@ -2658,38 +2661,41 @@ async function buildGroupTalkSystemPrompt(userText, participants) {
   const reference = room.groupSnapshot || {};
   const [min, max] = groupAmount(room);
   const cards = participants.map((p, i) =>
-    '[Participant ' + (i + 1) + ': ' + p.name + ']\n' + getCharacterBlock(p.character)).join('\n\n');
+    '[Participant ' + (i + 1) + ': ' + p.name + ']\n' + getCharacterBlock(p.character, { omitOpening: true })).join('\n\n');
   const examples = JSON.stringify({ messages: [
-    { speaker: 1, text: '오늘 다들 뭐 해?' },
-    { speaker: 2, text: '난 아직 일하는 중.' },
-    { speaker: 1, text: '벌써 저녁인데?' },
-    { speaker: 3, text: '두 사람 또 시작이네 ㅋㅋ' }
+    { speaker: 2, text: '그건 네가 전에 말했던 거랑 조금 다르지 않아?' },
+    { speaker: 1, text: '생각이 바뀐 거지.' },
+    { speaker: 1, text: '그럴 수도 있잖아.' },
+    { speaker: 2, text: '뭐 때문에 바뀌었는데?' }
   ] });
   return [
-    'You are writing messages for a MULTI-PERSON MESSENGER GROUP CHAT, separate from the main RP.',
-    'Each participant is independently characterized by their OWN CHARACTER CARD below.',
-    'Maintain each participant’s exact personality, humor, voice, relationship history and degree of familiarity.',
-    'Different cards may belong to unrelated worlds: respect their boundaries and establish no unprovided shared history.',
-    'Only listed participants may speak. The user is a distinct participant and only the user writes the user’s messages.',
-    'Choose speakers by conversational relevance, personality and dynamics, with natural variation.',
-    'Do not rotate speakers mechanically or force everyone to answer. Participants may stay silent or speak consecutively.',
-    'Characters react to one another as well as to the user: respond, disagree, interrupt, ask, joke, and change topics naturally.',
-    'Make an unfolding real chat, not a play, narration, a formal report, or a theatrical script.',
-    'One bubble = one or two short conversational sentences, or an even shorter natural fragment.',
-    'Prefer a lively exchange: aim for ' + min + ' to ' + max + ' bubbles IN TOTAL in this single response.',
-    'Keep quality and coherence above a fixed count. Do not fabricate filler to meet a target.',
-    'Output ONLY valid JSON: {"messages":[{"speaker":1,"text":"a short message"},{"speaker":2,"text":"another short message"}]}.',
-    'The speaker must be the 1-based number for a listed participant, never a name or the user.',
-    'No markdown code fences, annotations, stage directions, inner thoughts, or other fields.',
-    'Here is a NEUTRAL STRUCTURAL EXAMPLE only (not a style or personality template):\n' + examples,
-    'The example is not real context. Use the actual character cards and conversation history for all contents.',
+    'Write the NEXT exchange in an ongoing MULTI-PERSON MESSENGER GROUP CHAT. This is not a continuation of the main RP scene.',
+    'The actual human USER is ' + JSON.stringify(room.groupBinding?.name || getUserName()) + '. USER is the same persona referenced as {{user}} in cards, but is NOT a generated character and has no speaker number.',
+    'The USER messages in [PREVIOUS GROUP CHAT] and [NEW USER MESSAGE] are written by the human. Never create, paraphrase as new speech, impersonate, or attribute a new message or action to USER.',
+    'Each numbered participant speaks only as themselves. Never write one participant speaking as another person or from USER’s point of view.',
+    'Each participant’s own character card defines their personality, speech rhythm, habits, sense of humor, feelings, identity, history, and relationships. Keep distinct voices; do not flatten everyone into the same friendly or sarcastic tone.',
+    'Preserve existing relationships between participants when their cards, group history, lorebook or reference context establish them. Friends, partners, rivals, family and old acquaintances should speak with their established familiarity, chemistry and tensions.',
+    'When characters have not met or lack established links, let their reactions fit their individual personalities; do not force instant intimacy or awkward stranger introductions. A shared fictional setting alone does not prove two individuals have met.',
+    'Cards from unrelated settings remain distinct. Do not fabricate shared history or rewrite either card to make the group work. If cards give conflicting relationship accounts, keep each character’s own perspective.',
+    'Treat any character-card example dialogues as VOICE samples, not a live conversation. The character-card opening greeting is not part of this group chat.',
+    'The group already exists and has a continuing message history. Keep names, relationship development, topic, mood, events and promises consistent with [PREVIOUS GROUP CHAT]. Do not reset introductions or ask why people are in the group unless the actual latest message calls for it.',
+    'The [NEW USER MESSAGE], when present, is the conversation’s live focus. Respond to its actual topic/question first, then allow responsive banter and tangents. Never ignore a concrete user question for generic room chatter.',
+    'When [CONTINUE GROUP CHAT] is supplied, respond to the latest actual group exchange, not to an imaginary new USER message.',
+    'Choose speakers based on each character’s motives, interests, relationships and relevance. Some may stay silent; one may speak consecutively; there is no required turn order or equal airtime.',
+    'Allow organic humor, irritation, affection, disagreement, surprise, interruptions and callbacks ONLY as they suit the actual characters and situation. No obligatory jokes or generic assistant chatter.',
+    'Each bubble is one or two short messenger sentences, sometimes a single word. No narration, prose stage directions, action text or inner monologue.',
+    'Generate a meaningful exchange aiming for ' + min + ' to ' + max + ' bubbles in one API response. Do not pad with repetitive filler or repeated introductions.',
+    'Return ONLY valid JSON: {"messages":[{"speaker":1,"text":"first short message"},{"speaker":2,"text":"next short message"}]}.',
+    'Only a listed 1-based numbered participant may be a speaker. Never set speaker to USER, 0, or a name.',
+    'The following example teaches ONLY structural formatting and that one speaker may send consecutive bubbles; it is not live chat history and never dictates personalities, plot, or speech style:\n' + examples,
+    'Use the real character cards, reference context, and actual room history instead of copying the example.',
     buildOutputLanguageInstruction(false).replace(/\{char\}/g, 'each participant'),
-    '[USER / CURRENT PERSONA]\n' + (reference.persona || getPersonaBlock()),
-    '[PARTICIPANT CHARACTER CARDS]\n' + cards,
-    options.recentRp && reference.recent ? '[RECENT RP CONTEXT: REFERENCE ONLY]\n' + reference.recent : '',
-    options.lorebook && reference.lorebook ? '[ACTIVATED LOREBOOK: REFERENCE ONLY]\n' + reference.lorebook : '',
-    options.extensionMemory && reference.extensionMemory ? '[EXTENSION MEMORY: REFERENCE ONLY]\n' + reference.extensionMemory : '',
-    'These references are background knowledge; do not merge the roleplay with this separate messenger room.'
+    '[USER IDENTITY / PERSONA — reference only, never an output speaker]\n' + (reference.persona || getPersonaBlock()),
+    '[PARTICIPANTS — their own cards, not interchangeable]\n' + cards,
+    options.recentRp && reference.recent ? '[RECENT RP CONTEXT: OPTIONAL BACKGROUND, NOT GROUP CHAT HISTORY]\n' + reference.recent : '',
+    options.lorebook && reference.lorebook ? '[ACTIVATED LOREBOOK: BACKGROUND KNOWLEDGE]\n' + reference.lorebook : '',
+    options.extensionMemory && reference.extensionMemory ? '[EXTENSION MEMORY: BACKGROUND KNOWLEDGE]\n' + reference.extensionMemory : '',
+    'These reference materials establish context only. The group conversation itself is separate from the main RP.'
   ].filter(Boolean).join('\n\n');
 }
 
@@ -2713,18 +2719,18 @@ async function generateGroupCompletion(userText, generationTask) {
     throw new Error(uiText('group.missing'));
   }
   const [min, max] = groupAmount(room);
-  const outputTokens = Math.max(getSettings().maxTokens, Math.min(8000, max * 170));
+  // The number of brief bubbles is not the output-token count. Do not reserve
+  // 5,100 output tokens for 20–30 short messages at the cost of *all* history.
+  const desiredOutputTokens = Math.max(1200, Math.min(8000, max * 125));
   const system = await buildGroupTalkSystemPrompt(userText, participants);
   if (generationTask.cancelled || !isGenerationStorageContextCurrent(generationTask)) {
     const error = new Error('Group Talk context changed.'); error.name = 'AbortError'; throw error;
   }
-  const totalContext = Number(ctx().maxContext || 0);
-  let historyTokens = room.groupMemoryTokens || GROUP_MEMORY_DEFAULT;
-  if (totalContext > 0) {
-    const systemTokens = await countGroupTokenText(system);
-    historyTokens = Math.min(historyTokens, Math.max(0, totalContext - systemTokens - outputTokens - 600));
-  }
-  const recent = (room.messages || []).filter(m => !m.loading && !m.error);
+  const recent = (room.messages || []).filter(m =>
+    !m.loading && !m.error && String(m.content || '').trim()
+    // Old preview builds sometimes stored malformed JSON as an Atlas bubble.
+    // Keep those messages saved, but do not teach the model to repeat the leak.
+    && !(m.role === 'assistant' && /^\s*\{\s*["'](?:messages|speaker)["']\s*:/u.test(String(m.content || ''))));
   if (userText && recent.at(-1)?.role === 'user' && String(recent.at(-1)?.content || '') === userText) recent.pop();
   const format = m => {
     const who = m.role === 'user' ? 'USER'
@@ -2733,16 +2739,43 @@ async function generateGroupCompletion(userText, generationTask) {
         : 'Former participant') + ' (' + (m.speakerName || 'Unknown') + ')';
     return who + ': ' + formatQuotedMessageContent(m.content, m.role === 'user' ? m.quote : null);
   };
-  const history = await groupHistoryWithinBudget(recent, historyTokens, format, countGroupTokenText);
-  const prompt = '[PREVIOUS GROUP CHAT]\n' + (history.length ? history.map(format).join('\n') : '(No earlier group chat.)')
-    + '\n\n' + (userText ? '[NEW USER MESSAGE]\nUSER: ' + userText
-      : '[CONTINUE GROUP CHAT]\nThe participants begin or continue naturally without a new user message.')
-    + '\n\nGenerate the next group-chat exchange as the required JSON object.';
+  const latestMessage = userText
+    ? '[NEW USER MESSAGE]\nUSER: ' + userText
+    : '[CONTINUE GROUP CHAT]\nKeep talking naturally from the latest real messages; no new USER message was sent.';
+  const ending = '\n\nGenerate the next group-chat exchange as the required JSON object.';
+  const fixedTokens = await countGroupTokenText(system + '\n[PREVIOUS GROUP CHAT]\n'
+    + latestMessage + ending + '\nReturn only the Group Talk JSON messages object.');
+  const requiredHistory = recent.slice(-Math.min(4, recent.length));
+  const requiredTokens = requiredHistory.length
+    ? await countGroupTokenText(requiredHistory.map(format).join('\n'))
+    : 0;
+  const budget = planGroupRequestBudget({
+    contextWindow: Number(ctx().maxContext || 0),
+    fixedTokens,
+    requestedOutputTokens: desiredOutputTokens,
+    maxHistoryTokens: room.groupMemoryTokens || GROUP_MEMORY_DEFAULT,
+    minimumHistoryTokens: requiredTokens,
+    reservedTokens: 512,
+    minimumOutputTokens: 1200
+  });
+  if (!budget.ok) throw new Error(uiText('group.contextTooSmall'));
+  const history = await groupHistoryWithinBudget(recent, budget.historyTokens, format, countGroupTokenText);
+  if (requiredHistory.length && history.length < requiredHistory.length) {
+    throw new Error(uiText('group.contextTooSmall'));
+  }
+  if (budget.constrained) addDebugLog('group.context.budget',
+    'Group Talk adapted output/history to preserve recent chat continuity.', {
+      historyTokens: budget.historyTokens, outputTokens: budget.outputTokens,
+      latestMessages: history.length, contextWindow: Number(ctx().maxContext || 0)
+    });
+  const prompt = '[PREVIOUS GROUP CHAT]\n'
+    + (history.length ? history.map(format).join('\n') : '(No earlier group chat.)')
+    + '\n\n' + latestMessage + ending;
   if (generationTask.cancelled || !isGenerationStorageContextCurrent(generationTask)) {
     const error = new Error('Group Talk context changed.'); error.name = 'AbortError'; throw error;
   }
-  const raw = await generateWithSelectedProfile(system, [{ role: 'user', content: prompt }], outputTokens,
-    'Return only the Group Talk JSON messages object.', generationTask);
+  const raw = await generateWithSelectedProfile(system, [{ role: 'user', content: prompt }], budget.outputTokens,
+    'Return only the Group Talk JSON messages object.', generationTask, { outputFormat: 'json' });
   const bubbles = parseGroupCompletion(sanitizeAssistantReply(raw), participants, max + 20);
   if (!bubbles.length) {
     addDebugLog('group.parse.error', 'Group Talk response contained no valid speaker messages.', {
