@@ -1,14 +1,14 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 
 /*
- * 🐕 콩고물 톡 v5.1.0
+ * 🐕 콩고물 톡 v5.2.0
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.1.0';
+const EXTENSION_VERSION = '5.2.0';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 
