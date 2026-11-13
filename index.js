@@ -962,6 +962,32 @@ function defaultRoomTitle(now = Date.now(), modeKey = null) {
   return `${modeLabel} · ${stamp}`;
 }
 
+// Display retired default titles with current names without altering saved titles.
+function getRoomDisplayTitle(room) {
+  if (!room) return uiText('room.name');
+  const title = String(room.title || defaultRoomTitle(room.createdAt, getRoomMode(room)));
+  if (getRoomMode(room) === 'guestOoc' && room.guestCharacterName) {
+    const prefix = String(room.guestCharacterName) + ' · ';
+    const oldLabels = ['게스트 OOC', 'Guest OOC', 'ゲストOOC', '访客 OOC', '訪客 OOC', 'Invitado OOC'];
+    if (title.startsWith(prefix) && oldLabels.includes(title.slice(prefix.length))) {
+      return prefix + modeUiLabel('guestOoc');
+    }
+  }
+  if (RETIRED_MODE_KEYS.has(room.mode)) {
+    const labelsByMode = {
+      butler: ['집사 모드', 'Butler Mode', '執事モード', '管家模式', 'Modo mayordomo'],
+      pet: ['펫 모드', 'Pet Mode', 'ペットモード', '宠物模式', '寵物模式', 'Modo mascota'],
+      coworker: ['직장 동료 모드', 'Coworker Mode', '同僚モード', '同事模式', 'Modo compañero de trabajo'],
+      secretary: ['집사 모드', 'Butler Mode'],
+      'co-worker': ['직장 동료 모드', 'Coworker Mode'],
+    };
+    for (const oldLabel of labelsByMode[room.mode] || []) {
+      if (title.startsWith(oldLabel + ' · ')) return modeUiLabel('kongtalk') + title.slice(oldLabel.length);
+    }
+  }
+  return title;
+}
+
 function createRoom(save = true, modeKey = 'kongtalk', withIntro = false) {
   if (!roomState || typeof roomState !== 'object') roomState = { rooms: [] };
   if (!Array.isArray(roomState.rooms)) roomState.rooms = [];
@@ -3080,7 +3106,7 @@ function renameRoomById(id) {
   const room = roomState.rooms.find(r => r.id === id);
   if (!room) return;
   if (!confirm(uiText('dialog.renameRoom'))) return;
-  const next = prompt(uiText('dialog.newName'), room.title || '');
+  const next = prompt(uiText('dialog.newName'), getRoomDisplayTitle(room));
   if (!next || !next.trim()) return;
   room.title = next.trim();
   room.updatedAt = Date.now();
@@ -4091,7 +4117,7 @@ function renderAll() {
   const currentMode = getRoomMode();
   $('#tua-mode-badge').text(modeUiLabel(currentMode));
   const activeRoom = getActiveRoom();
-  $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${activeRoom?.title || uiText('room.name')}`);
+  $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${getRoomDisplayTitle(activeRoom)}`);
   $('#tua-pin-room').toggleClass('active', !!activeRoom?.pinned).attr('title', uiText(activeRoom?.pinned ? 'panel.unpinRoom' : 'panel.pinRoom'));
   hydratePanelSettingsUI();
   renderRoomList();
@@ -4133,7 +4159,7 @@ function renderRoomList() {
     const visibleMessages = Array.isArray(room.messages) ? room.messages.filter(msg => isRoomSortConversationMessage(msg, room)) : [];
     const last = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].content : uiText('room.noMessages');
     const roomMode = modeUiLabel(getRoomMode(room));
-    const title = (room.pinned ? '📌 ' : '') + (room.title || defaultRoomTitle(room.createdAt));
+    const title = (room.pinned ? '📌 ' : '') + getRoomDisplayTitle(room);
     list.append('<button class="tua-room-item ' + active + ' ' + pinned + '" data-id="' + escapeHtml(room.id) + '" data-owner="' + escapeHtml(ownerKey) + '"><span><b>' + escapeHtml(title) + '</b><small>' + escapeHtml(roomMode) + ' · ' + escapeHtml(String(last).slice(0, 34)) + '</small></span><em>' + count + '</em></button>');
   }
   list.find('.tua-room-item').off('.tuaRoom')
