@@ -158,5 +158,11 @@
   "konggomul.message.reply": "Responder",
   "konggomul.message.quotedFrom": "Respuesta a {0}",
   "konggomul.message.cancelQuote": "Cancelar cita",
-  "konggomul.guest.legacyPersonaUnknown": "Esta sala de Chat invitado se creó antes de que se registraran las personas. No se conoce la persona anterior. Ahora usas {0} (RP: {1}). ¿Quieres crear otra sala o continuar aquí? Se conservará el historial."
+  "konggomul.guest.legacyPersonaUnknown": "Esta sala de Chat invitado se creó antes de que se registraran las personas. No se conoce la persona anterior. Ahora usas {0} (RP: {1}). ¿Quieres crear otra sala o continuar aquí? Se conservará el historial.",
+  "konggomul.data.manage": "Gestión de conversaciones",
+  "konggomul.data.character": "Personaje RP actual",
+  "konggomul.data.guest": "Todos los chats invitados",
+  "konggomul.data.export": "Exportar",
+  "konggomul.data.import": "Importar",
+  "konggomul.data.reset": "Restablecer"
 }
