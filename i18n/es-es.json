@@ -142,5 +142,20 @@
   "konggomul.guest.missing": "Invitado no encontrado",
   "konggomul.dialog.deleteBusy": "Detén la generación antes de eliminar la sala.",
   "konggomul.dialog.unmatchedSaved": "Datos guardados sin personaje asociado",
-  "konggomul.dialog.profileResolutionFailed": "No se pudo verificar el perfil de conexión: {0}"
+  "konggomul.dialog.profileResolutionFailed": "No se pudo verificar el perfil de conexión: {0}",
+  "konggomul.panel.autoOutput": "Automático (idioma de la interfaz de SillyTavern)",
+  "konggomul.preview.open": "Ver el contexto de la última solicitud a la IA",
+  "konggomul.preview.none": "Aún no se ha registrado ninguna solicitud a la IA de esta sala en esta sesión.",
+  "konggomul.preview.title": "Contexto de la última solicitud a la IA",
+  "konggomul.preview.note": "Muestra las partes del prompt que Konggomul Talk envió. El perfil de conexión o el proveedor pueden añadir ajustes o presets después, que no aparecen aquí. Se conserva solo en memoria, no en el RP ni en el historial.",
+  "konggomul.preview.summary": "Ruta: {0} · Personaje: {1} · Persona: {2} · RP: {3}",
+  "konggomul.preview.copy": "Copiar solicitud",
+  "konggomul.preview.close": "Cerrar",
+  "konggomul.guest.personaChanged": "La última persona de este Chat invitado fue {0} (RP: {1}). Ahora usas {2} (RP: {3}). ¿Quieres crear otra sala o seguir en esta? No se borrarán las conversaciones anteriores.",
+  "konggomul.guest.newPersonaRoom": "Crear sala nueva",
+  "konggomul.guest.continueOldRoom": "Continuar aquí",
+  "konggomul.guest.personaLabel": "Persona: {0} · RP: {1}",
+  "konggomul.message.reply": "Responder",
+  "konggomul.message.quotedFrom": "Respuesta a {0}",
+  "konggomul.message.cancelQuote": "Cancelar cita"
 }
