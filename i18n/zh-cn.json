@@ -158,5 +158,11 @@
   "konggomul.message.reply": "回复",
   "konggomul.message.quotedFrom": "回复 {0}",
   "konggomul.message.cancelQuote": "取消引用",
-  "konggomul.guest.legacyPersonaUnknown": "此访客聊天室创建于用户人设追踪功能加入之前，无法确认之前的人设。目前是 {0}（RP：{1}）。要新建聊天室还是继续原来的？历史记录都会保留。"
+  "konggomul.guest.legacyPersonaUnknown": "此访客聊天室创建于用户人设追踪功能加入之前，无法确认之前的人设。目前是 {0}（RP：{1}）。要新建聊天室还是继续原来的？历史记录都会保留。",
+  "konggomul.data.manage": "对话数据管理",
+  "konggomul.data.character": "当前 RP 角色",
+  "konggomul.data.guest": "全部访客聊天",
+  "konggomul.data.export": "导出",
+  "konggomul.data.import": "导入",
+  "konggomul.data.reset": "重置"
 }
