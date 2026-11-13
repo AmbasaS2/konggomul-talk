@@ -143,5 +143,9 @@
   "konggomul.dialog.copyFailed": "복사에 실패했습니다.",
   "konggomul.dialog.noGuestRoom": "게스트 대화방이 열려 있지 않습니다.",
   "konggomul.dialog.none": "없음",
-  "konggomul.dialog.restoreError": "오류: {0}"
+  "konggomul.dialog.restoreError": "오류: {0}",
+  "konggomul.guest.missing": "삭제된 게스트",
+  "konggomul.dialog.deleteBusy": "답변 생성을 중지한 뒤 대화방을 삭제해 주세요.",
+  "konggomul.dialog.unmatchedSaved": "미매칭 저장 데이터",
+  "konggomul.dialog.profileResolutionFailed": "연결 프로필을 확인할 수 없습니다: {0}"
 }
