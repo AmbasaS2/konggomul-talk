@@ -158,5 +158,11 @@
   "konggomul.message.reply": "返信",
   "konggomul.message.quotedFrom": "{0}への返信",
   "konggomul.message.cancelQuote": "引用を解除",
-  "konggomul.guest.legacyPersonaUnknown": "このゲストトークルームはペルソナ記録機能の追加前に作られたため、以前のペルソナが不明です。現在は{0}（RP：{1}）です。新しいルームを作成しますか、それともこのルームで続けますか？履歴は保持されます。"
+  "konggomul.guest.legacyPersonaUnknown": "このゲストトークルームはペルソナ記録機能の追加前に作られたため、以前のペルソナが不明です。現在は{0}（RP：{1}）です。新しいルームを作成しますか、それともこのルームで続けますか？履歴は保持されます。",
+  "konggomul.data.manage": "会話データの管理",
+  "konggomul.data.character": "現在のRPキャラ",
+  "konggomul.data.guest": "すべてのゲストトーク",
+  "konggomul.data.export": "エクスポート",
+  "konggomul.data.import": "インポート",
+  "konggomul.data.reset": "初期化"
 }
