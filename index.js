@@ -107,6 +107,7 @@ const UI_ENGLISH = Object.freeze({
   "guest.selectTitle": "Guest Talk · Who would you like to invite?",
   "guest.search": "Search characters…",
   "guest.personaChanged": "Guest Talk was last used by {0} (RP: {1}). The current persona is {2} (RP: {3}). Start a new Guest Talk room or continue in this room? Old conversations will never be deleted.",
+  "guest.legacyPersonaUnknown": "This Guest Talk room was created before persona tracking. Its previous persona is unknown. Your current persona is {0} (RP: {1}). Start a new room or continue this one? Older conversations will be preserved.",
   "guest.newPersonaRoom": "New room",
   "guest.continueOldRoom": "Continue here",
   "guest.personaLabel": "Persona: {0} · RP: {1}",
@@ -590,10 +591,36 @@ async function checkGuestPersonaBeforeGeneration() {
   const current = getCurrentGuestPersonaBinding();
   const prior = normalizeGuestPersonaBinding(room.personaBinding);
   if (!prior) {
-    // Existing 5.3.x guest rooms have no recorded persona. Bind on first use without discarding their history.
+    // Old releases did not record persona IDs. Keep the history, but do not silently assume its author.
+    if (hasRealConversationMessage(room)) {
+      if (pendingPersonaChoice) return false;
+      pendingPersonaChoice = true;
+      const oldId = room.id;
+      const notice = document.createElement('div');
+      notice.textContent = uiText('guest.legacyPersonaUnknown', current.name, current.rpCharacterName);
+      try {
+        const popup = new Popup(notice, POPUP_TYPE.CONFIRM, null, {
+          okButton: uiText('guest.newPersonaRoom'),
+          cancelButton: uiText('guest.continueOldRoom'),
+          leftAlign: true,
+        });
+        const choice = await popup.show();
+        if (getActiveRoom()?.id !== oldId || roomStateCharKey !== GUEST_ROOM_STORE_KEY ||
+            current.key !== getCurrentGuestPersonaBinding().key) return false;
+        if (choice === POPUP_RESULT.AFFIRMATIVE) {
+          await createGuestOocRoom(room.guestCharacterKey);
+          return true;
+        }
+        if (choice !== POPUP_RESULT.NEGATIVE) return false;
+        room.personaTransitions = [{ fromName: 'Unknown previous persona', toName: current.name, at: Date.now() }];
+      } finally {
+        pendingPersonaChoice = false;
+      }
+    }
     room.personaBinding = current;
     room.updatedAt = Date.now();
     await saveRooms();
+    renderAll();
     return true;
   }
   if (prior.key === current.key) {
