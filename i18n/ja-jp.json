@@ -143,5 +143,9 @@
   "konggomul.dialog.copyFailed": "コピーに失敗しました。",
   "konggomul.dialog.noGuestRoom": "ゲストルームが開かれていません。",
   "konggomul.dialog.none": "なし",
-  "konggomul.dialog.restoreError": "エラー：{0}"
+  "konggomul.dialog.restoreError": "エラー：{0}",
+  "konggomul.guest.missing": "見つからないゲスト",
+  "konggomul.dialog.deleteBusy": "生成を停止してからルームを削除してください。",
+  "konggomul.dialog.unmatchedSaved": "対応するキャラがない保存データ",
+  "konggomul.dialog.profileResolutionFailed": "接続プロファイルを確認できません：{0}"
 }
