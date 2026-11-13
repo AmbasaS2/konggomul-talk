@@ -143,5 +143,9 @@
   "konggomul.dialog.copyFailed": "No se pudo copiar.",
   "konggomul.dialog.noGuestRoom": "No hay sala de invitado abierta.",
   "konggomul.dialog.none": "Ninguno",
-  "konggomul.dialog.restoreError": "Error: {0}"
+  "konggomul.dialog.restoreError": "Error: {0}",
+  "konggomul.guest.missing": "Invitado no encontrado",
+  "konggomul.dialog.deleteBusy": "Detén la generación antes de eliminar la sala.",
+  "konggomul.dialog.unmatchedSaved": "Datos guardados sin personaje asociado",
+  "konggomul.dialog.profileResolutionFailed": "No se pudo verificar el perfil de conexión: {0}"
 }
