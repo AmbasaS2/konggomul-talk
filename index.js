@@ -47,6 +47,7 @@ const UI_ENGLISH = Object.freeze({
   "panel.sentences610": "6–10 sentences",
   "panel.sentences1118": "11–18 sentences",
   "panel.output": "Output language",
+  "panel.autoOutput": "Auto (SillyTavern UI language)",
   "panel.korean": "Korean",
   "panel.english": "English",
   "panel.bilingual": "English / Korean bilingual",
@@ -260,7 +261,7 @@ const THEMES = {
   }
 };
 
-const OUTPUT_LANGUAGE_KEYS = new Set(['ko', 'en', 'bilingual']);
+const OUTPUT_LANGUAGE_KEYS = new Set(['auto', 'ko', 'en', 'bilingual']);
 const SENTENCE_COUNT_KEYS = new Set(['auto', '1-3', '2-5', '6-10', '11-18']);
 
 function readCssTextVariable(name, fallback) {
@@ -1357,8 +1358,28 @@ function getChatMemoryLimit() {
   return Number.isFinite(raw) ? Math.max(5, Math.min(80, Math.floor(raw))) : 20;
 }
 
+const UI_LOCALE_LANGUAGE_NAMES = Object.freeze({
+  ar: 'Arabic', zh: 'Simplified Chinese', nl: 'Dutch', de: 'German',
+  en: 'English', fr: 'French', is: 'Icelandic', it: 'Italian',
+  ja: 'Japanese', ko: 'Korean', pt: 'Portuguese', ru: 'Russian',
+  es: 'Spanish', uk: 'Ukrainian', vi: 'Vietnamese', th: 'Thai',
+});
+function getAutoOutputLanguageName() {
+  const locale = String(ctx()?.getCurrentLocale?.() || 'en').toLowerCase().replace('_', '-');
+  if (locale.startsWith('zh-tw') || locale.startsWith('zh-hk') || locale.startsWith('zh-hant')) return 'Traditional Chinese';
+  return UI_LOCALE_LANGUAGE_NAMES[locale.split('-')[0]] || 'English';
+}
+function getEffectiveOutputLanguage() {
+  const selected = getSettings().outputLanguage;
+  if (selected === 'auto') return getAutoOutputLanguageName() === 'Korean' ? 'ko'
+    : getAutoOutputLanguageName() === 'English' ? 'en' : 'auto';
+  return selected;
+}
+
 function buildOutputLanguageInstruction(includeSentenceCount = true) {
-  switch (getSettings().outputLanguage) {
+  switch (getEffectiveOutputLanguage()) {
+    case 'auto':
+      return `[Selected output language]\n- Write {char}'s entire reply naturally in ${getAutoOutputLanguageName()}, following SillyTavern's interface language. Do not add translations unless {user} asks.`;
     case 'en':
       return `[Selected output language]
 - Regardless of the language used by {user}, write {char}'s reply in English.`;
@@ -2281,6 +2302,7 @@ function ensurePanel() {
         </label>
         <label>${uiHtml('panel.output')}
           <select id="tua-panel-output-language">
+            <option value="auto">${uiHtml('panel.autoOutput')}</option>
             <option value="ko">${uiHtml('panel.korean')}</option>
             <option value="en">${uiHtml('panel.english')}</option>
             <option value="bilingual">${uiHtml('panel.bilingual')}</option>
@@ -3147,7 +3169,8 @@ function getRoleAssignmentDeclaration(modeKey) {
 }
 
 function buildDeclarationLanguageRule() {
-  switch (getSettings().outputLanguage) {
+  if (getEffectiveOutputLanguage() === 'auto') return `Translate every declaration sentence into ${getAutoOutputLanguageName()} without changing its meaning.`;
+  switch (getEffectiveOutputLanguage()) {
     case 'en':
       return 'Translate every declaration sentence into English without changing its meaning.';
     case 'bilingual':
@@ -3161,7 +3184,7 @@ function buildDeclarationLanguageRule() {
 function buildParallelIntroInstruction(reverseMode = true) {
   const charName = getCharName();
   const userName = getUserName();
-  const outputLanguage = getSettings().outputLanguage;
+  const outputLanguage = getEffectiveOutputLanguage();
   const profileTemplate = (() => {
     switch (outputLanguage) {
       case 'en':
@@ -3180,6 +3203,8 @@ Occupation: (modern job different from the show character's role or archetype).
 Relationship with ${userName}: (new AU relationship with the current ${userName}; do not copy the RP relationship).
 [${userName}와의 관계: (Korean translation).]
 ---`;
+      case 'auto':
+        return `Name: ${charName}\nAge: [age]\nOccupation: [modern job different from the show character's role or archetype]\nRelationship with ${userName}: [new AU relationship with the current ${userName}; do not copy the RP relationship]\n---`;
       case 'ko':
       default:
         return `이름: ${charName}
@@ -3191,7 +3216,7 @@ ${userName}와의 관계: [new AU relationship with the current ${userName}; do 
   })();
   const profilePlaceholderRule = outputLanguage === 'bilingual'
     ? 'Replace every parenthesized placeholder in the profile block with generated content; do not print the placeholder text.'
-    : '';
+    : outputLanguage === 'auto' ? `Translate the profile block labels and generated profile content into ${getAutoOutputLanguageName()}, then respond in that language. Preserve the four profile fields and separator.` : '';
   const identityRule = reverseMode
     ? `This person has only the same name, face, and age as the show character; give them a different job, different life, clearly opposite personality and way of speaking, and a newly generated AU relationship with the current ${userName}.`
     : `This person has the same name, face, age, core personality, and way of speaking as the show character; give them a different modern job, a different AU life context when needed, and a newly generated AU relationship with the current ${userName}. Do not invert their personality or speech style.`;
