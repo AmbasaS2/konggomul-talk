@@ -99,6 +99,11 @@ const UI_ENGLISH = Object.freeze({
   "room.pin": "Pin room",
   "guest.selectTitle": "Guest Talk · Who would you like to invite?",
   "guest.search": "Search characters…",
+  "guest.personaChanged": "Guest Talk was last used by {0} (RP: {1}). The current persona is {2} (RP: {3}). Start a new Guest Talk room or continue in this room? Old conversations will never be deleted.",
+  "guest.newPersonaRoom": "New room",
+  "guest.continueOldRoom": "Continue here",
+  "guest.personaLabel": "Persona: {0} · RP: {1}",
+  "guest.oldPersonaContext": "Earlier guest conversations were with the persona {0}. Current user is {1}. Treat earlier persona-specific experiences and relationships as belonging to {0}, not automatically to {1}.",
   "guest.noCharacters": "No installed characters found.",
   "guest.allCount": "All characters · {0}",
   "guest.recentCount": "Recent guests · up to 5",
@@ -339,6 +344,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 
 let activeRoomId = null;
 let roomState = { rooms: [] };
+let pendingPersonaChoice = false;
 let panelEl = null;
 let contextMenuEl = null;
 let roomContextMenuEl = null;
@@ -537,6 +543,91 @@ function getCharName(character = getCurrentCharacter()) {
   return character?.name || character?.data?.name || 'No Character';
 }
 
+function getCurrentGuestPersonaBinding() {
+  const context = ctx();
+  const name = String(context.name1 || context.power_user?.name || 'User');
+  const avatar = String(context.user_avatar || context.persona?.avatar || '');
+  return {
+    key: avatar ? 'avatar:' + avatar + '|name:' + name : 'name:' + name,
+    name,
+    rpCharacterKey: getCharKey(),
+    rpCharacterName: getCharName(),
+    chatId: String(context.chatId || ''),
+  };
+}
+
+function normalizeGuestPersonaBinding(value) {
+  if (!value || typeof value !== 'object' || typeof value.key !== 'string' || !value.key) return null;
+  return {
+    key: String(value.key),
+    name: String(value.name || 'User'),
+    rpCharacterKey: String(value.rpCharacterKey || ''),
+    rpCharacterName: String(value.rpCharacterName || ''),
+    chatId: String(value.chatId || ''),
+  };
+}
+
+function getGuestPersonaHistoryNote(room = getActiveRoom()) {
+  const latest = Array.isArray(room?.personaTransitions) ? room.personaTransitions.at(-1) : null;
+  return latest ? uiText('guest.oldPersonaContext', latest.fromName, latest.toName) : '';
+}
+
+async function checkGuestPersonaBeforeGeneration() {
+  const room = getActiveRoom();
+  if (!room || getRoomMode(room) !== 'guestOoc') return true;
+  if (pendingPersonaChoice) return false;
+  const current = getCurrentGuestPersonaBinding();
+  const prior = normalizeGuestPersonaBinding(room.personaBinding);
+  if (!prior) {
+    // Existing 5.3.x guest rooms have no recorded persona. Bind on first use without discarding their history.
+    room.personaBinding = current;
+    room.updatedAt = Date.now();
+    await saveRooms();
+    return true;
+  }
+  if (prior.key === current.key) {
+    // The main RP may have changed while this is still the same persona.
+    if (prior.rpCharacterKey !== current.rpCharacterKey || prior.chatId !== current.chatId) {
+      room.personaBinding = current;
+      room.updatedAt = Date.now();
+      await saveRooms();
+    }
+    return true;
+  }
+  pendingPersonaChoice = true;
+  const previousId = room.id;
+  const previousStoreKey = roomStateCharKey;
+  const dialogue = document.createElement('div');
+  dialogue.textContent = uiText('guest.personaChanged', prior.name, prior.rpCharacterName || '—', current.name, current.rpCharacterName || '—');
+  try {
+    const popup = new Popup(dialogue, POPUP_TYPE.CONFIRM, null, {
+      okButton: uiText('guest.newPersonaRoom'),
+      cancelButton: uiText('guest.continueOldRoom'),
+      leftAlign: true,
+    });
+    const action = await popup.show();
+    if (previousId !== getActiveRoom()?.id || previousStoreKey !== roomStateCharKey ||
+        current.key !== getCurrentGuestPersonaBinding().key) return false;
+    if (action === POPUP_RESULT.AFFIRMATIVE) {
+      await createGuestOocRoom(room.guestCharacterKey);
+      return true;
+    }
+    if (action === POPUP_RESULT.NEGATIVE) {
+      if (!Array.isArray(room.personaTransitions)) room.personaTransitions = [];
+      room.personaTransitions.push({ fromName: prior.name, toName: current.name, at: Date.now() });
+      room.personaTransitions = room.personaTransitions.slice(-10);
+      room.personaBinding = current;
+      room.updatedAt = Date.now();
+      await saveRooms();
+      renderAll();
+      return true;
+    }
+    return false;
+  } finally {
+    pendingPersonaChoice = false;
+  }
+}
+
 function getGuestCharacter(room = getActiveRoom()) {
   if (getRoomMode(room) !== 'guestOoc' || !room?.guestCharacterKey) return null;
   const characters = ctx().characters;
@@ -716,6 +807,8 @@ function normalizeStoredRoomState(raw) {
       mode: storedMode,
       pinned: !!room?.pinned,
       ...(mode === 'guestOoc' && room?.guestCharacterKey ? { guestCharacterKey: String(room.guestCharacterKey), guestCharacterName: String(room.guestCharacterName || '') } : {}),
+      ...(mode === 'guestOoc' && normalizeGuestPersonaBinding(room?.personaBinding) ? { personaBinding: normalizeGuestPersonaBinding(room.personaBinding) } : {}),
+      ...(mode === 'guestOoc' && Array.isArray(room?.personaTransitions) ? { personaTransitions: room.personaTransitions.filter(x => x && typeof x.fromName === 'string' && typeof x.toName === 'string').slice(-10).map(x => ({ fromName: String(x.fromName), toName: String(x.toName), at: Number(x.at || 0) })) } : {}),
       messages,
     };
     recomputeRoomLastMessageAt(normalizedRoom);
@@ -1562,6 +1655,7 @@ async function buildGuestOocSystemPrompt(currentUserText = '', finalInstruction 
   const lorebook = settings.includeLorebook === false
     ? 'Lorebook inclusion disabled.'
     : await getLorebookBlock(currentUserText);
+  const personaHistoryNote = getGuestPersonaHistoryNote(room);
   return `You are ${guestName}, speaking privately with {user}, the same person as the active RP persona, outside the ongoing RP scene. The currently open RP provides context for this side conversation.
 
 Core identity and source boundaries:
@@ -1584,6 +1678,8 @@ ${getCharacterBlock(getCurrentCharacter())}
 
 [Current RP persona: this is {user}, the person speaking to you]
 ${getPersonaBlock()}
+
+${personaHistoryNote ? '[Guest conversation identity change]\n' + personaHistoryNote : ''}
 
 [Activated current-RP lorebook: setting reference]
 ${lorebook}
@@ -2784,6 +2880,7 @@ async function createGuestOocRoom(characterKey) {
   const room = createRoom(false, 'guestOoc', false);
   room.guestCharacterKey = selected.key;
   room.guestCharacterName = selected.name;
+  room.personaBinding = getCurrentGuestPersonaBinding();
   room.title = selected.name + ' · ' + uiText('mode.guestOoc');
   const now = Date.now();
   room.messages.push({ id: 'msg_intro_guest_' + now, role: 'assistant', content: getKongtalkIntroIcon(), at: now });
@@ -2869,6 +2966,8 @@ function normalizeImportedRoomState(raw) {
       mode: RETIRED_MODE_KEYS.has(room.mode) ? room.mode : migrateModeKey(room.mode),
       pinned: !!room.pinned,
       ...(migrateModeKey(room.mode) === 'guestOoc' && room.guestCharacterKey ? { guestCharacterKey: String(room.guestCharacterKey), guestCharacterName: String(room.guestCharacterName || '') } : {}),
+      ...(migrateModeKey(room.mode) === 'guestOoc' && normalizeGuestPersonaBinding(room.personaBinding) ? { personaBinding: normalizeGuestPersonaBinding(room.personaBinding) } : {}),
+      ...(migrateModeKey(room.mode) === 'guestOoc' && Array.isArray(room.personaTransitions) ? { personaTransitions: room.personaTransitions } : {}),
       messages: Array.isArray(room.messages) ? room.messages.map(m => {
         const role = m.role === 'user' ? 'user' : 'assistant';
         const variantState = normalizeAssistantVariantState(role, m.content, m.variants, m.variantIndex);
@@ -3317,6 +3416,7 @@ async function createRoomWithModeIntro(modeKey) {
     startedAt: introAt,
     requestCharKey: roomStateCharKey || getCharKey(),
     rpSignature: getCurrentRpSignature(),
+    personaKey: getRoomMode() === 'guestOoc' ? getCurrentGuestPersonaBinding().key : '',
     persistenceEpoch,
     lifecycleEpoch,
     cancelCleanupComplete: false,
@@ -3404,7 +3504,8 @@ function isGenerationStorageContextCurrent(task) {
     && task.persistenceEpoch === persistenceEpoch
     && roomStateCharKey === task.requestCharKey
     && (task.requestCharKey === GUEST_ROOM_STORE_KEY || getCharKey() === task.requestCharKey)
-    && (!task.rpSignature || task.rpSignature === getCurrentRpSignature());
+    && (!task.rpSignature || task.rpSignature === getCurrentRpSignature())
+    && (!task.personaKey || task.personaKey === getCurrentGuestPersonaBinding().key);
 }
 
 function getCurrentRpSignature() {
@@ -3567,6 +3668,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
     if (!loaded || roomStateCharKey !== currentCharKey) return;
   }
   if (!activeRoomId || !getActiveRoom()) createRoom(false, 'kongtalk', true);
+  if (!(await checkGuestPersonaBeforeGeneration())) return;
   const initialRoom = getActiveRoom();
   if (getRoomMode(initialRoom) === 'guestOoc' && !getGuestCharacter(initialRoom)) {
     alert(uiText('dialog.noGuest'));
@@ -3584,6 +3686,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
     startedAt: Date.now(),
     requestCharKey: roomStateCharKey || getCharKey(),
     rpSignature: getCurrentRpSignature(),
+    personaKey: getRoomMode() === 'guestOoc' ? getCurrentGuestPersonaBinding().key : '',
     persistenceEpoch,
     lifecycleEpoch,
     cancelCleanupComplete: false,
@@ -3715,6 +3818,8 @@ async function regenerateAssistantMessage(messageId) {
     if (!loaded || roomStateCharKey !== currentCharKey) return;
   }
   if (generationInFlight) return;
+  const priorRoomId = getActiveRoom()?.id;
+  if (!(await checkGuestPersonaBeforeGeneration()) || priorRoomId !== getActiveRoom()?.id) return;
 
   const room = getActiveRoom();
   if (!canRegenerateAssistantMessage(messageId, room)) {
@@ -3737,6 +3842,7 @@ async function regenerateAssistantMessage(messageId) {
     startedAt: Date.now(),
     requestCharKey: roomStateCharKey || currentCharKey,
     rpSignature: getCurrentRpSignature(),
+    personaKey: getRoomMode() === 'guestOoc' ? getCurrentGuestPersonaBinding().key : '',
     persistenceEpoch,
     lifecycleEpoch,
     cancelCleanupComplete: false,
@@ -4140,7 +4246,8 @@ function renderAll() {
   const s = getSettings();
   $('#tua-char-name').text(getSpeakerName());
   const currentMode = getRoomMode();
-  $('#tua-mode-badge').text(modeUiLabel(currentMode));
+  const binding = currentMode === 'guestOoc' ? normalizeGuestPersonaBinding(getActiveRoom()?.personaBinding) : null;
+  $('#tua-mode-badge').text(binding ? modeUiLabel(currentMode) + ' · ' + uiText('guest.personaLabel', binding.name, binding.rpCharacterName || '—') : modeUiLabel(currentMode));
   const activeRoom = getActiveRoom();
   $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${getRoomDisplayTitle(activeRoom)}`);
   $('#tua-pin-room').toggleClass('active', !!activeRoom?.pinned).attr('title', uiText(activeRoom?.pinned ? 'panel.unpinRoom' : 'panel.pinRoom'));
@@ -4183,7 +4290,8 @@ function renderRoomList() {
     const pinned = room.pinned ? 'pinned' : '';
     const visibleMessages = Array.isArray(room.messages) ? room.messages.filter(msg => isRoomSortConversationMessage(msg, room)) : [];
     const last = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].content : uiText('room.noMessages');
-    const roomMode = modeUiLabel(getRoomMode(room));
+    const binding = getRoomMode(room) === 'guestOoc' ? normalizeGuestPersonaBinding(room.personaBinding) : null;
+    const roomMode = modeUiLabel(getRoomMode(room)) + (binding ? ' · ' + uiText('guest.personaLabel', binding.name, binding.rpCharacterName || '—') : '');
     const title = (room.pinned ? '📌 ' : '') + getRoomDisplayTitle(room);
     list.append('<button class="tua-room-item ' + active + ' ' + pinned + '" data-id="' + escapeHtml(room.id) + '" data-owner="' + escapeHtml(ownerKey) + '"><span><b>' + escapeHtml(title) + '</b><small>' + escapeHtml(roomMode) + ' · ' + escapeHtml(String(last).slice(0, 34)) + '</small></span><em>' + count + '</em></button>');
   }
