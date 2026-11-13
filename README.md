@@ -141,7 +141,7 @@ The character card, user/persona information, the current room's previous conver
 | **🍓 Choco Strawberry** | A sweet, bouncy theme inspired by strawberry chocolate. |
 | **🥤 Melon Soda** | A fresh and playful theme inspired by melon soda. |
 | **⌘ Simple MacBook** | A clean black-and-white, symbol-focused theme with a MacBook-like feel. |
-| **🧸 Custom** | Follows the current SillyTavern theme colors. Its displayed name, main icon, and send icon can also be overridden through SillyTavern custom CSS. |
+| **🧸 Custom** | Follows the current SillyTavern theme colors, including the fixed scrollbar arrow color. Its displayed name, main icon, and send icon can also be overridden through SillyTavern custom CSS. |
 
 Changing the theme updates the panel, send button, collapsed button, and starting icon together.
 
@@ -149,7 +149,7 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 
 | Feature | Description |
 |---|---|
-| **Conversation data management** | In Advanced settings, choose **Current RP character** or **All Guest Talk**, then use the shared **Export / Import / Reset** buttons in one row. The selected scope determines which data is affected. |
+| **Conversation data management** | In Advanced settings, use a **dropdown** to choose **Current RP character** or **All Guest Talk**, then use the shared **Export / Import / Reset** buttons in one row. The selected scope determines which data is affected. |
 | **Current RP character** | Export saves the current character's rooms, messages, modes, answer variants, pinned states and voice note. Import replaces this character's saved conversation data. Reset removes this character's rooms and messages, recreating a default room while preserving the voice note and extension settings. |
 | **All Guest Talk** | Export, import and reset work on the global Guest Talk conversation store only. Backups preserve guest character identifiers, messages, answer variants, voice notes and recent guest choices. |
 
@@ -302,7 +302,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **🍓 초코딸기** | 딸기 초콜릿 색감을 담은 달콤하고 통통 튀는 테마입니다. |
 | **🥤 메론소다** | 메론소다의 청량하고 귀여운 분위기를 담은 테마입니다. |
 | **⌘ 심플 맥북** | 맥북 감성을 담은 기호 중심의 깔끔한 흑백 테마입니다. |
-| **🧸 커스텀** | 현재 SillyTavern 테마 색상을 따릅니다. SillyTavern 커스텀 CSS로 표시 이름, 메인 아이콘과 전송 아이콘도 덮어쓸 수 있습니다. |
+| **🧸 커스텀** | 현재 SillyTavern 테마 색상을 따르며 고정 스크롤바 화살표 색상에도 적용됩니다. SillyTavern 커스텀 CSS로 표시 이름, 메인 아이콘과 전송 아이콘도 덮어쓸 수 있습니다. |
 
 테마를 바꾸면 패널과 전송 버튼, 접힌 버튼과 시작 아이콘도 함께 바뀝니다.
 
@@ -310,7 +310,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 | 기능 | 설명 |
 |---|---|
-| **대화 데이터 관리** | 고급 설정에서 **현재 RP 캐릭터 / 게스트톡 전체** 중 대상을 고르고, 한 줄로 배치된 **내보내기·가져오기·초기화** 버튼을 사용합니다. 선택한 대상에만 적용됩니다. |
+| **대화 데이터 관리** | 고급 설정의 **선택 박스**에서 **현재 RP 캐릭터 / 게스트톡 전체** 중 대상을 고르고, 한 줄로 배치된 **내보내기·가져오기·초기화** 버튼을 사용합니다. 선택한 대상에만 적용됩니다. |
 | **현재 RP 캐릭터** | 내보내기는 현재 캐릭터의 대화방, 메시지, 모드, 답변 버전, 고정 상태와 말투 메모를 저장합니다. 가져오기는 해당 캐릭터의 데이터를 백업 내용으로 교체하고, 초기화는 대화 기록을 지우고 기본 방을 다시 만들되 말투 메모와 확장 설정을 유지합니다. |
 | **게스트톡 전체** | 게스트톡 공통 저장 영역만 별도로 내보내기·가져오기·초기화합니다. 백업에는 캐릭터 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록이 포함됩니다. |
 
