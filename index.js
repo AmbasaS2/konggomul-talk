@@ -2196,6 +2196,10 @@ function ensurePanel() {
           <button type="button" id="tua-import-rooms" class="tua-danger-light">이 캐릭터 대화 가져오기</button>
           <input id="tua-import-file" type="file" accept="application/json,.json" style="display:none">
           <button type="button" id="tua-reset-all-rooms" class="tua-danger-light">모든 대화 내역 초기화</button>
+          <button type="button" id="tua-export-guest-rooms" class="tua-danger-light">게스트 OOC 대화 내보내기</button>
+          <button type="button" id="tua-import-guest-rooms" class="tua-danger-light">게스트 OOC 대화 가져오기</button>
+          <input id="tua-import-guest-file" type="file" accept="application/json,.json" style="display:none">
+          <button type="button" id="tua-reset-guest-rooms" class="tua-danger-light">게스트 OOC 대화 초기화</button>
         </details>
         <div id="tua-status" class="tua-status" aria-hidden="true" style="display:none"></div>
       </div>
@@ -2261,6 +2265,10 @@ function ensurePanel() {
   $('#tua-import-rooms').on('click', () => $('#tua-import-file').trigger('click'));
   $('#tua-import-file').on('change', importCurrentCharacterRooms);
   $('#tua-reset-all-rooms').on('click', resetAllRoomsForCurrentCharacter);
+  $('#tua-export-guest-rooms').on('click', exportGuestRooms);
+  $('#tua-import-guest-rooms').on('click', () => $('#tua-import-guest-file').trigger('click'));
+  $('#tua-import-guest-file').on('change', importGuestRooms);
+  $('#tua-reset-guest-rooms').on('click', resetGuestRooms);
   $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
 
   makePanelDraggable();
@@ -2679,7 +2687,7 @@ function exportCurrentCharacterRooms() {
       exportedAt: new Date().toISOString(),
       characterKey: getCharKey(),
       characterName: getCharName(),
-      data: roomState || { rooms: [] }
+      data: (roomStateCharKey === getCharKey() ? roomState : getServerRoomStore()[getCharKey()]) || { rooms: [] }
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -2708,6 +2716,7 @@ function normalizeImportedRoomState(raw) {
       createdAt: Number(room.createdAt || Date.now()),
       mode: migrateModeKey(room.mode),
       pinned: !!room.pinned,
+      ...(migrateModeKey(room.mode) === 'guestOoc' && room.guestCharacterKey ? { guestCharacterKey: String(room.guestCharacterKey), guestCharacterName: String(room.guestCharacterName || '') } : {}),
       messages: Array.isArray(room.messages) ? room.messages.map(m => {
         const role = m.role === 'user' ? 'user' : 'assistant';
         const variantState = normalizeAssistantVariantState(role, m.content, m.variants, m.variantIndex);
@@ -2741,26 +2750,124 @@ function importCurrentCharacterRooms(e) {
   reader.onload = async () => {
     try {
       const parsed = JSON.parse(String(reader.result || '{}'));
-      roomState = normalizeImportedRoomState(parsed);
+      if (parsed.scope === 'guestOoc') throw new Error('게스트 백업은 게스트 OOC 가져오기 버튼을 이용해 주세요.');
+      if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+      const imported = normalizeImportedRoomState(parsed);
+      imported.rooms = imported.rooms.filter(room => getRoomMode(room) !== 'guestOoc');
+      if (!imported.rooms.length) imported.rooms = createResetRoomState(imported).rooms;
       const importedAt = Date.now();
-      roomState.resetAt = importedAt;
-      roomState.updatedAt = importedAt;
-      roomState.deletedRooms = {};
-      roomState.deletedMessages = {};
-      for (const room of roomState.rooms || []) room.updatedAt = Math.max(Number(room.updatedAt || 0), importedAt);
-      activeRoomId = roomState.rooms[0]?.id || null;
-      await saveRooms();
+      imported.resetAt = importedAt;
+      imported.updatedAt = importedAt;
+      imported.deletedRooms = {};
+      imported.deletedMessages = {};
+      for (const room of imported.rooms) room.updatedAt = Math.max(Number(room.updatedAt || 0), importedAt);
+      const mainKey = getCharKey();
+      if (roomStateCharKey === mainKey) {
+        roomState = imported;
+        activeRoomId = roomState.rooms[0]?.id || null;
+        await saveRooms();
+      } else {
+        await persistRoomSnapshot(mainKey, imported);
+      }
       renderAll();
       setStatus('현재 캐릭터 대화를 가져왔습니다.');
     } catch (err) {
       console.error('[Konggomul] import failed', err);
-      alert(`가져오기에 실패했습니다: ${err.message || err}`);
-      setStatus('가져오기에 실패했습니다.');
+      alert('가져오기에 실패했습니다: ' + String(err.message || err));
     } finally {
       input.value = '';
     }
   };
   reader.readAsText(file);
+}
+
+function exportGuestRooms() {
+  try {
+    const settings = getSettings();
+    const state = roomStateCharKey === GUEST_ROOM_STORE_KEY ? roomState : getServerRoomStore()[GUEST_ROOM_STORE_KEY];
+    const payload = {
+      app: 'Konggomul Talk',
+      version: EXTENSION_VERSION,
+      scope: 'guestOoc',
+      exportedAt: new Date().toISOString(),
+      data: state || { rooms: [] },
+      guestVoiceNotes: settings.guestVoiceNotes,
+      guestRecentCharacters: settings.guestRecentCharacters,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'konggomul-talk-guest-ooc-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('[Konggomul] guest export failed', error);
+    alert('게스트 OOC 내보내기에 실패했습니다.');
+  }
+}
+
+function importGuestRooms(event) {
+  const input = event?.target;
+  const file = input?.files?.[0];
+  if (!file) return;
+  if (!confirm('게스트 OOC의 모든 방과 메시지가 백업 내용으로 교체됩니다. 계속할까요?')) {
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || '{}'));
+      if (parsed.scope !== 'guestOoc' || !Array.isArray(parsed.data?.rooms)) throw new Error('게스트 OOC 전용 백업 파일이 아닙니다.');
+      if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+      const imported = normalizeImportedRoomState(parsed);
+      imported.rooms = imported.rooms.filter(room => getRoomMode(room) === 'guestOoc' && room.guestCharacterKey);
+      imported.updatedAt = Date.now();
+      imported.resetAt = imported.updatedAt;
+      imported.deletedRooms = {};
+      imported.deletedMessages = {};
+      const next = normalizeStoredRoomState(imported);
+      const settings = getSettings();
+      if (parsed.guestVoiceNotes && typeof parsed.guestVoiceNotes === 'object' && !Array.isArray(parsed.guestVoiceNotes)) {
+        settings.guestVoiceNotes = parsed.guestVoiceNotes;
+      }
+      if (Array.isArray(parsed.guestRecentCharacters)) settings.guestRecentCharacters = parsed.guestRecentCharacters.filter(item => typeof item === 'string').slice(0, 5);
+      if (roomStateCharKey === GUEST_ROOM_STORE_KEY) {
+        roomState = next;
+        activeRoomId = getMostRecentRoomId(next) || null;
+        await saveRooms();
+        if (!roomState.rooms.length) await loadRooms({ storageKey: getCharKey() });
+      } else {
+        await persistRoomSnapshot(GUEST_ROOM_STORE_KEY, next);
+      }
+      saveSettings();
+      renderAll();
+    } catch (error) {
+      console.error('[Konggomul] guest import failed', error);
+      alert('게스트 OOC 가져오기에 실패했습니다: ' + String(error?.message || error));
+    } finally {
+      input.value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function resetGuestRooms() {
+  if (!confirm('모든 게스트 OOC 대화방과 메시지를 삭제할까요? 캐릭터 말투 메모는 유지됩니다.')) return;
+  if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+  const empty = normalizeStoredRoomState({ rooms: [], resetAt: Date.now(), updatedAt: Date.now() });
+  if (roomStateCharKey === GUEST_ROOM_STORE_KEY) {
+    roomState = empty;
+    activeRoomId = null;
+    await saveRooms();
+    await loadRooms({ storageKey: getCharKey() });
+  } else {
+    await persistRoomSnapshot(GUEST_ROOM_STORE_KEY, empty);
+  }
+  renderAll();
 }
 
 function createResetRoomState(sourceState, resetAt = Date.now()) {
