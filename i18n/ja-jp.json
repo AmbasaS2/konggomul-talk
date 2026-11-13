@@ -142,5 +142,20 @@
   "konggomul.guest.missing": "見つからないゲスト",
   "konggomul.dialog.deleteBusy": "生成を停止してからルームを削除してください。",
   "konggomul.dialog.unmatchedSaved": "対応するキャラがない保存データ",
-  "konggomul.dialog.profileResolutionFailed": "接続プロファイルを確認できません：{0}"
+  "konggomul.dialog.profileResolutionFailed": "接続プロファイルを確認できません：{0}",
+  "konggomul.panel.autoOutput": "自動（SillyTavernのUI言語）",
+  "konggomul.preview.open": "最後のAIリクエスト内容を確認",
+  "konggomul.preview.none": "このセッションでは、このルームのAIリクエストはまだ記録されていません。",
+  "konggomul.preview.title": "最後のAIリクエスト内容",
+  "konggomul.preview.note": "コントークが送信したプロンプト部分を表示します。接続プロファイルやサービス側が後から追加するプリセットは含まれない場合があります。RPや会話履歴に保存せず、メモリ内のみで保持します。",
+  "konggomul.preview.summary": "経路：{0} · 話者：{1} · ペルソナ：{2} · RP：{3}",
+  "konggomul.preview.copy": "リクエストをコピー",
+  "konggomul.preview.close": "閉じる",
+  "konggomul.guest.personaChanged": "このゲストトークを最後に使用したのは{0}（RP：{1}）です。現在は{2}（RP：{3}）です。新しいルームを作成しますか、それともこのルームで続けますか？既存の会話は削除されません。",
+  "konggomul.guest.newPersonaRoom": "新しいルーム",
+  "konggomul.guest.continueOldRoom": "このルームで続ける",
+  "konggomul.guest.personaLabel": "ペルソナ：{0} · RP：{1}",
+  "konggomul.message.reply": "返信",
+  "konggomul.message.quotedFrom": "{0}への返信",
+  "konggomul.message.cancelQuote": "引用を解除"
 }
