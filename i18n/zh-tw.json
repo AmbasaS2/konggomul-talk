@@ -157,5 +157,6 @@
   "konggomul.guest.personaLabel": "使用者人設：{0} · RP：{1}",
   "konggomul.message.reply": "回覆",
   "konggomul.message.quotedFrom": "回覆 {0}",
-  "konggomul.message.cancelQuote": "取消引用"
+  "konggomul.message.cancelQuote": "取消引用",
+  "konggomul.guest.legacyPersonaUnknown": "此訪客聊天室建立於人設追蹤功能加入之前，無法確認原本的人設。目前是 {0}（RP：{1}）。要建立新聊天室還是繼續原來的？歷史紀錄都會保留。"
 }
