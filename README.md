@@ -149,10 +149,9 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 
 | Feature | Description |
 |---|---|
-| **Export this character's conversations** | Saves the current character's rooms, messages, modes, answer variants, pinned states, and character voice note as a JSON file. |
-| **Import this character's conversations** | Loads a Konggomul Talk backup and replaces the current character's rooms, messages, and character voice note with its saved data. |
-| **Reset all conversation history** | Removes every normal room and message for the current character and creates one default Kongtalk room. The character voice note and extension settings are kept. |
-| **Guest Talk export / import / reset** | Separately backs up, restores, or clears global Guest Talk rooms. The guest backup includes selected-character identities, messages, answer variants, voice notes, and recent guest choices. |
+| **Conversation data management** | In Advanced settings, choose **Current RP character** or **All Guest Talk**, then use the shared **Export / Import / Reset** buttons in one row. The selected scope determines which data is affected. |
+| **Current RP character** | Export saves the current character's rooms, messages, modes, answer variants, pinned states and voice note. Import replaces this character's saved conversation data. Reset removes this character's rooms and messages, recreating a default room while preserving the voice note and extension settings. |
+| **All Guest Talk** | Export, import and reset work on the global Guest Talk conversation store only. Backups preserve guest character identifiers, messages, answer variants, voice notes and recent guest choices. |
 
 Normal rooms remain stored per main character in SillyTavern's extension settings; Guest Talk rooms live in a separate global store and stay accessible when the active RP changes. Guest Talk always reads the currently open RP, not a permanently pinned old chat. Phone and desktop connecting as the same user to the same server can access the same saved data. Browser-local copies from older versions are no longer read or merged.
 
@@ -311,10 +310,9 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 | 기능 | 설명 |
 |---|---|
-| **이 캐릭터 대화 내보내기** | 현재 캐릭터의 대화방, 메시지, 모드, 답변 버전, 고정 상태와 캐릭터 말투 메모를 JSON 파일로 저장합니다. |
-| **이 캐릭터 대화 가져오기** | 백업 파일을 불러와 현재 캐릭터의 대화방, 메시지와 캐릭터 말투 메모를 저장된 데이터로 교체합니다. |
-| **모든 대화 내역 초기화** | 현재 캐릭터의 일반 대화방과 메시지를 삭제하고 기본 콩톡 방 1개를 새로 만듭니다. 말투 메모와 확장 설정은 유지됩니다. |
-| **게스트톡 내보내기·가져오기·초기화** | 게스트 대화방 전체를 별도로 백업·복원·정리합니다. 게스트의 캐릭터 정보 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록을 보존합니다. |
+| **대화 데이터 관리** | 고급 설정에서 **현재 RP 캐릭터 / 게스트톡 전체** 중 대상을 고르고, 한 줄로 배치된 **내보내기·가져오기·초기화** 버튼을 사용합니다. 선택한 대상에만 적용됩니다. |
+| **현재 RP 캐릭터** | 내보내기는 현재 캐릭터의 대화방, 메시지, 모드, 답변 버전, 고정 상태와 말투 메모를 저장합니다. 가져오기는 해당 캐릭터의 데이터를 백업 내용으로 교체하고, 초기화는 대화 기록을 지우고 기본 방을 다시 만들되 말투 메모와 확장 설정을 유지합니다. |
+| **게스트톡 전체** | 게스트톡 공통 저장 영역만 별도로 내보내기·가져오기·초기화합니다. 백업에는 캐릭터 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록이 포함됩니다. |
 
 일반 대화방은 현재 RP 캐릭터별로 저장되고 게스트톡 방은 별도 공통 저장 영역에 저장됩니다. 게스트 방은 메인 RP가 바뀌어도 접근할 수 있으며, 매번 현재 열려 있는 RP를 참고합니다(과거 RP 고정 기능은 아직 제공하지 않습니다). 같은 서버·사용자로 접속하면 폰과 컴퓨터에서 같은 내역을 사용합니다. 이전 버전의 브라우저 로컬 사본은 읽거나 병합하지 않습니다.
 
