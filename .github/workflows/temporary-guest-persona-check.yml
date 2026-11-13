@@ -33,7 +33,7 @@ jobs:
           assert(guest.includes('your own lived experience when the RP establishes that you personally participated'));
           assert(!guest.includes('do not automatically impose their backstory'));
           assert(!guest.includes('await getLorebookBlock(\'\')'));
-          assert(text.includes('async function getWorldInfoScanChat(currentUserText ='));
+          assert(text.includes('function getWorldInfoScanChat(currentUserText ='));
           assert(text.includes("if (latest) rows.push(`{{user}}: ${latest}`);"));
           assert(text.includes('generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens'));
           console.log('Guest persona and lorebook scan assertions passed');
