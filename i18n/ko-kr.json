@@ -164,5 +164,6 @@
   "konggomul.data.guest": "게스트톡 전체",
   "konggomul.data.export": "내보내기",
   "konggomul.data.import": "가져오기",
-  "konggomul.data.reset": "초기화"
+  "konggomul.data.reset": "초기화",
+  "konggomul.mode.guestOocPicker": "게스트톡(다른 캐릭터 호출)🛎️"
 }
