@@ -441,9 +441,9 @@ function getSpeakerCharacter(room = getActiveRoom()) {
 }
 
 function getSpeakerName(room = getActiveRoom()) {
-  return getCharName(getSpeakerCharacter(room)) === 'No Character'
-    ? (room?.guestCharacterName || '삭제된 게스트')
-    : getCharName(getSpeakerCharacter(room));
+  if (getRoomMode(room) !== 'guestOoc') return getCharName();
+  const guest = getGuestCharacter(room);
+  return guest ? getCharName(guest) : (room?.guestCharacterName || '삭제된 게스트');
 }
 
 function getUserName() {
@@ -708,7 +708,7 @@ function hasRealConversationMessage(room) {
     const text = String(msg?.content || '').trim();
     if (!text) return false;
     if (msg?.loading) return false;
-    if (migrateModeKey(room?.mode) === 'kongtalk' && isKongtalkIntroContent(text)) return false;
+    if (['kongtalk', 'guestOoc'].includes(migrateModeKey(room?.mode)) && isKongtalkIntroContent(text)) return false;
     return true;
   });
 }
