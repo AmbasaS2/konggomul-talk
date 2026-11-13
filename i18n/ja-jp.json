@@ -157,5 +157,6 @@
   "konggomul.guest.personaLabel": "ペルソナ：{0} · RP：{1}",
   "konggomul.message.reply": "返信",
   "konggomul.message.quotedFrom": "{0}への返信",
-  "konggomul.message.cancelQuote": "引用を解除"
+  "konggomul.message.cancelQuote": "引用を解除",
+  "konggomul.guest.legacyPersonaUnknown": "このゲストトークルームはペルソナ記録機能の追加前に作られたため、以前のペルソナが不明です。現在は{0}（RP：{1}）です。新しいルームを作成しますか、それともこのルームで続けますか？履歴は保持されます。"
 }
