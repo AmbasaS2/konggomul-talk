@@ -4,6 +4,15 @@
 
 The character card, persona, and selected RP context can inform the conversation, but Konggomul Talk messages remain separate from the main RP. The former Apply to RP summary/injection feature has been removed.
 
+## 🌍 Interface Language
+
+Konggomul Talk automatically follows the **SillyTavern UI language**. No separate language selector is needed.
+
+- Localized interface: **English, Korean, Japanese, Simplified Chinese, Traditional Chinese, and Spanish**. Other SillyTavern locales fall back to English.
+- This applies to extension settings, room and mode controls, the Guest OOC picker, tooltips, and confirmation/error dialogs.
+- **Output language is separate**: the Korean / English / English–Korean bilingual options for AI replies work exactly as before. Character cards, role prompts, and saved conversations are not translated.
+- Existing room names that users previously created are kept as-is.
+
 ## ⚙️ Extension Settings
 
 Manage the connection API, saved conversation cleanup, and debug logs under **Extensions → Konggomul Talk (콩고물 톡)**.
@@ -158,6 +167,15 @@ The panel position and size, theme, character voice note, coworker work note, re
 **콩고물 톡은 현재 캐릭터 또는 별도로 초대한 게스트 캐릭터와 RP 밖에서 채팅할 수 있는 SillyTavern 어시스턴트 확장입니다.**
 
 캐릭터 카드, 페르소나와 현재 RP 맥락을 참고해 대화하지만, 콩고물 톡 메시지는 메인 RP에 섞이지 않습니다. 기존 'RP 반영' 요약·주입 기능은 제거되었습니다.
+
+## 🌍 화면 언어
+
+콩고물 톡은 **SillyTavern에서 선택한 UI 언어를 자동으로 따라갑니다.** 콩톡에 별도 언어 선택기는 없습니다.
+
+- 화면 지원 언어: **영어·한국어·일본어·중국어 간체·중국어 번체·스페인어**. 그 외 SillyTavern 언어에서는 영어로 표시됩니다.
+- 확장 설정, 대화방·모드 관리, 게스트 OOC 캐릭터 선택, 버튼 설명, 확인·오류 창에 적용됩니다.
+- **AI 답변 언어는 별개의 설정**입니다. 기존 한국어·영어·영한 병기 옵션은 그대로 유지되며, 캐릭터 시트·역할 프롬프트·저장된 대화 내용은 번역하지 않습니다.
+- 기존에 저장한 대화방 이름은 변경하지 않습니다.
 
 ## ⚙️ 확장 설정
 
