@@ -1,0 +1,50 @@
+name: Konggomul Talk i18n checks
+on:
+  push:
+    branches:
+      - feature/auto-ui-locales-20261113
+  pull_request:
+    branches:
+      - main
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: JavaScript syntax
+        run: node --check index.js
+      - name: Validate translation keys and placeholders
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const js = fs.readFileSync('index.js', 'utf8');
+          const start = 'const UI_ENGLISH = Object.freeze(';
+          const end = ');\nfunction uiText';
+          const a = js.indexOf(start);
+          const b = js.indexOf(end, a);
+          if (a < 0 || b < 0) throw new Error('Missing UI dictionary');
+          const en = JSON.parse(js.slice(a + start.length, b));
+          const langs = ['ko-kr', 'ja-jp', 'zh-cn', 'zh-tw', 'es-es'];
+          for (const locale of langs) {
+            const data = JSON.parse(fs.readFileSync('i18n/' + locale + '.json', 'utf8'));
+            const expected = Object.keys(en).map(key => 'konggomul.' + key);
+            for (const key of expected) {
+              if (typeof data[key] !== 'string' || !data[key]) throw new Error(locale + ' missing ' + key);
+              const def = [...en[key.slice(10)].matchAll(/\{\d+\}/g)].map(m => m[0]).sort().join(',');
+              const actual = [...data[key].matchAll(/\{\d+\}/g)].map(m => m[0]).sort().join(',');
+              if (def !== actual) throw new Error(locale + ' placeholder mismatch: ' + key);
+            }
+            if (Object.keys(data).length !== expected.length) throw new Error(locale + ' key count differs');
+          }
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          for (const [locale, path] of Object.entries(manifest.i18n || {})) {
+            if (!langs.includes(locale) || !fs.existsSync(path)) throw new Error('Manifest missing ' + locale);
+          }
+          console.log('Verified ' + Object.keys(en).length + ' UI keys across ' + langs.length + ' locales.');
+          NODE
+      - name: Check whitespace
+        run: git diff --check HEAD~1 HEAD
