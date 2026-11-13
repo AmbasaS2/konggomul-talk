@@ -143,5 +143,9 @@
   "konggomul.dialog.copyFailed": "複製失敗。",
   "konggomul.dialog.noGuestRoom": "沒有開啟訪客聊天室。",
   "konggomul.dialog.none": "無",
-  "konggomul.dialog.restoreError": "錯誤：{0}"
+  "konggomul.dialog.restoreError": "錯誤：{0}",
+  "konggomul.guest.missing": "找不到訪客",
+  "konggomul.dialog.deleteBusy": "請先停止產生，再刪除聊天室。",
+  "konggomul.dialog.unmatchedSaved": "未配對的儲存資料",
+  "konggomul.dialog.profileResolutionFailed": "無法確認連線設定檔：{0}"
 }
