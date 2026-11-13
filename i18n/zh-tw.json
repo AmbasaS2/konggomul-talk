@@ -142,5 +142,20 @@
   "konggomul.guest.missing": "找不到訪客",
   "konggomul.dialog.deleteBusy": "請先停止產生，再刪除聊天室。",
   "konggomul.dialog.unmatchedSaved": "未配對的儲存資料",
-  "konggomul.dialog.profileResolutionFailed": "無法確認連線設定檔：{0}"
+  "konggomul.dialog.profileResolutionFailed": "無法確認連線設定檔：{0}",
+  "konggomul.panel.autoOutput": "自動（跟隨 SillyTavern 介面語言）",
+  "konggomul.preview.open": "檢視上次 AI 請求內容",
+  "konggomul.preview.none": "本次使用期間尚未記錄此聊天室的 AI 請求。",
+  "konggomul.preview.title": "上次 AI 請求內容",
+  "konggomul.preview.note": "顯示豆粉聊天實際送出的提示詞部分。連線設定或服務提供者之後加上的預設可能不會顯示。僅保留在記憶體中，不會存入 RP 或聊天紀錄。",
+  "konggomul.preview.summary": "路徑：{0} · 說話角色：{1} · 使用者人設：{2} · RP：{3}",
+  "konggomul.preview.copy": "複製請求內容",
+  "konggomul.preview.close": "關閉",
+  "konggomul.guest.personaChanged": "上次使用此訪客聊天的人設是 {0}（RP：{1}），目前是 {2}（RP：{3}）。要建立新的訪客聊天室，還是繼續目前的？既有對話不會刪除。",
+  "konggomul.guest.newPersonaRoom": "建立新聊天室",
+  "konggomul.guest.continueOldRoom": "繼續目前的聊天室",
+  "konggomul.guest.personaLabel": "使用者人設：{0} · RP：{1}",
+  "konggomul.message.reply": "回覆",
+  "konggomul.message.quotedFrom": "回覆 {0}",
+  "konggomul.message.cancelQuote": "取消引用"
 }
