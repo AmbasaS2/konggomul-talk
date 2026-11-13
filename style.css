@@ -3722,3 +3722,58 @@ body.tua-panel-resizing-body {
   content: var(--tua-current-intro-icon);
   font-size: var(--tua-font-size);
 }
+
+
+/* Guest OOC picker: only the character list scrolls, even with hundreds of installed cards. */
+#tua-panel .tua-guest-search {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--tua-line);
+  border-radius: 9px;
+  background: var(--tua-card);
+  color: var(--tua-text);
+  padding: 7px 9px;
+  font: inherit;
+}
+#tua-panel .tua-guest-caption {
+  color: var(--tua-muted);
+  font-size: calc(var(--tua-font-size) - 1px);
+}
+#tua-panel .tua-guest-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  max-height: min(220px, 30dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+#tua-panel .tua-guest-option,
+#tua-panel .tua-guest-more,
+#tua-panel .tua-guest-back {
+  width: 100%;
+  flex: 0 0 auto;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--tua-line);
+  border-radius: 9px;
+  background: var(--tua-card);
+  color: var(--tua-text);
+  font: inherit;
+  cursor: pointer;
+}
+#tua-panel .tua-guest-option:hover,
+#tua-panel .tua-guest-more:hover,
+#tua-panel .tua-guest-back:hover {
+  background: var(--tua-user-bubble);
+}
+#tua-panel .tua-guest-more,
+#tua-panel .tua-guest-back {
+  text-align: center;
+}
+#tua-panel .tua-guest-empty {
+  padding: 10px;
+  color: var(--tua-muted);
+}
