@@ -3716,3 +3716,87 @@ body.tua-panel-resizing-body {
   padding: 10px;
   color: var(--tua-muted);
 }
+
+
+/* Guest Talk quality-of-life: quoted message and composer reply reference. */
+#tua-panel .tua-reply-preview {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--tua-inputbar-bg, var(--tua-bg));
+  border-top: 1px solid var(--tua-line);
+  color: var(--tua-text);
+  font-size: calc(var(--tua-font-size) - 1px);
+}
+#tua-panel .tua-reply-preview-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-left: 3px solid var(--tua-accent);
+  padding-left: 8px;
+}
+#tua-panel .tua-reply-preview-text strong,
+#tua-panel .tua-reply-preview-text span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#tua-panel .tua-reply-preview-text span { color: var(--tua-muted); }
+#tua-panel .tua-reply-cancel {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--tua-text);
+  cursor: pointer;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: calc(var(--tua-font-size) + 3px);
+}
+#tua-panel .tua-quoted-message {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-left: 3px solid var(--tua-accent);
+  padding: 4px 8px;
+  margin-bottom: 8px;
+  background: color-mix(in srgb, var(--tua-card) 65%, transparent);
+  border-radius: 0 7px 7px 0;
+  font-size: calc(var(--tua-font-size) - 1px);
+  line-height: 1.35;
+}
+#tua-panel .tua-quoted-message span {
+  overflow: hidden;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.tua-context-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.tua-context-preview p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.tua-context-preview .tua-context-preview-data {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 240px;
+  max-height: 50dvh;
+  resize: vertical;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.tua-context-preview .menu_button { align-self: flex-start; }
