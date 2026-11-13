@@ -164,5 +164,6 @@
   "konggomul.data.guest": "Todos los chats invitados",
   "konggomul.data.export": "Exportar",
   "konggomul.data.import": "Importar",
-  "konggomul.data.reset": "Restablecer"
+  "konggomul.data.reset": "Restablecer",
+  "konggomul.mode.guestOocPicker": "Chat invitado (Invitar a otro personaje)🛎️"
 }
