@@ -794,6 +794,8 @@ async function persistRoomSnapshot(charKey, data, saveEpoch = persistenceEpoch) 
 async function loadRooms({ expectedLifecycleEpoch = lifecycleEpoch, storageKey = null, selectedRoomId = null, skipRender = false } = {}) {
   if (!lifecycleEnabled || cleanInProgress) return false;
   const loadSequence = ++roomLoadSequence;
+  // Flush any pending write before switching between the current-character and global guest stores.
+  await roomSaveQueue.catch(() => undefined);
   const charKey = storageKey || getCharKey();
   const isGuestStore = charKey === GUEST_ROOM_STORE_KEY;
   const store = getServerRoomStore();
@@ -4281,7 +4283,13 @@ function hideRoomContextMenu() {
   if (roomContextMenuEl) roomContextMenuEl.classList.remove('open');
 }
 
-function openRoomContextMenuForRoom(roomId, x, y) {
+async function openRoomContextMenuForRoom(roomId, x, y, ownerKey = roomStateCharKey) {
+  if (ownerKey !== roomStateCharKey) {
+    if (generationInFlight) return;
+    const loaded = await loadRooms({ storageKey: ownerKey, selectedRoomId: roomId, skipRender: true });
+    if (!loaded) return;
+    renderAll();
+  }
   if (!roomState.rooms.some(room => room.id === roomId)) return;
   hideContextMenu();
   const menu = ensureRoomContextMenu();
@@ -4314,13 +4322,13 @@ function cancelRoomLongPress() {
   roomLongPressState = null;
 }
 
-function scheduleRoomLongPress(roomId, x, y) {
+function scheduleRoomLongPress(roomId, x, y, ownerKey = roomStateCharKey) {
   cancelRoomLongPress();
-  roomLongPressState = { roomId, x, y };
+  roomLongPressState = { roomId, x, y, ownerKey };
   longPressTimer = setTimeout(() => {
     if (!roomLongPressState || roomLongPressState.roomId !== roomId) return;
     roomContextSuppressClick = true;
-    openRoomContextMenuForRoom(roomId, x, y);
+    void openRoomContextMenuForRoom(roomId, x, y, ownerKey);
     roomLongPressState = null;
     longPressTimer = null;
   }, 620);
