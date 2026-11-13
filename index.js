@@ -2612,11 +2612,12 @@ function ensurePanel() {
           </label>
           <button type="button" id="tua-preview-context" class="tua-danger-light">${uiHtml('preview.open')}</button>
           <div class="tua-data-management">
-            <div class="tua-data-heading">${uiHtml('data.manage')}</div>
-            <div class="tua-data-scope" role="group" aria-label="${uiHtml('data.manage')}">
-              <button type="button" data-scope="character" aria-pressed="true">${uiHtml('data.character')}</button>
-              <button type="button" data-scope="guest" aria-pressed="false">${uiHtml('data.guest')}</button>
-            </div>
+            <label class="tua-data-scope-label" for="tua-data-scope-select">${uiHtml('data.manage')}
+              <select id="tua-data-scope-select" aria-label="${uiHtml('data.manage')}">
+                <option value="character">${uiHtml('data.character')}</option>
+                <option value="guest">${uiHtml('data.guest')}</option>
+              </select>
+            </label>
             <div class="tua-data-actions">
               <button type="button" id="tua-export-rooms" class="tua-danger-light">${uiHtml('data.export')}</button>
               <button type="button" id="tua-import-rooms" class="tua-danger-light">${uiHtml('data.import')}</button>
@@ -2688,8 +2689,8 @@ function ensurePanel() {
     setStatus(`테마를 ${getTheme().label}(으)로 변경했습니다.`);
   });
   $('#tua-preview-context').on('click', showLastRequestPreview);
-  $('.tua-data-scope button[data-scope]').on('click', function () {
-    setDataManageScope($(this).attr('data-scope'));
+  $('#tua-data-scope-select').on('change', function () {
+    setDataManageScope($(this).val());
   });
   $('#tua-export-rooms').on('click', () =>
     dataManageScope === 'guest' ? exportGuestRooms() : exportCurrentCharacterRooms());
@@ -4181,10 +4182,7 @@ function readGlobalSettingsUI() {
 function setDataManageScope(scope = 'character') {
   if (scope !== 'character' && scope !== 'guest') return;
   dataManageScope = scope;
-  $('.tua-data-scope button[data-scope]').each(function () {
-    const selected = $(this).attr('data-scope') === dataManageScope;
-    $(this).attr('aria-pressed', String(selected)).toggleClass('active', selected);
-  });
+  $('#tua-data-scope-select').val(scope);
 }
 
 function hydratePanelSettingsUI() {
