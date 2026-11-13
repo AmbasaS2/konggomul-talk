@@ -1,0 +1,19 @@
+name: Guest OOC syntax check
+on:
+  push:
+    branches:
+      - feature/guest-ooc-20261113
+  pull_request:
+    branches:
+      - main
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: node --check index.js
+      - name: Check patch whitespace
+        run: git diff --check HEAD~1 HEAD
