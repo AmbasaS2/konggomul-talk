@@ -10,6 +10,7 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 const MODULE_NAME = 'title_undecided_assistant';
 const EXTENSION_VERSION = '5.0.1';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 
 
 const MODES = {
@@ -82,6 +83,11 @@ Output length for Coworker role:
 - If {user} asks for writing, produce usable writing. If {user} asks for judgment, give a clear judgment and reason. If {user} asks what to do, give an actionable plan.
 - If {char} would not know the topic, show in-character unfamiliarity briefly, then say or imply they checked/figured it out and still give concrete help.
 - Character voice and current mood should stay visible throughout, but the final answer must be practically usable for {user}'s work.`
+  },
+  guestOoc: {
+    label: '게스트 OOC',
+    badge: '게스트 OOC',
+    instruction: 'Guest OOC: talk outside the current RP as the selected guest character while observing the current RP. Never continue or change the scene.'
   },
   rpAssistant: {
     label: 'RP 어시 모드',
@@ -218,6 +224,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   fixedScrollbar: true,
   coworkerWorkNote: '',
   characterRooms: {},
+  guestRecentCharacters: [],
+  guestVoiceNotes: {},
   profileSettingsV407Migrated: false
 });
 
@@ -365,6 +373,8 @@ function limitGraphemes(value, max = 4) {
 
 function normalizeSettingsInPlace(s) {
   if (!s || typeof s !== 'object') return s;
+  if (!Array.isArray(s.guestRecentCharacters)) s.guestRecentCharacters = [];
+  if (!s.guestVoiceNotes || typeof s.guestVoiceNotes !== 'object' || Array.isArray(s.guestVoiceNotes)) s.guestVoiceNotes = {};
   s.maxTokens = clampInt(s.maxTokens, 100, 8000, DEFAULT_SETTINGS.maxTokens);
   s.recentMessages = clampInt(s.recentMessages, 0, 100, DEFAULT_SETTINGS.recentMessages);
   s.chatMemoryLimit = clampInt(s.chatMemoryLimit, 5, 80, DEFAULT_SETTINGS.chatMemoryLimit);
@@ -419,6 +429,23 @@ function getCharName(character = getCurrentCharacter()) {
   return character?.name || character?.data?.name || 'No Character';
 }
 
+function getGuestCharacter(room = getActiveRoom()) {
+  if (getRoomMode(room) !== 'guestOoc' || !room?.guestCharacterKey) return null;
+  const characters = ctx().characters;
+  const entries = Array.isArray(characters) ? characters : Object.values(characters || {});
+  return entries.find(character => character && getCharKey(character) === room.guestCharacterKey) || null;
+}
+
+function getSpeakerCharacter(room = getActiveRoom()) {
+  return getRoomMode(room) === 'guestOoc' ? getGuestCharacter(room) : getCurrentCharacter();
+}
+
+function getSpeakerName(room = getActiveRoom()) {
+  return getCharName(getSpeakerCharacter(room)) === 'No Character'
+    ? (room?.guestCharacterName || '삭제된 게스트')
+    : getCharName(getSpeakerCharacter(room));
+}
+
 function getUserName() {
   const context = ctx();
   return context.name1 || context.power_user?.name || '유저';
@@ -446,7 +473,7 @@ function getStoredCharacterRoomEntries() {
     installedByKey.get(key).add(name);
   }
 
-  return Object.keys(store).map(key => {
+  return Object.keys(store).filter(key => key !== GUEST_ROOM_STORE_KEY).map(key => {
     const installedNames = installedByKey.get(key);
     const matched = !!installedNames?.size;
     const names = matched ? [...installedNames].sort((a, b) => a.localeCompare(b, 'ko')) : [];
@@ -579,6 +606,7 @@ function normalizeStoredRoomState(raw) {
       lastMessageAt: Number(room?.lastMessageAt || 0),
       mode,
       pinned: !!room?.pinned,
+      ...(mode === 'guestOoc' && room?.guestCharacterKey ? { guestCharacterKey: String(room.guestCharacterKey), guestCharacterName: String(room.guestCharacterName || '') } : {}),
       messages,
     };
     recomputeRoomLastMessageAt(normalizedRoom);
@@ -2925,70 +2953,6 @@ async function createRoomWithModeIntro(modeKey) {
   return (roomState.rooms || []).find(item => item.id === task.roomId) || room;
 }
 
-function getRecentKongtalkLines(limit = 10) {
-  const room = getActiveRoom();
-  return (room?.messages || [])
-    .filter(m => !m.loading && !m.error && String(m.content || '').trim())
-    .slice(-limit)
-    .map(m => `${m.role === 'user' ? '{{user}}' : getCharName()}: ${String(m.content || '').trim()}`);
-}
-
-async function generateKongtalkSummaryForMain() {
-  const lines = getRecentKongtalkLines(10);
-  if (!lines.length) throw new Error('요약할 콩고물 톡 메시지가 없습니다.');
-  const userName = getUserName();
-  const charName = getCharName();
-  const systemPrompt = `You summarize a separate side conversation so it can be inserted into the main RP as context.
-Return the entire inserted note in English only. Do not use Korean.
-Do not continue the RP scene yourself.
-Do not write a vague one-paragraph summary. Make it detailed enough that the main RP can continue with this side conversation reflected.
-Use the exact names below and do not invent or merge names:
-- User name: ${userName}
-- Character name: ${charName}
-
-Required output format:
-OOC: ${userName} and ${charName} had the following side conversation while the ongoing RP was paused. Reflect this side conversation and continue the RP.
-
-The user and the character exchanged the following side-conversation messages:
-- [Write 8-14 detailed bullet points in English.]
-- [Include what the user said, what the character answered, emotional shifts, decisions, refusals, requests, promises, boundaries, and relationship beats when present.]
-- [Preserve important nuance and continuity. Do not compress major emotional turns into one sentence.]
-- [When the exchange contains a declaration, conflict, emotional reversal, agreement, or boundary, state it clearly.]
-
-Continue the RP while reflecting this text conversation.
-
-Rules:
-- English only. Do not output Korean.
-- Start with exactly the English label "OOC:".
-- Do not mention prompts, extensions, AI, models, or systems.
-- Do not add new facts that were not in the messages.
-- Do not copy every line verbatim, but preserve enough detail for continuity.
-- Do not use malformed combined names. Use only ${userName} and ${charName}.`;
-  const prompt = [{ role: 'user', content: lines.join('\n') }];
-  const settings = getSettings();
-  const max = Math.min(settings.maxTokens || 1000, 1400);
-  return await generateWithSelectedProfile(systemPrompt, prompt, max, `MESSAGES TO SUMMARIZE:
-${lines.join('\n')}
-
-Summary now.`);
-}
-
-async function summarizeRecentKongtalkToMain() {
-  if (!confirm('최근 콩고물 톡 10건을 요약해 RP에 삽입할까요?')) return;
-  const draftSnapshot = captureMainChatDraft();
-  try {
-    setStatus('최근 콩고물 톡 10건을 요약하는 중입니다.');
-    const summary = sanitizeAssistantReply(await generateKongtalkSummaryForMain());
-    await sendToMainChat(summary, draftSnapshot);
-  } catch (e) {
-    console.error('[Konggomul] RP summary failed', e);
-    alert(`RP 반영 요약에 실패했습니다: ${e.message || e}`);
-    setStatus('RP 반영 요약에 실패했습니다.');
-  } finally {
-    draftSnapshot.release?.();
-  }
-}
-
 function refreshSendButtonState() {
   const send = $('#tua-send');
   if (!send.length) return;
@@ -3739,7 +3703,7 @@ function setStatus(_text) { /* v4.5.0: keep settings panel quiet; no visible act
 function renderAll() {
   if (!panelEl) return;
   const s = getSettings();
-  $('#tua-char-name').text(getCharName());
+  $('#tua-char-name').text(getSpeakerName());
   const currentMode = getRoomMode();
   $('#tua-mode-badge').text(MODES[currentMode]?.label || 'Mode');
   const activeRoom = getActiveRoom();
@@ -3821,7 +3785,7 @@ function renderMessages() {
   const visibleMessages = (room.messages || []).filter(m => !isOrphanGenerationPlaceholder(m, room.id));
   for (const m of visibleMessages) {
     const roleClass = m.role === 'declaration' ? 'declaration' : (m.role === 'user' ? 'user' : 'assistant');
-    const name = m.role === 'declaration' ? '' : (m.role === 'user' ? getUserKongtalkNickname() : getCharName());
+    const name = m.role === 'declaration' ? '' : (m.role === 'user' ? getUserKongtalkNickname() : getSpeakerName());
     const nameHtml = name ? `<div class="tua-msg-name">${escapeHtml(name)}</div>` : '';
     const lockedClass = m.role === 'declaration' ? ' tua-locked' : '';
     const title = m.role === 'declaration' ? '역할 선언' : '오래 누르면 메시지 메뉴';
@@ -3913,7 +3877,6 @@ function ensureContextMenu() {
   contextMenuEl.id = 'tua-context-menu';
   contextMenuEl.innerHTML = `
     <button data-action="copy">복사</button>
-    <button data-action="send-ooc">RP 반영</button>
     <button data-action="regenerate">다시 생성</button>
     <button data-action="delete" class="danger">삭제</button>`;
   document.body.appendChild(contextMenuEl);
@@ -3927,7 +3890,6 @@ function ensureContextMenu() {
     hideContextMenu();
     if (action === 'copy') await copyTextToClipboard(msg.content);
     if (action === 'delete') deleteMessage(id);
-    if (action === 'send-ooc') await summarizeRecentKongtalkToMain();
     if (action === 'regenerate') await regenerateAssistantMessage(id);
   };
   contextMenuDocumentClickHandler = e => {
@@ -3948,9 +3910,7 @@ function openContextMenuForMessage(id, x, y) {
   menu.dataset.msgId = id;
   menu.dataset.tuaTheme = getThemeKey();
   menu.querySelector('[data-action="regenerate"]')?.toggleAttribute('hidden', !canRegenerateAssistantMessage(id));
-  const rpButton = menu.querySelector('[data-action="send-ooc"]');
   const deleteButton = menu.querySelector('[data-action="delete"]');
-  if (rpButton) rpButton.disabled = generationInFlight;
   if (deleteButton) deleteButton.disabled = generationInFlight;
   showContextMenuAt(menu, x, y);
 }
@@ -4090,73 +4050,6 @@ function bindMessagePressHandlers() {
       if (dx > MESSAGE_LONG_PRESS_MOVE_CANCEL_PX || dy > MESSAGE_LONG_PRESS_MOVE_CANCEL_PX) cancelMessageLongPress();
     })
     .on('pointerup.tuaPress pointercancel.tuaPress pointerleave.tuaPress', cancelMessageLongPress);
-}
-
-function findMainChatTextarea() {
-  return document.querySelector('#send_textarea, textarea[name="message"], #chat_textarea');
-}
-
-function captureMainChatDraft() {
-  const textarea = findMainChatTextarea();
-  const snapshot = {
-    textarea,
-    value: textarea ? String(textarea.value || '') : null,
-    changed: false,
-    release: null,
-  };
-  if (textarea) {
-    const onInput = () => { snapshot.changed = true; };
-    textarea.addEventListener('input', onInput);
-    snapshot.release = () => textarea.removeEventListener('input', onInput);
-  }
-  return snapshot;
-}
-
-function setMainChatDraft(textarea, text) {
-  textarea.value = text;
-  textarea.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
-async function preserveRpSummaryByCopy(text) {
-  const copied = await copyTextToClipboard(text);
-  if (!copied) prompt('자동 복사에 실패했습니다. 아래 RP 반영 결과를 직접 복사해 주세요.', text);
-  return copied;
-}
-
-async function sendToMainChat(text, draftSnapshot = null) {
-  const textarea = findMainChatTextarea();
-  if (!textarea) {
-    const copied = await preserveRpSummaryByCopy(text);
-    alert(copied
-      ? '메인 채팅 입력창을 찾지 못해 RP 반영 결과를 클립보드에 복사했습니다.'
-      : '메인 채팅 입력창을 찾지 못해 RP 반영 결과를 직접 복사 창에 표시했습니다.');
-    return 'copied';
-  }
-
-  const currentDraft = String(textarea.value || '');
-  const unchangedEmptyDraft = draftSnapshot?.textarea === textarea
-    && draftSnapshot.value === ''
-    && draftSnapshot.changed !== true
-    && currentDraft === '';
-  if (unchangedEmptyDraft) {
-    setMainChatDraft(textarea, text);
-    setStatus('RP 입력창에 반영 내용을 삽입했습니다.');
-    return 'inserted';
-  }
-
-  const shouldAppend = confirm('메인 RP 입력창에 작성 중인 내용이 있습니다. RP 반영 결과를 기존 내용 뒤에 추가할까요?\n\n취소하면 RP 반영 결과만 클립보드에 복사합니다.');
-  if (shouldAppend) {
-    const separator = currentDraft ? (currentDraft.endsWith('\n') ? '\n' : '\n\n') : '';
-    setMainChatDraft(textarea, `${currentDraft}${separator}${text}`);
-    setStatus('기존 RP 초안 뒤에 반영 내용을 추가했습니다.');
-    return 'appended';
-  }
-
-  const copied = await preserveRpSummaryByCopy(text);
-  setStatus(copied
-    ? 'RP 반영 결과를 클립보드에 복사했습니다.'
-    : 'RP 반영 결과를 직접 복사 창에 표시했습니다.');
-  return 'copied';
 }
 
 function ensureExtensionMenuEntry() {
