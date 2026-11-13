@@ -915,7 +915,11 @@ body.tua-panel-resizing-body {
 }
 #tua-export-rooms,
 #tua-import-rooms,
-#tua-reset-all-rooms {
+#tua-reset-all-rooms,
+#tua-preview-context,
+#tua-export-guest-rooms,
+#tua-import-guest-rooms,
+#tua-reset-guest-rooms {
   font-size: calc(var(--tua-font-size) - 2px) !important;
   font-weight: 500 !important;
   padding: 5px 8px !important;
@@ -926,7 +930,11 @@ body.tua-panel-resizing-body {
 }
 #tua-export-rooms:hover,
 #tua-import-rooms:hover,
-#tua-reset-all-rooms:hover {
+#tua-reset-all-rooms:hover,
+#tua-preview-context:hover,
+#tua-export-guest-rooms:hover,
+#tua-import-guest-rooms:hover,
+#tua-reset-guest-rooms:hover {
   background: rgba(255, 244, 215, .78) !important;
 }
 .tua-mode-picker {
@@ -1335,7 +1343,11 @@ body.tua-panel-resizing-body {
 #tua-panel #tua-send:hover { filter: brightness(1.04); }
 #tua-panel #tua-export-rooms,
 #tua-panel #tua-import-rooms,
-#tua-panel #tua-reset-all-rooms {
+#tua-panel #tua-reset-all-rooms,
+#tua-panel #tua-preview-context,
+#tua-panel #tua-export-guest-rooms,
+#tua-panel #tua-import-guest-rooms,
+#tua-panel #tua-reset-guest-rooms {
   background: var(--tua-danger-bg) !important;
   color: var(--tua-danger-color) !important;
   border-color: color-mix(in srgb, var(--tua-line) 58%, transparent) !important;
