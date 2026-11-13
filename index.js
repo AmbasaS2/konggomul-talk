@@ -983,8 +983,7 @@ function escapeHtml(str) {
 
 function normalizeNewlines(str) { return escapeHtml(str).replace(/\n/g, '<br>'); }
 
-function getCharacterBlock() {
-  const character = getCurrentCharacter();
+function getCharacterBlock(character = getCurrentCharacter()) {
   if (!character) return 'No character is currently selected.';
   const data = character.data || character;
   const fields = [
@@ -1115,10 +1114,22 @@ async function getLorebookBlock(currentUserText = '') {
 
 
 function getVoiceNote() {
+  const room = getActiveRoom();
+  if (getRoomMode(room) === 'guestOoc' && room?.guestCharacterKey) {
+    const settings = getSettings();
+    const fromGuest = settings.guestVoiceNotes[room.guestCharacterKey];
+    return String(typeof fromGuest === 'string' ? fromGuest : (getServerRoomStore()[room.guestCharacterKey]?.voiceNote || ''));
+  }
   return String(roomState?.voiceNote || '');
 }
 
 function setVoiceNote(text) {
+  const room = getActiveRoom();
+  if (getRoomMode(room) === 'guestOoc' && room?.guestCharacterKey) {
+    getSettings().guestVoiceNotes[room.guestCharacterKey] = String(text || '');
+    saveSettings();
+    return;
+  }
   if (!roomState) roomState = { rooms: [] };
   roomState.voiceNote = String(text || '');
   saveRooms();
@@ -1209,7 +1220,7 @@ function getPromptRoomMessages(currentUserText = '', limit = 12, sourceMessages 
 function getAssistantConversationBlock(currentUserText = '') {
   const messages = getPromptRoomMessages(currentUserText, 12)
     .map((m, i) => {
-      const who = m.role === 'user' ? '{{user}}' : (m.role === 'declaration' ? 'Role declaration' : getCharName());
+      const who = m.role === 'user' ? '{{user}}' : (m.role === 'declaration' ? 'Role declaration' : getSpeakerName());
       return `${i + 1}. ${who}: ${String(m.content || '').replace(/<[^>]+>/g, '').trim().slice(0, 1200)}`;
     });
   return messages.length ? messages.join('\n') : 'No prior Konggomul Talk messages in this room.';
@@ -1394,6 +1405,59 @@ ${buildSelectedResponseInstructions(includeSentenceCount)}
 Now stop the active RP and answer as the alternate modern ${characterName}. Keep the AU premise internal and natural.`;
 }
 
+async function buildGuestOocSystemPrompt(currentUserText = '', finalInstruction = '', includeSentenceCount = true) {
+  const room = getActiveRoom();
+  const guest = getGuestCharacter(room);
+  if (!guest) throw new Error('게스트 캐릭터를 찾을 수 없어요. 삭제되었거나 캐릭터 목록에서 사라졌는지 확인해 주세요.');
+  const settings = getSettings();
+  const guestName = getCharName(guest);
+  const rpName = getCharName(getCurrentCharacter());
+  const lorebook = settings.includeLorebook === false
+    ? 'Lorebook inclusion disabled.'
+    : await getLorebookBlock('');
+  return `You are ${guestName}, chatting privately with the user as an invited guest observer of their currently open RP.
+
+Core identity and source boundaries:
+- The GUEST CHARACTER CARD below is the sole source for your own identity, personality, worldview, quirks, habits, speaking rhythm, humor, and personal history. Stay unmistakably ${guestName}.
+- The CURRENT RP CHARACTER CARD is information about ${rpName}, the person whose main RP scene is open. It is NOT your identity.
+- The CURRENT RP CHAT, activated lorebook, RP persona, and accessible memory are reference material about the ongoing RP. They are not your own memories or past experiences.
+- You can discuss what you observe in the RP, offer opinions, joke, advise, answer questions, and react in your natural voice, without pretending you participated in the scene.
+- You may come from an entirely different fictional world. Preserve your own world and personality; do not merge the worlds, rewrite RP canon, or assume a personal relationship to the RP cast unless the supplied material actually establishes it.
+- The main RP user persona may be a character in the RP. Treat that persona as information about the RP participant; do not automatically impose their backstory, relationship, or actions on the user chatting with you.
+- If an event is missing from the provided RP excerpt or memories, say what you can infer and what you do not know rather than inventing unseen scenes.
+- Converse directly with the user, never continue the main RP, never write new actions for the RP characters, and never imply your side chat has changed the main story.
+- Be conversational rather than sounding like a generic analysis bot; emotional reactions, disagreements, humor and imperfect opinions should fit your established character.
+- Remain the same guest across the conversation even if the active RP being watched changes. Base each new reply's RP facts on the current RP reference, not on older RP events treated as if they are still happening.
+
+[Guest character card: determines WHO YOU ARE]
+${getCharacterBlock(guest)}
+
+[Current RP character card: reference only]
+${getCharacterBlock(getCurrentCharacter())}
+
+[Current RP persona: reference only]
+${getPersonaBlock()}
+
+[Activated current-RP lorebook: setting reference]
+${lorebook}
+
+[Accessible current-RP memory and summary]
+${getExtensionMemoryBlock()}
+
+[Current RP chat excerpt: recent events]
+${getRecentChatBlock()}
+
+[Guest character voice note]
+${getVoiceNoteBlock()}
+
+${buildCommonKongtalkRules('{char}', '{user}')}
+
+${finalInstruction ? '[Special instruction for this reply]\n' + finalInstruction : ''}
+${buildSelectedResponseInstructions(includeSentenceCount)}
+
+You are ${guestName}. Reply directly as this guest, not as ${rpName}. Keep the role and technical setup implicit.`;
+}
+
 async function buildSystemPrompt(currentUserText = '', modeOverride = null, finalInstruction = '', options = {}) {
   const settings = getSettings();
   const characterName = getCharName();
@@ -1403,6 +1467,7 @@ async function buildSystemPrompt(currentUserText = '', modeOverride = null, fina
   const declarationSpeechRule = ['butler', 'pet', 'rpAssistant'].includes(activeModeKey) ? `\nSpeech-level rule for declared roles:
 In Butler, Pet, and RP Assistant rooms, the declaration is a one-time formal wording that {char} reads aloud. Its formality is not {char}'s everyday voice and must not change it. Once the declaration is finished—and in every later reply—use {char}'s established speech level, endings, and verbal habits from the character card and current relationship with {user}.\n` : '';
   if (activeModeKey === 'parallel' || activeModeKey === 'parallelClassic') return await buildParallelSystemPrompt(currentUserText, finalInstruction, activeModeKey === 'parallel', includeSentenceCount);
+  if (activeModeKey === 'guestOoc') return await buildGuestOocSystemPrompt(currentUserText, finalInstruction, includeSentenceCount);
   return `You are writing a separate conversation reply.
 
 Definitions:
