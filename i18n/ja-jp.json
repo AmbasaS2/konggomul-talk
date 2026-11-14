@@ -167,6 +167,7 @@
   "konggomul.data.reset": "初期化",
   "konggomul.mode.guestOocPicker": "ゲストトーク（別のキャラを呼ぶ）🛎️",
   "konggomul.mode.groupTalk": "グループトーク",
+  "konggomul.mode.groupTalkPicker": "グループトーク（複数キャラを招待）👥",
   "konggomul.group.title": "グループトーク・参加キャラ",
   "konggomul.group.references": "参照する情報",
   "konggomul.group.name": "ルーム名",

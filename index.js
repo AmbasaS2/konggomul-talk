@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.5
+ * 🐕 콩고물 톡 v5.5.0-rc.6
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.5';
+const EXTENSION_VERSION = '5.5.0-rc.6';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -26,6 +26,7 @@ const UI_ENGLISH = Object.freeze({
   "mode.rpAssistant": "RP Assistant Mode",
   "mode.guestOoc": "Guest Talk",
   "mode.groupTalk": "Group Talk",
+  "mode.groupTalkPicker": "Group Talk (Invite multiple characters)👥",
   "mode.guestOocPicker": "Guest Talk (Call Another Character)🛎️",
   "mode.parallelClassic": "Parallel Universe AU (Watching RP)",
   "mode.parallel": "Parallel Universe AU (Watching RP) 🙃",
@@ -747,6 +748,37 @@ function getCharKey(character = getCurrentCharacter()) {
   if (!character) return 'no-character';
   const raw = character.avatar || character.name || character.data?.name || 'character';
   return String(raw).replace(/[^a-zA-Z0-9가-힣_.-]/g, '_').slice(0, 120);
+}
+
+function getKongtalkCharacterAvatarUrl(character) {
+  const filename = String(character?.avatar || '').trim();
+  if (!filename || filename === 'none') return '';
+  try { return String(ctx().getThumbnailUrl?.('avatar', filename) || ''); }
+  catch { return ''; }
+}
+
+function renderSpeakerNameWithAvatar(name, url) {
+  if (!name) return '';
+  const avatar = url
+    ? '<img class="tua-speaker-avatar" src="' + escapeHtml(url) + '" alt="" loading="lazy" decoding="async">'
+    : '<span class="tua-speaker-avatar-fallback" aria-hidden="true">👤</span>';
+  return '<div class="tua-msg-name tua-speaker-name">' + avatar
+    + '<span class="tua-speaker-label">' + escapeHtml(name) + '</span></div>';
+}
+
+function bindSpeakerAvatarFallbacks(container) {
+  if (!container) return;
+  for (const image of container.querySelectorAll('img.tua-speaker-avatar:not([data-avatar-bound])')) {
+    image.dataset.avatarBound = 'true';
+    image.addEventListener('error', () => {
+      const placeholder = document.createElement('span');
+      placeholder.className = 'tua-speaker-avatar-fallback';
+      placeholder.setAttribute('aria-hidden', 'true');
+      placeholder.textContent = '👤';
+      image.replaceWith(placeholder);
+    }, { once: true });
+    if (image.complete && image.naturalWidth === 0) image.dispatchEvent(new Event('error'));
+  }
 }
 
 function getStoredCharacterRoomEntries() {
@@ -2397,6 +2429,11 @@ async function generateWithSelectedProfile(systemPrompt, prompt, maxTokens, tail
   const selectedBefore = String(s.selectedProfile || '').trim();
   const resolvedProfile = selectedBefore ? await resolveSelectedConnectionProfileFresh() : null;
   const safeMaxTokens = Math.max(100, Math.min(8000, Number(maxTokens || s.maxTokens || 1000)));
+  // Only Group Talk uses one shared reply cap plus modest JSON envelope headroom.
+  // Normal Kongtalk/Guest Talk keep their existing dedicated-profile behavior.
+  const groupRawMaxTokens = options.outputFormat === 'group'
+    ? Math.min(8000, safeMaxTokens + Math.min(300, Math.max(96, Math.ceil(safeMaxTokens * 0.15))))
+    : safeMaxTokens;
   // Structured Group Talk output must not inherit the plain-text/NO-JSON instruction.
   const outputTail = options.outputFormat === 'group' ? String(tail || '').trim() : textOnlyTail(tail);
   const safePrompt = stringifyPromptMessages(appendTailToMessages(prompt, outputTail));
@@ -2425,7 +2462,10 @@ ${safePrompt}`;
 
     const profile = resolvedProfile;
 
-    const budget = getEffectiveProfileMaxTokens(safeMaxTokens, profile);
+    const budget = options.outputFormat === 'group'
+      ? { requested: safeMaxTokens, effective: groupRawMaxTokens,
+          multiplier: groupRawMaxTokens / safeMaxTokens, profileBudgetCompensation: false }
+      : getEffectiveProfileMaxTokens(safeMaxTokens, profile);
     const timeoutMs = 180000;
     const controller = generationTask?.controller || new AbortController();
     if (generationTask) generationTask.controller = controller;
@@ -2441,7 +2481,9 @@ ${safePrompt}`;
         effectiveMaxTokens: budget.effective,
         tokenBudgetMultiplier: budget.multiplier,
         profileBudgetCompensation: !!budget.profileBudgetCompensation,
-        tokenBudgetNote: 'Prompt target follows the answer-token setting; the selected connection profile keeps an 8000-token raw cap to avoid truncation.',
+        tokenBudgetNote: options.outputFormat === 'group'
+          ? 'Group Talk enforces one shared reply cap with a small JSON formatting allowance.'
+          : 'Prompt target follows the answer-token setting; the selected connection profile keeps an 8000-token raw cap to avoid truncation.',
         service: 'ConnectionManagerRequestService.sendRequest',
         includePreset,
         includeInstruct: false,
@@ -2481,16 +2523,16 @@ ${safePrompt}`;
 
   if (typeof context.generateRaw === 'function') {
     addDebugLog('request.main.generateRaw.try', '메인 generateRaw 경로로 콩고물 톡 요청을 보냅니다.', {
-      maxTokens: safeMaxTokens,
-      responseLength: safeMaxTokens,
+      maxTokens: groupRawMaxTokens,
+      responseLength: groupRawMaxTokens,
     });
     rememberOutgoingPrompt('Main API · generateRaw', '[System prompt]\n' + String(systemPrompt || '') + '\n\n[Conversation prompt]\n' + safePrompt);
     const raw = await context.generateRaw({
       systemPrompt,
       prompt: safePrompt,
-      responseLength: safeMaxTokens,
-      maxTokens: safeMaxTokens,
-      max_tokens: safeMaxTokens,
+      responseLength: groupRawMaxTokens,
+      maxTokens: groupRawMaxTokens,
+      max_tokens: groupRawMaxTokens,
       signal: generationTask?.controller?.signal,
     });
     const extracted = options.outputFormat === 'group' ? extractGroupResponse(raw) : extractAssistantText(raw);
@@ -2503,11 +2545,11 @@ ${safePrompt}`;
   }
   if (typeof context.generateQuietPrompt === 'function') {
     addDebugLog('request.main.generateQuietPrompt.try', '메인 generateQuietPrompt 경로로 콩고물 톡 요청을 보냅니다.', {
-      maxTokens: safeMaxTokens,
-      responseLength: safeMaxTokens,
+      maxTokens: groupRawMaxTokens,
+      responseLength: groupRawMaxTokens,
     });
     rememberOutgoingPrompt('Main API · generateQuietPrompt', mergedPrompt);
-    const raw = await context.generateQuietPrompt({ quietPrompt: mergedPrompt, responseLength: safeMaxTokens, maxTokens: safeMaxTokens, max_tokens: safeMaxTokens, signal: generationTask?.controller?.signal });
+    const raw = await context.generateQuietPrompt({ quietPrompt: mergedPrompt, responseLength: groupRawMaxTokens, maxTokens: groupRawMaxTokens, max_tokens: groupRawMaxTokens, signal: generationTask?.controller?.signal });
     const extracted = options.outputFormat === 'group' ? extractGroupResponse(raw) : extractAssistantText(raw);
     addDebugLog('response.received', `메인 generateQuietPrompt 응답 수신: ${extracted.length}자`, {
       route: 'generateQuietPrompt',
@@ -2667,9 +2709,10 @@ async function buildGroupTalkSystemPrompt(userText, participants, room = getActi
   const reference = room.groupSnapshot || {};
   const human = room.groupBinding?.name || getUserName();
   const cards = participants.map((person, index) => '[Participant ' + (index + 1) + ': ' + person.name + ']\n' + getGroupCharacterBlock(person, human)).join('\n\n');
+  // Structural only: it is okay for some of the selected participants to be silent.
   const examples = JSON.stringify({ messages: [
-    { speaker: 1, text: '내 생각은 조금 달라. 아까 네가 얘기한 게 마음에 걸리거든. 처음엔 별일 아니라고 생각했는데, 다시 들으니까 그냥 넘길 일은 아닌 것 같아.' },
-    { speaker: 2, text: '그렇게 말하니까 무슨 뜻인지는 알겠네. 다만 내가 걱정했던 건 다른 부분이었어. 그 얘기부터 마저 해도 돼?' },
+    { speaker: 2, text: '그건 아까랑 조금 다른 얘기잖아. 이유가 뭐야?' },
+    { speaker: 1, text: '생각이 바뀌었어. 네 말도 일리가 있더라고.' },
   ] });
   return [
     'Write the next exchange in a separate Kongtalk GROUP conversation, not a continuation of the main RP scene.',
@@ -2678,9 +2721,9 @@ async function buildGroupTalkSystemPrompt(userText, participants, room = getActi
     'Use existing relationships from cards, the room conversation and selected references: familiar people remain familiar, rivals retain their tension, and strangers react individually. Shared setting alone does not imply a personal relationship. Do not manufacture intimacy or mandatory awkward introductions.',
     'The latest human message is the live topic. Respond to it in character; let other characters react to what was actually said. On a continuation, continue from the real room history without inventing a human reply.',
     'Keep established events, topic and relationship development continuous. Card example dialogues are voice samples, not messages to replay; room history is the actual conversation.',
-    'One output item is ONE COMPLETE SPEAKING TURN. Let the speaker develop their thought naturally across several sentences or paragraphs in the same item. Do not create a new item at each sentence or line break. A naturally brief reaction is also allowed.',
-    'The whole exchange shares a target of ' + room.groupOutputTokens + ' tokens, comparable to ONE normal Kongtalk answer. This is a TOTAL target, not an allocation for each participant. Share it naturally; do not multiply it by the number of participants.',
-    'Choose participation and length by relevance and character. There is no required message count, rotation or equal airtime, and some participants may remain silent. Do not pad the exchange to fill a quota.',
+    'One output item is ONE COMPLETE SPEAKING TURN, no matter how many sentences or paragraphs it contains. Keep each turn together rather than dividing speech at punctuation or line breaks. Short, natural reactions are welcome.',
+    'The entire batch shares approximately ' + room.groupOutputTokens + ' tokens in TOTAL, comparable to ONE Kongtalk answer. Do not give each participant a full-length response or a multi-paragraph essay.',
+    'Being invited does not require speaking in this batch. First prioritize a character directly addressed by the human; let others join if their interests, reactions or relationships give them a meaningful reason. They may naturally interrupt or respond. Often one or two speak, sometimes everyone. Never rotate speakers mechanically or pad to include everyone.',
     'Keep the output direct conversation rather than scene narration, stage directions or a report. Character-specific warmth, dryness, jealousy, affection or wit should come from the cards and actual situation, not from a generic cheerful persona.',
     'Return ONLY JSON: {"messages":[{"speaker":1,"text":"one complete speaking turn"},{"speaker":2,"text":"another complete speaking turn"}]}. Use only valid participant numbers. USER and 0 are not output speakers. Put paragraph breaks inside text as escaped newlines.',
     'Format example only; neither these sentences nor their personality are live context. Notice that several sentences stay in one text field:\n' + examples,
@@ -3204,7 +3247,7 @@ function renderModePicker() {
   for (const [key, mode] of Object.entries(MODES)) {
     if (targetRoom && (key === 'guestOoc' || key === 'groupTalk')) continue;
     const active = targetRoom && getRoomMode(targetRoom) === key ? ' active' : '';
-    buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${key === 'guestOoc' ? uiHtml('mode.guestOocPicker') : uiHtml('mode.' + key)}</button>`);
+    buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${key === 'guestOoc' ? uiHtml('mode.guestOocPicker') : key === 'groupTalk' ? uiHtml('mode.groupTalkPicker') : uiHtml('mode.' + key)}</button>`);
   }
   picker.append(buttons);
   picker.find('button[data-mode]').on('click', async function () {
@@ -3409,7 +3452,10 @@ function renderGroupCharacterPicker(editRoom = null) {
   });
   picker.addClass('open tua-group-picker');
   redraw();
-  $('#tua-group-search').trigger('focus');
+  // Avoid iOS auto-focus shifting a nested flex scroller before its first paint.
+  const list = document.getElementById('tua-group-results');
+  if (list) list.scrollTop = 0;
+  if (window.matchMedia?.('(pointer: fine)').matches) $('#tua-group-search').trigger('focus');
 }
 
 async function createGroupTalkRoom(name, keys, options) {
@@ -4351,6 +4397,8 @@ function renderGroupMessages(room) {
   if (switched) { box.replaceChildren(); box.dataset.groupRoom = owner; }
   const visible = (room.messages || []).filter(message => !isOrphanGenerationPlaceholder(message, room.id));
   const existing = new Map(Array.from(box.children).map(node => [node.dataset.id, node]));
+  const available = Array.isArray(ctx().characters) ? ctx().characters : Object.values(ctx().characters || {});
+  const cards = new Map(available.filter(Boolean).map(character => [getCharKey(character), character]));
   const retained = new Set(visible.map(message => String(message.id)));
   for (const [id, node] of existing) if (!retained.has(id)) node.remove();
   let cursor = box.firstElementChild;
@@ -4358,7 +4406,9 @@ function renderGroupMessages(room) {
     const id = String(message.id);
     let node = existing.get(id);
     const speaker = message.role === 'user' ? getUserKongtalkNickname() : message.speakerName || uiText('mode.groupTalk');
-    const signature = JSON.stringify([message.role, speaker, message.content, message.loading, message.error, message.quote]);
+    const avatarUrl = message.role === 'assistant' && message.speakerKey && !message.loading && !message.error
+      ? getKongtalkCharacterAvatarUrl(cards.get(message.speakerKey)) : '';
+    const signature = JSON.stringify([message.role, speaker, avatarUrl, message.content, message.loading, message.error, message.quote]);
     if (!node) {
       node = document.createElement('div'); node.dataset.id = id; node.tabIndex = 0;
       node.title = uiText('message.pressHint');
@@ -4368,7 +4418,9 @@ function renderGroupMessages(room) {
         + (message.loading ? ' tua-loading' : '') + (message.error ? ' tua-error' : '');
       const reference = normalizeQuotedReference(message.quote);
       const quote = reference ? '<div class="tua-quoted-message"><b>' + uiHtml('message.quotedFrom', reference.speaker) + '</b><span>' + escapeHtml(reference.content.slice(0, 220)) + '</span></div>' : '';
-      node.innerHTML = (speaker ? '<div class="tua-msg-name">' + escapeHtml(speaker) + '</div>' : '')
+      node.innerHTML = (speaker && message.role === 'assistant' && message.speakerKey && !message.loading && !message.error
+        ? renderSpeakerNameWithAvatar(speaker, avatarUrl)
+        : (speaker ? '<div class="tua-msg-name">' + escapeHtml(speaker) + '</div>' : ''))
         + '<div class="tua-bubble">' + quote + normalizeNewlines(message.content) + '</div>';
       node._groupSignature = signature;
     }
@@ -4376,6 +4428,7 @@ function renderGroupMessages(room) {
     cursor = node.nextElementSibling;
   }
   bindMessagePressHandlers();
+  bindSpeakerAvatarFallbacks(box);
   // No scrolling to bottom and no delayed scroll timers: reading and text selection survive arrivals.
   box.scrollTop = switched ? 0 : oldTop;
 }
@@ -5225,7 +5278,9 @@ function renderMessages() {
   for (const m of visibleMessages) {
     const roleClass = m.role === 'declaration' ? 'declaration' : (m.role === 'user' ? 'user' : 'assistant');
     const name = m.role === 'declaration' ? '' : (m.role === 'user' ? getUserKongtalkNickname() : getSpeakerName());
-    const nameHtml = name ? `<div class="tua-msg-name">${escapeHtml(name)}</div>` : '';
+    const nameHtml = name && getRoomMode(room) === 'guestOoc' && m.role === 'assistant' && !m.loading && !m.error
+      ? renderSpeakerNameWithAvatar(name, getKongtalkCharacterAvatarUrl(getGuestCharacter(room)))
+      : (name ? '<div class="tua-msg-name">' + escapeHtml(name) + '</div>' : '');
     const reference = normalizeQuotedReference(m.quote);
     const quoteHtml = reference ? `<div class="tua-quoted-message"><b>${uiHtml('message.quotedFrom', reference.speaker)}</b><span>${escapeHtml(reference.content.slice(0, 220))}</span></div>` : '';
     const lockedClass = m.role === 'declaration' ? ' tua-locked' : '';
@@ -5248,6 +5303,7 @@ function renderMessages() {
   }
   bindVariantNavigationHandlers();
   bindMessagePressHandlers();
+  bindSpeakerAvatarFallbacks(box[0]);
   box.scrollTop(box[0]?.scrollHeight || 0);
 }
 

@@ -167,6 +167,7 @@
   "konggomul.data.reset": "초기화",
   "konggomul.mode.guestOocPicker": "게스트톡(다른 캐릭터 호출)🛎️",
   "konggomul.mode.groupTalk": "그룹톡",
+  "konggomul.mode.groupTalkPicker": "그룹톡(여러 캐릭터 초대)👥",
   "konggomul.group.title": "그룹톡 · 참여 캐릭터",
   "konggomul.group.references": "참고할 정보",
   "konggomul.group.name": "방 이름",

@@ -167,6 +167,7 @@
   "konggomul.data.reset": "Restablecer",
   "konggomul.mode.guestOocPicker": "Chat invitado (Invitar a otro personaje)🛎️",
   "konggomul.mode.groupTalk": "Chat grupal",
+  "konggomul.mode.groupTalkPicker": "Chat grupal (invitar personajes)👥",
   "konggomul.group.title": "Chat grupal · Participantes",
   "konggomul.group.references": "Material de referencia",
   "konggomul.group.name": "Nombre del grupo",

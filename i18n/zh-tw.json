@@ -167,6 +167,7 @@
   "konggomul.data.reset": "重設",
   "konggomul.mode.guestOocPicker": "訪客聊天（呼叫其他角色）🛎️",
   "konggomul.mode.groupTalk": "群組聊天",
+  "konggomul.mode.groupTalkPicker": "群組聊天（邀請多位角色）👥",
   "konggomul.group.title": "群組聊天 · 參與角色",
   "konggomul.group.references": "參考資料",
   "konggomul.group.name": "聊天室名稱",
