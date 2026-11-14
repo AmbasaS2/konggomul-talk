@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.11
+ * 🐕 콩고물 톡 v5.5.0-rc.12
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.11';
+const EXTENSION_VERSION = '5.5.0-rc.12';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -3758,11 +3758,24 @@ function toggleRoomActionsCollapsed() {
   setRoomActionsCollapsed(!current);
 }
 
+// Unread state is visual and in-memory only. Never write it into room data.
+function clearCollapsedUnreadReply() {
+  panelEl?.classList.remove('tua-has-unread-reply', 'tua-unread-pulsing');
+}
+
+function markCollapsedUnreadReply() {
+  if (!panelEl?.classList.contains('tua-visible') ||
+      !panelEl.classList.contains('tua-collapsed') ||
+      panelEl.classList.contains('tua-has-unread-reply')) return;
+  panelEl.classList.add('tua-has-unread-reply', 'tua-unread-pulsing');
+}
+
 function setPanelCollapsed(collapsed) {
   const s = getSettings();
   s.collapsed = !!collapsed;
   saveSettings();
   if (panelEl) panelEl.classList.toggle('tua-collapsed', !!collapsed);
+  if (!collapsed) clearCollapsedUnreadReply();
 }
 
 function exportCurrentCharacterRooms() {
@@ -4151,6 +4164,7 @@ function setPanelVisible(show, { persistPreference = true } = {}) {
   panelEl.classList.toggle('tua-visible', !!show);
   if (show) {
     panelEl.classList.toggle('tua-collapsed', !!getSettings().collapsed);
+    if (!getSettings().collapsed) clearCollapsedUnreadReply();
     applyVisualSettings();
     applyPanelPosition();
     if (getRoomMode() !== 'groupTalk') scrollMessagesToBottom();
@@ -4714,6 +4728,9 @@ async function runGroupGeneration({ text = '', continuation = false }) {
       const reader = document.getElementById('tua-messages');
       const topBefore = reader?.scrollTop || 0;
       renderMessages(); renderRoomList();
+      // Trigger for the first unread turn received while minimized. If an
+      // earlier turn already triggered it, the class guard prevents a replay.
+      markCollapsedUnreadReply();
       if (index === 0 && reader && task.canRevealFirst && !task.readerMoved && Math.abs(topBefore - task.originalScrollTop) < 3) {
         const first = Array.from(reader.children).find(node => node.dataset.id === placeholder.id);
         if (first) reader.scrollTop += first.getBoundingClientRect().top - reader.getBoundingClientRect().top;
@@ -4842,6 +4859,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
         msg.id = 'msg_' + doneAt + '_' + Math.random().toString(16).slice(2);
         msg.content = sanitizeAssistantReply(reply);
         msg.loading = false;
+        task.replySucceeded = true;
         msg.at = doneAt;
         currentRoom.lastMessageAt = doneAt;
         currentRoom.updatedAt = doneAt;
@@ -4881,6 +4899,7 @@ async function runAssistantGeneration({ text = '', continuation = false }) {
     if (!task.cancelled && isGenerationStorageContextCurrent(task) && task.persistenceEpoch === persistenceEpoch) {
       await saveRooms();
       if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
+      if (task.completed && task.replySucceeded) markCollapsedUnreadReply();
     }
   } finally {
     if (task.cancelled) {
@@ -4987,6 +5006,7 @@ async function regenerateAssistantMessage(messageId) {
       removeGenerationLoadingMessages(task);
       const doneAt = Date.now();
       appendAssistantVariant(currentTarget, reply);
+      task.replySucceeded = true;
       currentTarget.at = doneAt;
       currentTarget.error = false;
       currentRoom.lastMessageAt = doneAt;
@@ -5015,6 +5035,7 @@ async function regenerateAssistantMessage(messageId) {
     if (!task.cancelled && isGenerationStorageContextCurrent(task) && task.persistenceEpoch === persistenceEpoch) {
       await saveRooms();
       if (runtimeActive && task.lifecycleEpoch === lifecycleEpoch) renderMessages();
+      if (task.completed && task.replySucceeded) markCollapsedUnreadReply();
     }
   } finally {
     if (task.cancelled) {
@@ -5876,6 +5897,7 @@ function unbindRuntimeEvents() {
 
 
 function cleanupRuntimeState() {
+  clearCollapsedUnreadReply();
   runtimeActive = false;
   unbindRuntimeEvents();
   unbindPanelViewportRepairEvents();

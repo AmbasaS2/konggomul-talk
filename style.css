@@ -4054,26 +4054,26 @@ body.tua-panel-resizing-body {
   background: linear-gradient(to right,
     var(--tua-avatar-slider-fill) 0 var(--tua-avatar-slider-progress, 26.667%),
     var(--tua-avatar-slider-empty) var(--tua-avatar-slider-progress, 26.667%) 100%
-  ) center / 100% 8px no-repeat !important;
+  ) center / 100% 4px no-repeat !important;
   box-shadow: none !important; cursor: pointer;
 }
 #tua-panel #tua-panel-avatar-size::-webkit-slider-runnable-track {
   -webkit-appearance: none !important;
-  height: 8px !important; background: transparent !important; border: 0 !important;
+  height: 4px !important; background: transparent !important; border: 0 !important;
 }
 #tua-panel #tua-panel-avatar-size::-webkit-slider-thumb {
   -webkit-appearance: none !important; appearance: none !important;
-  width: 21px !important; height: 21px !important; margin-top: -6.5px !important;
+  width: 14px !important; height: 14px !important; margin-top: -5px !important;
   border-radius: 50% !important;
   background: var(--tua-input-bg, white) !important;
   border: 2px solid var(--tua-avatar-slider-fill) !important;
   box-shadow: 0 1px 3px rgba(0,0,0,.13) !important;
 }
 #tua-panel #tua-panel-avatar-size::-moz-range-track {
-  height: 8px !important; background: transparent !important; border: 0 !important;
+  height: 4px !important; background: transparent !important; border: 0 !important;
 }
 #tua-panel #tua-panel-avatar-size::-moz-range-thumb {
-  width: 17px !important; height: 17px !important; border-radius: 50% !important;
+  width: 14px !important; height: 14px !important; border-radius: 50% !important;
   background: var(--tua-input-bg, white) !important;
   border: 2px solid var(--tua-avatar-slider-fill) !important;
   box-shadow: 0 1px 3px rgba(0,0,0,.13) !important;
@@ -4102,3 +4102,40 @@ body.tua-panel-resizing-body {
 #tua-panel .tua-group-room-management .tua-guest-caption { overflow-wrap: anywhere; }
 #tua-panel .tua-personal-advanced summary, #tua-panel .tua-group-advanced summary,
 #tua-panel .tua-data-advanced summary { color: var(--tua-text); font-weight: 700; }
+
+
+/* A completed reply while minimized: softly pulse the opaque surface five
+   times, then leave it fully opaque until the user opens the conversation.
+   Overlaying the background preserves the icon's opacity and each theme's
+   original semi-transparent collapsed-button styling. */
+#tua-panel.tua-collapsed #tua-collapsed-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+#tua-panel.tua-collapsed #tua-collapsed-button .tua-collapsed-emoji {
+  position: relative;
+  z-index: 1;
+}
+#tua-panel.tua-collapsed.tua-has-unread-reply #tua-collapsed-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--tua-card, #fff7dd);
+  opacity: 1;
+  pointer-events: none;
+  z-index: 0;
+}
+#tua-panel.tua-collapsed.tua-has-unread-reply.tua-unread-pulsing #tua-collapsed-button::before {
+  animation: tua-collapsed-unread-pulse .55s ease-in-out 5;
+}
+@keyframes tua-collapsed-unread-pulse {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #tua-panel.tua-collapsed.tua-has-unread-reply.tua-unread-pulsing #tua-collapsed-button::before {
+    animation: none !important;
+  }
+}
