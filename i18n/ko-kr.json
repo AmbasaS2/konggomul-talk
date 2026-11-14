@@ -181,6 +181,7 @@
   "konggomul.group.name": "방 이름",
   "konggomul.group.namePlaceholder": "우리 단톡방",
   "konggomul.group.search": "캐릭터 시트 검색…",
+  "konggomul.group.clearSearch": "검색어 지우기",
   "konggomul.group.current": "현재 채팅방 캐릭터",
   "konggomul.group.count": "선택: {0}명",
   "konggomul.group.create": "그룹톡 만들기",

@@ -181,6 +181,7 @@
   "konggomul.group.name": "Nombre del grupo",
   "konggomul.group.namePlaceholder": "Mi grupo",
   "konggomul.group.search": "Buscar fichas de personajes…",
+  "konggomul.group.clearSearch": "Borrar búsqueda",
   "konggomul.group.current": "Personaje del RP actual",
   "konggomul.group.count": "Seleccionados: {0}",
   "konggomul.group.create": "Crear chat grupal",

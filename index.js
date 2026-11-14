@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.12
+ * 🐕 콩고물 톡 v5.5.0-rc.13
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.12';
+const EXTENSION_VERSION = '5.5.0-rc.13';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -143,6 +143,7 @@ const UI_ENGLISH = Object.freeze({
   "group.name": "Room name",
   "group.namePlaceholder": "My group",
   "group.search": "Search character sheets…",
+  "group.clearSearch": "Clear character search",
   "group.current": "Current RP character",
   "group.count": "Selected: {0}",
   "group.create": "Create Group Talk",
@@ -3587,7 +3588,10 @@ function renderGroupCharacterPicker(editRoom = null) {
   picker.append('<div class="tua-mode-picker-title">' + uiHtml(editing ? 'group.editMembers' : 'group.title') + '</div>');
   if (!editing) picker.append('<label class="tua-group-field">' + uiHtml('group.name')
     + '<input type="text" id="tua-group-name" maxlength="90" placeholder="' + uiHtml('group.namePlaceholder') + '"></label>');
-  picker.append('<input id="tua-group-search" class="tua-guest-search" type="search" placeholder="' + uiHtml('group.search') + '">');
+  picker.append('<div class="tua-group-search-wrap">'
+    + '<input id="tua-group-search" class="tua-guest-search" type="search" placeholder="' + uiHtml('group.search') + '">'
+    + '<button type="button" id="tua-group-search-clear" title="' + uiHtml('group.clearSearch')
+    + '" aria-label="' + uiHtml('group.clearSearch') + '">×</button></div>');
   picker.append('<div class="tua-guest-caption" id="tua-group-count"></div>');
   picker.append('<div class="tua-guest-results tua-group-results" id="tua-group-results"></div>');
   // Reference switches are configured once in Group Talk Advanced Settings.
@@ -3596,6 +3600,7 @@ function renderGroupCharacterPicker(editRoom = null) {
     + '<button type="button" id="tua-group-submit">' + uiHtml(editing ? 'group.save' : 'group.create') + '</button></div>');
   const redraw = () => {
     const query = String($('#tua-group-search').val() || '').trim().toLocaleLowerCase();
+    $('#tua-group-search-clear').toggle(!!query);
     const results = $('#tua-group-results').empty();
     for (const character of characters.filter(c => c.name.toLocaleLowerCase().includes(query))) {
       const option = $('<label class="tua-group-character"></label>');
@@ -3609,7 +3614,14 @@ function renderGroupCharacterPicker(editRoom = null) {
     $('#tua-group-submit').prop('disabled', selected.size < 2);
   };
   picker.off('.tuaGroup');
-  picker.on('input.tuaGroup', '#tua-group-search', redraw);
+  picker.on('input.tuaGroup search.tuaGroup', '#tua-group-search', redraw);
+  picker.on('click.tuaGroup', '#tua-group-search-clear', event => {
+    event.preventDefault();
+    const input = $('#tua-group-search');
+    input.val('');
+    redraw();
+    input.trigger('focus');
+  });
   picker.on('change.tuaGroup', '#tua-group-results input[type=checkbox]', function() {
     const key = String($(this).val() || '');
     if (this.checked) selected.add(key); else selected.delete(key);

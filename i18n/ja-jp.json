@@ -181,6 +181,7 @@
   "konggomul.group.name": "ルーム名",
   "konggomul.group.namePlaceholder": "グループ名",
   "konggomul.group.search": "キャラシートを検索…",
+  "konggomul.group.clearSearch": "検索語をクリア",
   "konggomul.group.current": "現在のRPキャラ",
   "konggomul.group.count": "選択：{0}人",
   "konggomul.group.create": "グループトークを作成",

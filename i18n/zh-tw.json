@@ -181,6 +181,7 @@
   "konggomul.group.name": "聊天室名稱",
   "konggomul.group.namePlaceholder": "我的群組",
   "konggomul.group.search": "搜尋角色卡…",
+  "konggomul.group.clearSearch": "清除搜尋內容",
   "konggomul.group.current": "目前RP角色",
   "konggomul.group.count": "已選：{0}人",
   "konggomul.group.create": "建立群組聊天",
