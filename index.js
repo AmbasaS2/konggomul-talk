@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.7
+ * 🐕 콩고물 톡 v5.5.0-rc.8
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.7';
+const EXTENSION_VERSION = '5.5.0-rc.8';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -2715,8 +2715,9 @@ async function buildGroupTalkSystemPrompt(userText, participants, room = getActi
   const cards = participants.map((person, index) => '[Participant ' + (index + 1) + ': ' + person.name + ']\n' + getGroupCharacterBlock(person, human)).join('\n\n');
   // Structural only: it is okay for some of the selected participants to be silent.
   const examples = JSON.stringify({ messages: [
-    { speaker: 2, text: '그건 아까랑 조금 다른 얘기잖아. 이유가 뭐야?' },
-    { speaker: 1, text: '생각이 바뀌었어. 네 말도 일리가 있더라고.' },
+    { speaker: 1, text: '아까 그 부분은 좀 다르게 생각해.' },
+    { speaker: 2, text: '어떤 점에서?' },
+    { speaker: 1, text: '결론보다 과정이 걸리거든. 그 얘길 먼저 해볼게.' },
   ] });
   return [
     'Write the next exchange in a separate Kongtalk GROUP conversation, not a continuation of the main RP scene.',
@@ -2731,7 +2732,7 @@ async function buildGroupTalkSystemPrompt(userText, participants, room = getActi
     'Keep established events, topic and relationship development continuous. Card example dialogues are voice samples, not messages to replay; room history is the actual conversation.',
     'One output item is ONE COMPLETE SPEAKING TURN, no matter how many sentences or paragraphs it contains. Keep each turn together rather than dividing speech at punctuation or line breaks. Short, natural reactions are welcome.',
     'The entire batch shares approximately ' + room.groupOutputTokens + ' tokens in TOTAL, comparable to ONE Kongtalk answer. Do not give each participant a full-length response or a multi-paragraph essay.',
-    'Being invited does not require speaking in this batch. First prioritize a character directly addressed by the human; let others join if their interests, reactions or relationships give them a meaningful reason. They may naturally interrupt or respond. Often one or two speak, sometimes everyone. Never rotate speakers mechanically or pad to include everyone.',
+    'Being invited does not require speaking in this batch. First prioritize a character directly addressed by the human; let others join if their interests, reactions or relationships give them a meaningful reason. They may naturally interrupt or respond. A participant may speak again after another participant responds, when it naturally follows the exchange. Often one or two speak, sometimes everyone. Never force repeated turns, rotate speakers mechanically or pad to include everyone.',
     'Keep the output direct conversation rather than scene narration, stage directions or a report. Character-specific warmth, dryness, jealousy, affection or wit should come from the cards and actual situation, not from a generic cheerful persona.',
     'Return ONLY JSON: {"messages":[{"speaker":1,"text":"one complete speaking turn"},{"speaker":2,"text":"another complete speaking turn"}]}. Use only valid participant numbers. USER and 0 are not output speakers. Put paragraph breaks inside text as escaped newlines.',
     'Format example only; neither these sentences nor their personality are live context. Notice that several sentences stay in one text field:\n' + examples,

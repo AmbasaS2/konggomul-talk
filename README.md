@@ -98,7 +98,7 @@ Right-click or long-press a message to open its menu.
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
-## 👥 Group Talk — complete speaking turns (5.5.0-rc.7 preview)
+## 👥 Group Talk — complete speaking turns (5.5.0-rc.8 preview)
 
 Create a Group Talk room from the mode picker, name it, and search/select at least two character cards. The current RP character is optional. Participants can be added or removed later. Recent RP, active lorebook, and accessible extension memory are independent reference choices; the same selective collectors as Kongtalk are used.
 
@@ -275,7 +275,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
-## 👥 그룹톡 — 발언 단위 대화 (5.5.0-rc.7 미리보기)
+## 👥 그룹톡 — 발언 단위 대화 (5.5.0-rc.8 미리보기)
 
 모드 선택에서 그룹톡을 만들고, 방 이름과 참여 캐릭터 2명 이상을 고릅니다. 게스트톡처럼 캐시트를 검색할 수 있으며 현재 RP 캐릭터는 자유롭게 포함하거나 제외할 수 있습니다. 참여자는 나중에도 추가·제외할 수 있습니다. 최근 RP·로어북·확장 데이터는 각각 선택하며 기존 콩톡의 선택적 수집 방식을 사용합니다.
 
