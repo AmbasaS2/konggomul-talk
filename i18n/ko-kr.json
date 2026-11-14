@@ -39,6 +39,8 @@
   "konggomul.panel.nickname": "유저 콩톡 닉네임",
   "konggomul.panel.nicknameHint": "유저 메시지 옆에 표시할 이름/이모지입니다. 최대 4글자, 비우면 표시하지 않습니다.",
   "konggomul.panel.fontSize": "채팅창 폰트 크기(px)",
+  "konggomul.panel.speakerAvatarSize": "화자 프로필 이미지 크기(px)",
+  "konggomul.panel.speakerAvatarSizeHint": "게스트톡과 그룹톡 모든 방에 공통 적용해. 18~48px, 기본 26px.",
   "konggomul.panel.voiceNote": "캐릭터 말투 고정 메모",
   "konggomul.panel.voiceNoteHint": "예: 말투는 담백하고 약간 건조함. 과한 칭찬/애정표현 금지. 농담은 짧게, 위로는 현실적으로.",
   "konggomul.panel.advanced": "고급 설정",

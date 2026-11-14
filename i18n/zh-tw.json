@@ -39,6 +39,8 @@
   "konggomul.panel.nickname": "使用者聊天暱稱",
   "konggomul.panel.nicknameHint": "顯示在使用者訊息旁的名稱或表情符號。最多顯示 4 個字元，留空則隱藏。",
   "konggomul.panel.fontSize": "聊天字體大小（px）",
+  "konggomul.panel.speakerAvatarSize": "發言者頭像尺寸 (px)",
+  "konggomul.panel.speakerAvatarSizeHint": "套用至所有訪客聊天及群組聊天。18–48px，預設26px。",
   "konggomul.panel.voiceNote": "角色語氣備註",
   "konggomul.panel.voiceNoteHint": "例如：說話簡潔、略帶冷幽默，玩笑簡短、安慰務實，避免過度稱讚。",
   "konggomul.panel.advanced": "進階設定",

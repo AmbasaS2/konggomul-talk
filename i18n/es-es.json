@@ -39,6 +39,8 @@
   "konggomul.panel.nickname": "Apodo del usuario en Kongtalk",
   "konggomul.panel.nicknameHint": "Nombre o emoji junto a tus mensajes. Máximo 4 caracteres; déjalo en blanco para ocultarlo.",
   "konggomul.panel.fontSize": "Tamaño de letra del chat (px)",
+  "konggomul.panel.speakerAvatarSize": "Tamaño del avatar del hablante (px)",
+  "konggomul.panel.speakerAvatarSizeHint": "Compartido por todos los chats Guest Talk y Group Talk. De 18 a 48 px; predeterminado: 26 px.",
   "konggomul.panel.voiceNote": "Notas sobre la forma de hablar del personaje",
   "konggomul.panel.voiceNoteHint": "Ejemplo: estilo seco y conciso, bromas breves y apoyo realista; evita elogios excesivos.",
   "konggomul.panel.advanced": "Configuración avanzada",

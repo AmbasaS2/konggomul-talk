@@ -4020,12 +4020,14 @@ body.tua-panel-resizing-body {
 #tua-panel .tua-mode-picker.tua-group-picker .tua-group-picker-actions { flex: 0 0 auto; }
 #tua-panel .tua-speaker-name { display: flex; align-items: center; gap: 6px; max-width: 100%; }
 #tua-panel .tua-speaker-avatar, #tua-panel .tua-speaker-avatar-fallback {
-  width: 26px; height: 26px; flex: 0 0 26px; box-sizing: border-box;
+  width: var(--tua-speaker-avatar-size, 26px); height: var(--tua-speaker-avatar-size, 26px);
+  flex: 0 0 var(--tua-speaker-avatar-size, 26px); box-sizing: border-box;
   border: 1px solid var(--tua-line); border-radius: 50%; background: var(--tua-card);
 }
 #tua-panel .tua-speaker-avatar { display: block; object-fit: cover; }
 #tua-panel .tua-speaker-avatar-fallback {
-  display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-size: calc(var(--tua-speaker-avatar-size, 26px) * .5); line-height: 1;
 }
 #tua-panel .tua-speaker-label { min-width: 0; overflow-wrap: anywhere; }
 

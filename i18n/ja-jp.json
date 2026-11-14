@@ -39,6 +39,8 @@
   "konggomul.panel.nickname": "ユーザーのコントーク名",
   "konggomul.panel.nicknameHint": "自分のメッセージ横に表示する名前や絵文字。最大4文字。空欄で非表示。",
   "konggomul.panel.fontSize": "チャットの文字サイズ（px）",
+  "konggomul.panel.speakerAvatarSize": "話者のプロフィール画像サイズ (px)",
+  "konggomul.panel.speakerAvatarSizeHint": "ゲストトークとグループトークの全ルームに共通適用。18～48px、初期値26px。",
   "konggomul.panel.voiceNote": "キャラクターの話し方メモ",
   "konggomul.panel.voiceNoteHint": "例：簡潔で少しドライな話し方。冗談は短く、慰めは現実的に。過度な賞賛は避ける。",
   "konggomul.panel.advanced": "詳細設定",

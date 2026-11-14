@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.6
+ * 🐕 콩고물 톡 v5.5.0-rc.7
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.6';
+const EXTENSION_VERSION = '5.5.0-rc.7';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -62,6 +62,8 @@ const UI_ENGLISH = Object.freeze({
   "panel.nickname": "Kongtalk user nickname",
   "panel.nicknameHint": "Name or emoji shown next to your messages. Up to 4 characters; leave blank to hide.",
   "panel.fontSize": "Chat font size (px)",
+  "panel.speakerAvatarSize": "Speaker avatar size (px)",
+  "panel.speakerAvatarSizeHint": "Shared by Guest Talk and Group Talk across all rooms (18–48 px; default 26).",
   "panel.voiceNote": "Character voice note",
   "panel.voiceNoteHint": "Example: Dry and concise speech; short jokes; realistic support; avoid excessive praise.",
   "panel.advanced": "Advanced settings",
@@ -379,6 +381,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
   openOnStart: false,
   fontSize: 12,
+  speakerAvatarSize: 26,
   theme: 'konggomul',
   outputLanguage: 'ko',
   sentenceCount: 'auto',
@@ -559,6 +562,7 @@ function normalizeSettingsInPlace(s) {
   s.maxTokens = clampInt(s.maxTokens, 100, 8000, DEFAULT_SETTINGS.maxTokens);
   s.recentMessages = clampInt(s.recentMessages, 0, 100, DEFAULT_SETTINGS.recentMessages);
   s.chatMemoryLimit = clampInt(s.chatMemoryLimit, 5, 80, DEFAULT_SETTINGS.chatMemoryLimit);
+  s.speakerAvatarSize = clampInt(s.speakerAvatarSize, 18, 48, DEFAULT_SETTINGS.speakerAvatarSize);
   {
     const fontRaw = Number(s.fontSize);
     s.fontSize = Number.isFinite(fontRaw) && fontRaw >= 10 && fontRaw <= 24 ? Math.floor(fontRaw) : DEFAULT_SETTINGS.fontSize;
@@ -2718,7 +2722,11 @@ async function buildGroupTalkSystemPrompt(userText, participants, room = getActi
     'Write the next exchange in a separate Kongtalk GROUP conversation, not a continuation of the main RP scene.',
     'The human USER is ' + JSON.stringify(human) + '. Only the human writes USER messages. Output only numbered participant messages; leave the human\'s responses, decisions, feelings and actions for the human to provide.',
     'Each numbered participant speaks only as their own character. Preserve that card\'s voice, habits, humor, emotional intensity, knowledge and motives, including distinctive flaws and disagreements.',
-    'Use existing relationships from cards, the room conversation and selected references: familiar people remain familiar, rivals retain their tension, and strangers react individually. Shared setting alone does not imply a personal relationship. Do not manufacture intimacy or mandatory awkward introductions.',
+    'Determine how each participant knows or perceives the others using their character cards, established world knowledge, timeline, and group conversation history. A lack of direct interaction in the current RP does not mean they are strangers.',
+    'Distinguish personal familiarity from knowing someone through reputation, family, work, school, conflict, or rumor. Let established or reasonably implied relationships shape recognition, speech, trust, tension, and emotional reactions.',
+    'When no credible connection exists, let each character respond to unfamiliar people according to their own personality. Curiosity, awkwardness, confusion, caution, hostility, amusement, or indifference may arise naturally.',
+    'Prioritize character-specific AU settings and chronology over general canon. Keep inferences plausible without inventing detailed shared memories or knowledge the character could not possess.',
+    'Let relationships evolve through the group\'s actual conversations, preserving what the participants have learned about one another.',
     'The latest human message is the live topic. Respond to it in character; let other characters react to what was actually said. On a continuation, continue from the real room history without inventing a human reply.',
     'Keep established events, topic and relationship development continuous. Card example dialogues are voice samples, not messages to replay; room history is the actual conversation.',
     'One output item is ONE COMPLETE SPEAKING TURN, no matter how many sentences or paragraphs it contains. Keep each turn together rather than dividing speech at punctuation or line breaks. Short, natural reactions are welcome.',
@@ -2845,6 +2853,9 @@ function ensurePanel() {
         </label>
         <details class="tua-advanced-settings">
           <summary>${uiHtml('panel.advanced')}</summary>
+          <label title="${uiHtml('panel.speakerAvatarSizeHint')}">${uiHtml('panel.speakerAvatarSize')}
+            <input id="tua-panel-avatar-size" type="number" min="18" max="48" step="1">
+          </label>
           <label class="tua-checkbox-row" title="${uiHtml('panel.presetHint')}">
             <input id="tua-panel-include-preset" type="checkbox">
             <span>${uiHtml('panel.preset')}</span>
@@ -2949,7 +2960,7 @@ function ensurePanel() {
   $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
-  $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-memory,#tua-panel-font,#tua-panel-user-nickname').on('change blur', readPanelSettingsUI);
+  $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-memory,#tua-panel-font,#tua-panel-avatar-size,#tua-panel-user-nickname').on('change blur', readPanelSettingsUI);
   $('#tua-panel-sentence-count,#tua-panel-output-language').on('change', readPanelSettingsUI);
   $('#tua-panel-include-preset,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-fixed-scrollbar').on('change', readPanelSettingsUI);
   $('#tua-panel-voice-note').on('change input', readPanelSettingsUI);
@@ -4915,6 +4926,7 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-output-language').val(s.outputLanguage);
   $('#tua-panel-user-nickname').val(s.userKongtalkNickname ?? DEFAULT_SETTINGS.userKongtalkNickname);
   $('#tua-panel-font').val(s.fontSize);
+  $('#tua-panel-avatar-size').val(s.speakerAvatarSize);
   $('#tua-panel-include-preset').prop('checked', s.includePreset !== false);
   $('#tua-panel-include-lorebook').prop('checked', s.includeLorebook !== false);
   $('#tua-panel-include-extension-memory').prop('checked', s.includeExtensionMemory !== false);
@@ -5003,6 +5015,12 @@ function readPanelSettingsUI() {
     const fontRaw = Number(fontValue);
     s.fontSize = Number.isFinite(fontRaw) && fontRaw >= 10 && fontRaw <= 24 ? Math.floor(fontRaw) : DEFAULT_SETTINGS.fontSize;
     $('#tua-panel-font').val(s.fontSize);
+  }
+
+  const avatarValue = String($('#tua-panel-avatar-size').val() ?? '').trim();
+  if (avatarValue !== '') {
+    s.speakerAvatarSize = clampInt(avatarValue, 18, 48, DEFAULT_SETTINGS.speakerAvatarSize);
+    $('#tua-panel-avatar-size').val(s.speakerAvatarSize);
   }
 
   if (!group) setVoiceNote($('#tua-panel-voice-note').val() || '');
@@ -5145,6 +5163,7 @@ function applyThemeUI() {
 function applyVisualSettings() {
   const s = getSettings();
   document.documentElement.style.setProperty('--tua-font-size', `${s.fontSize}px`);
+  document.documentElement.style.setProperty('--tua-speaker-avatar-size', `${s.speakerAvatarSize}px`);
   const visualSize = getViewportSafePanelSize(s.panelWidth, s.panelHeight);
   document.documentElement.style.setProperty('--tua-panel-width', `${visualSize.width}px`);
   document.documentElement.style.setProperty('--tua-panel-height', `${visualSize.height}px`);
