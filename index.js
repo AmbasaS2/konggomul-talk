@@ -1,16 +1,19 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
+import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.4.4
+ * 🐕 콩고물 톡 v5.5.0-rc.5
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.4.4';
+const EXTENSION_VERSION = '5.5.0-rc.5';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
+const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
+const isSharedRoomStore = key => key === GUEST_ROOM_STORE_KEY || key === GROUP_ROOM_STORE_KEY;
 // Keep legacy room identifiers in stored data for safe rollback; they behave as Kongtalk.
 const RETIRED_MODE_KEYS = new Set(['butler', 'pet', 'coworker', 'secretary', 'co-worker']);
 
@@ -22,6 +25,7 @@ const UI_ENGLISH = Object.freeze({
   "mode.kongtalk": "Kongtalk",
   "mode.rpAssistant": "RP Assistant Mode",
   "mode.guestOoc": "Guest Talk",
+  "mode.groupTalk": "Group Talk",
   "mode.guestOocPicker": "Guest Talk (Call Another Character)🛎️",
   "mode.parallelClassic": "Parallel Universe AU (Watching RP)",
   "mode.parallel": "Parallel Universe AU (Watching RP) 🙃",
@@ -125,6 +129,43 @@ const UI_ENGLISH = Object.freeze({
   "guest.showAll": "Show all characters",
   "guest.showRecent": "Show recent 5",
   "guest.back": "← Back to modes",
+  "group.title": "Group Talk · Participants",
+  "group.references": "Reference material",
+  "group.name": "Room name",
+  "group.namePlaceholder": "My group",
+  "group.search": "Search character sheets…",
+  "group.current": "Current RP character",
+  "group.count": "Selected: {0}",
+  "group.create": "Create Group Talk",
+  "group.save": "Save participants",
+  "group.cancel": "Back",
+  "group.minimum": "Choose at least two characters.",
+  "group.recentRp": "Reference recent RP chat",
+  "group.lorebook": "Reference active lorebook",
+  "group.extension": "Reference extension memory",
+  "group.editMembers": "Invite / remove participants",
+  "group.output": "Group response target (tokens)",
+  "group.outputHint": "Total output shared by all speakers, not per character. This room only; 100–8,000 tokens.",
+  "group.memoryMessages": "Group memory (messages)",
+  "group.memoryHint": "Earlier user and character messages combined; 20–320. A new room starts with Kongtalk memory ×4. Your newest message is added separately.",
+  "group.linked": "Linked RP: {0}",
+  "group.linkCurrent": "Link current RP",
+  "group.unlink": "Disconnect RP references",
+  "group.referenceChanged": "This group uses RP {0} with persona {1}. The current RP is {2} with persona {3}. Choose the context for this group.",
+  "group.useCurrent": "Use current RP and persona",
+  "group.keepPrevious": "Keep the saved RP and persona",
+  "group.apply": "Apply",
+  "group.missing": "Some group participants are not installed. Restore their character sheets or edit the participants.",
+  "group.storeFailed": "Could not load Group Talk conversations.",
+  "group.all": "Show all",
+  "group.data": "All Group Talk",
+  "group.importConfirm": "Importing replaces all Group Talk conversations. Continue?",
+  "group.resetConfirm": "Delete all Group Talk conversations?",
+  "group.importWrong": "This is not a Group Talk backup.",
+  "group.parseFailed": "The response did not contain readable numbered character turns. No extra AI request was made.",
+  "group.modeLocked": "Group Talk keeps its own mode. Edit its participants in Group Talk settings.",
+  "group.delivering": "Receiving replies · send a message to interrupt, or click with empty input to stop",
+
   "message.copy": "Copy",
   "message.reply": "Reply",
   "message.quotedFrom": "Replying to {0}",
@@ -214,6 +255,11 @@ Output length for Kongtalk conversation:
     label: '게스트톡',
     badge: '게스트톡',
     instruction: 'Guest Talk: speak outside the current RP as the selected guest character with the current RP persona. Never continue or change the scene.'
+  },
+  groupTalk: {
+    label: '그룹톡',
+    badge: '그룹톡',
+    instruction: 'Group Talk: multiple installed characters chat as distinct participants in one separate messenger conversation.'
   },
   rpAssistant: {
     label: 'RP 어시 모드',
@@ -686,6 +732,7 @@ function getSpeakerCharacter(room = getActiveRoom()) {
 }
 
 function getSpeakerName(room = getActiveRoom()) {
+  if (getRoomMode(room) === 'groupTalk') return modeUiLabel('groupTalk');
   if (getRoomMode(room) !== 'guestOoc') return getCharName();
   const guest = getGuestCharacter(room);
   return guest ? getCharName(guest) : (room?.guestCharacterName || uiText('guest.missing'));
@@ -718,7 +765,7 @@ function getStoredCharacterRoomEntries() {
     installedByKey.get(key).add(name);
   }
 
-  return Object.keys(store).filter(key => key !== GUEST_ROOM_STORE_KEY).map(key => {
+  return Object.keys(store).filter(key => !isSharedRoomStore(key)).map(key => {
     const installedNames = installedByKey.get(key);
     const matched = !!installedNames?.size;
     const names = matched ? [...installedNames].sort((a, b) => a.localeCompare(b, 'ko')) : [];
@@ -840,6 +887,7 @@ function normalizeStoredRoomState(raw) {
         at,
         ...(variantState.variants ? { variants: variantState.variants, variantIndex: variantState.variantIndex } : {}),
         ...(loading ? { loading: true } : {}),
+        ...(mode === 'groupTalk' && role === 'assistant' && m?.speakerKey ? { speakerKey: String(m.speakerKey), speakerName: String(m.speakerName || '') } : {}),
         ...(m?.error ? { error: true } : {}),
         ...(role === 'user' && normalizeQuotedReference(m?.quote) ? { quote: normalizeQuotedReference(m.quote) } : {}),
       };
@@ -856,6 +904,10 @@ function normalizeStoredRoomState(raw) {
       ...(mode === 'guestOoc' && room?.guestCharacterKey ? { guestCharacterKey: String(room.guestCharacterKey), guestCharacterName: String(room.guestCharacterName || '') } : {}),
       ...(mode === 'guestOoc' && normalizeGuestPersonaBinding(room?.personaBinding) ? { personaBinding: normalizeGuestPersonaBinding(room.personaBinding) } : {}),
       ...(mode === 'guestOoc' && Array.isArray(room?.personaTransitions) ? { personaTransitions: room.personaTransitions.filter(x => x && typeof x.fromName === 'string' && typeof x.toName === 'string').slice(-10).map(x => ({ fromName: String(x.fromName), toName: String(x.toName), at: Number(x.at || 0) })) } : {}),
+      ...(mode === 'groupTalk' ? {
+        ...groupRoomFields(room),
+        groupBinding: normalizeGuestPersonaBinding(room?.groupBinding),
+      } : {}),
       messages,
     };
     recomputeRoomLastMessageAt(normalizedRoom);
@@ -873,7 +925,8 @@ function normalizeStoredRoomState(raw) {
 
   pruneExpiredDeletionMarkers(normalized);
 
-  if (normalized.rooms.length > 1 && normalized.rooms.every(r => !Array.isArray(r.messages) || r.messages.length === 0)) {
+  if (normalized.rooms.length > 1 && !normalized.rooms.some(r => r.mode === 'groupTalk')
+    && normalized.rooms.every(r => !Array.isArray(r.messages) || r.messages.length === 0)) {
     normalized.rooms = [normalized.rooms[0]];
   }
 
@@ -1025,7 +1078,7 @@ async function persistRoomSnapshot(charKey, data, saveEpoch = persistenceEpoch) 
     if (cleanInProgress || saveEpoch !== persistenceEpoch) return snapshot;
     getServerRoomStore()[charKey] = JSON.parse(JSON.stringify(snapshot));
     saveSettings();
-    if (!cleanInProgress && saveEpoch === persistenceEpoch && roomStateCharKey === charKey && (charKey === GUEST_ROOM_STORE_KEY || getCharKey() === charKey)) {
+    if (!cleanInProgress && saveEpoch === persistenceEpoch && roomStateCharKey === charKey && (isSharedRoomStore(charKey) || getCharKey() === charKey)) {
       roomState = snapshot;
       if (!activeRoomId || !roomState.rooms.some(room => room.id === activeRoomId)) {
         activeRoomId = getMostRecentRoomId(roomState) || roomState.rooms[0]?.id || null;
@@ -1044,7 +1097,7 @@ async function loadRooms({ expectedLifecycleEpoch = lifecycleEpoch, storageKey =
   // Flush any pending write before switching between the current-character and global guest stores.
   await roomSaveQueue.catch(() => undefined);
   const charKey = storageKey || getCharKey();
-  const isGuestStore = charKey === GUEST_ROOM_STORE_KEY;
+  const isGuestStore = isSharedRoomStore(charKey);
   const store = getServerRoomStore();
   const serverData = store[charKey] || null;
   const contextValid = () => lifecycleEnabled && !cleanInProgress
@@ -1082,7 +1135,7 @@ async function saveRooms() {
   const charKey = roomStateCharKey || getCharKey();
   if (!roomState || typeof roomState !== 'object') roomState = { rooms: [] };
   if (!Array.isArray(roomState.rooms)) roomState.rooms = [];
-  if (!roomState.rooms.length && charKey !== GUEST_ROOM_STORE_KEY) {
+  if (!roomState.rooms.length && !isSharedRoomStore(charKey)) {
     resetToDefaultKongtalkRoom('save-no-rooms');
   } else {
     roomState.rooms.forEach(room => {
@@ -1152,7 +1205,7 @@ function createRoom(save = true, modeKey = 'kongtalk', withIntro = false) {
 }
 
 function getActiveRoom() {
-  return roomState.rooms.find(r => r.id === activeRoomId) || roomState.rooms[0] || (roomStateCharKey === GUEST_ROOM_STORE_KEY ? null : createRoom(false, 'kongtalk', true));
+  return roomState.rooms.find(r => r.id === activeRoomId) || roomState.rooms[0] || (isSharedRoomStore(roomStateCharKey) ? null : createRoom(false, 'kongtalk', true));
 }
 
 function getRoomMode(room = getActiveRoom()) {
@@ -1163,7 +1216,7 @@ function setRoomModeById(id, mode) {
   const room = roomState.rooms.find(item => item.id === id);
   const next = migrateModeKey(mode);
   if (!room || !MODES[next]) return false;
-  if (next === 'guestOoc' || getRoomMode(room) === 'guestOoc') return false;
+  if (next === 'guestOoc' || next === 'groupTalk' || ['guestOoc', 'groupTalk'].includes(getRoomMode(room))) return false;
   if (generationInFlight && activeGenerationTask?.roomId === id) return false;
   if (room.mode === next) return true;
   room.mode = next;
@@ -1187,7 +1240,7 @@ function deleteRoom(id) {
   if (!roomState.deletedRooms || typeof roomState.deletedRooms !== 'object' || Array.isArray(roomState.deletedRooms)) roomState.deletedRooms = {};
   if (id) roomState.deletedRooms[String(id)] = deletedAt;
   roomState.rooms = roomState.rooms.filter(r => r.id !== id);
-  if (!roomState.rooms.length && roomStateCharKey === GUEST_ROOM_STORE_KEY) {
+  if (!roomState.rooms.length && isSharedRoomStore(roomStateCharKey)) {
     activeRoomId = null;
     roomState.updatedAt = deletedAt;
     void saveRooms().then(() => loadRooms({ storageKey: getCharKey() })).catch(error => console.error('[Konggomul] return to main rooms failed', error));
@@ -1273,14 +1326,14 @@ function renderPendingQuote() {
 }
 
 function beginQuotedReply(messageId) {
-  if (generationInFlight) return;
+  if (generationInFlight && activeGenerationTask?.phase !== 'delivery') return;
   const room = getActiveRoom();
   const message = room?.messages?.find(m => String(m.id) === String(messageId));
   if (!message || message.loading || message.error) return;
   const excerpt = String(message.content || '').trim();
   if (!excerpt) return;
   const speaker = message.role === 'user'
-    ? (getUserKongtalkNickname() || getUserName()) : getSpeakerName(room);
+    ? (getUserKongtalkNickname() || getUserName()) : (getRoomMode(room) === 'groupTalk' ? message.speakerName || getSpeakerName(room) : getSpeakerName(room));
   pendingQuote = {
     ...normalizeQuotedReference({ messageId: message.id, speaker, content: excerpt }),
     roomId: room.id,
@@ -1329,7 +1382,7 @@ function escapeHtml(str) {
 
 function normalizeNewlines(str) { return escapeHtml(str).replace(/\n/g, '<br>'); }
 
-function getCharacterBlock(character = getCurrentCharacter()) {
+function getCharacterBlock(character = getCurrentCharacter(), { omitOpening = false } = {}) {
   if (!character) return 'No character is currently selected.';
   const data = character.data || character;
   const fields = [
@@ -1337,7 +1390,7 @@ function getCharacterBlock(character = getCurrentCharacter()) {
     ['Description', data.description || character.description],
     ['Personality', data.personality || character.personality],
     ['Scenario', data.scenario || character.scenario],
-    ['First Message', data.first_mes || character.first_mes],
+    ['First Message', omitOpening ? '' : data.first_mes || character.first_mes],
     ['Example Dialogues', data.mes_example || character.mes_example],
     ['Creator Notes', data.creator_notes || data.creator_notes_multilingual || ''],
     ['Character System Prompt', data.system_prompt || ''],
@@ -1377,7 +1430,7 @@ function appendSceneBoardToLastMessageText(text, message) {
   return base + (base ? '\n\n' : '') + '[Scene Board]\n' + sceneBoard;
 }
 
-function getRecentChatBlock() {
+function getRecentChatBlock({ includeSceneBoard = true } = {}) {
   const settings = getSettings();
   const context = ctx();
   const raw = Number(settings.recentMessages);
@@ -1388,7 +1441,7 @@ function getRecentChatBlock() {
   return chat.map((m, i) => {
     const role = m.is_user ? '{{user}}' : getCharName();
     const rawText = m.mes || m.message || '';
-    const text = i === chat.length - 1 ? appendSceneBoardToLastMessageText(rawText, m) : rawText;
+    const text = includeSceneBoard && i === chat.length - 1 ? appendSceneBoardToLastMessageText(rawText, m) : rawText;
     return `${i + 1}. ${role}: ${text}`;
   }).join('\n');
 }
@@ -1509,9 +1562,9 @@ function collectExtensionMemoryStrings(value, path = '', out = [], seen = new We
   return out;
 }
 
-function getExtensionMemoryBlock() {
+function getExtensionMemoryBlock(enabled = getSettings().includeExtensionMemory !== false) {
   const settings = getSettings();
-  if (settings.includeExtensionMemory === false) {
+  if (!enabled) {
     return 'Extension memory inclusion is disabled in Konggomul Talk settings. Continue without extension memory/summary content.';
   }
   try {
@@ -2338,13 +2391,15 @@ async function showLastRequestPreview() {
   }).show();
 }
 
-async function generateWithSelectedProfile(systemPrompt, prompt, maxTokens, tail = 'Answer now.', generationTask = null) {
+async function generateWithSelectedProfile(systemPrompt, prompt, maxTokens, tail = 'Answer now.', generationTask = null, options = {}) {
   const context = ctx();
   const s = getSettings();
   const selectedBefore = String(s.selectedProfile || '').trim();
   const resolvedProfile = selectedBefore ? await resolveSelectedConnectionProfileFresh() : null;
   const safeMaxTokens = Math.max(100, Math.min(8000, Number(maxTokens || s.maxTokens || 1000)));
-  const safePrompt = stringifyPromptMessages(appendTailToMessages(prompt, textOnlyTail(tail)));
+  // Structured Group Talk output must not inherit the plain-text/NO-JSON instruction.
+  const outputTail = options.outputFormat === 'group' ? String(tail || '').trim() : textOnlyTail(tail);
+  const safePrompt = stringifyPromptMessages(appendTailToMessages(prompt, outputTail));
   const includePreset = s.includePreset !== false;
   addDebugLog('request.start', '콩고물 톡 생성 요청 시작', {
     selectedProfile: selectedBefore,
@@ -2408,7 +2463,7 @@ ${safePrompt}`;
         },
         {}
       );
-      const extracted = extractAssistantText(raw);
+      const extracted = options.outputFormat === 'group' ? extractGroupResponse(raw) : extractAssistantText(raw);
       addDebugLog('response.received', `콩고물 톡 전용 프로필 응답 수신: ${extracted.length}자`, {
         route: 'connectionProfile',
         length: extracted.length,
@@ -2438,7 +2493,7 @@ ${safePrompt}`;
       max_tokens: safeMaxTokens,
       signal: generationTask?.controller?.signal,
     });
-    const extracted = extractAssistantText(raw);
+    const extracted = options.outputFormat === 'group' ? extractGroupResponse(raw) : extractAssistantText(raw);
     addDebugLog('response.received', `메인 generateRaw 응답 수신: ${extracted.length}자`, {
       route: 'generateRaw',
       length: extracted.length,
@@ -2453,7 +2508,7 @@ ${safePrompt}`;
     });
     rememberOutgoingPrompt('Main API · generateQuietPrompt', mergedPrompt);
     const raw = await context.generateQuietPrompt({ quietPrompt: mergedPrompt, responseLength: safeMaxTokens, maxTokens: safeMaxTokens, max_tokens: safeMaxTokens, signal: generationTask?.controller?.signal });
-    const extracted = extractAssistantText(raw);
+    const extracted = options.outputFormat === 'group' ? extractGroupResponse(raw) : extractAssistantText(raw);
     addDebugLog('response.received', `메인 generateQuietPrompt 응답 수신: ${extracted.length}자`, {
       route: 'generateQuietPrompt',
       length: extracted.length,
@@ -2510,6 +2565,163 @@ async function generateAssistantContinuation(generationTask = null) {
     throw error;
   }
   return await generateWithSelectedProfile(systemPrompt, buildContinuationPromptMessages(), settings.maxTokens, 'Answer now. Continue naturally from the latest message as {char}. Reply as direct chat only. Do not turn the reply into a scene or RP continuation.', generationTask);
+}
+
+
+
+function getGroupParticipants(room = getActiveRoom()) {
+  const characters = Array.isArray(ctx().characters) ? ctx().characters : Object.values(ctx().characters || {});
+  return (room?.groupCharacterKeys || []).map(key => {
+    const character = characters.find(value => value && getCharKey(value) === key);
+    return character ? { key, name: getCharName(character), character } : null;
+  }).filter(Boolean);
+}
+
+function groupContextKey(binding = getCurrentGuestPersonaBinding()) {
+  return JSON.stringify([binding?.key || '', binding?.rpCharacterKey || '', binding?.chatId || '']);
+}
+
+function groupReferenceIsCurrent(room, binding = getCurrentGuestPersonaBinding()) {
+  return !!room?.groupBinding && groupContextKey(room.groupBinding) === groupContextKey(binding);
+}
+
+function groupPersonaText() {
+  const context = ctx();
+  const candidates = [context.power_user?.persona_description, context.persona_description, context.persona?.description];
+  const descriptions = [...new Set(candidates.filter(value => typeof value === 'string' && value.trim()).map(value => value.trim()))];
+  return ['User name: ' + getUserName(), ...descriptions].join('\n\n');
+}
+
+async function refreshGroupReferenceSnapshot(room, userText = '') {
+  const currentKey = groupContextKey();
+  const options = room.groupOptions || {};
+  const next = {
+    persona: groupPersonaText(),
+    recent: options.recentRp ? getRecentChatBlock({ includeSceneBoard: options.extensionMemory === true }) : '',
+    lorebook: options.lorebook ? await getLorebookBlock(userText) : '',
+    extensionMemory: options.extensionMemory ? getExtensionMemoryBlock(true) : '',
+  };
+  if (groupContextKey() !== currentKey) {
+    const error = new Error('RP changed while collecting Group Talk references.');
+    error.name = 'AbortError';
+    throw error;
+  }
+  room.groupSnapshot = next;
+}
+
+async function checkGroupReferenceBeforeGeneration() {
+  const initial = getActiveRoom();
+  if (getRoomMode(initial) !== 'groupTalk') return true;
+  if (pendingPersonaChoice) return false;
+  const current = getCurrentGuestPersonaBinding();
+  const key = groupContextKey(current);
+  if (groupReferenceIsCurrent(initial, current) || initial.groupSeenContext === key) return true;
+  if (!initial.groupBinding) {
+    initial.groupBinding = current;
+    initial.groupSeenContext = key;
+    await refreshGroupReferenceSnapshot(initial);
+    await saveRooms();
+    return true;
+  }
+  const roomId = initial.id;
+  pendingPersonaChoice = true;
+  const notice = document.createElement('div');
+  const paragraph = document.createElement('p');
+  paragraph.textContent = uiText('group.referenceChanged', initial.groupBinding.rpCharacterName || '—', initial.groupBinding.name || '—', current.rpCharacterName || '—', current.name);
+  notice.appendChild(paragraph);
+  const choice = document.createElement('select');
+  choice.style.width = '100%';
+  for (const [value, label] of [['keep', 'group.keepPrevious'], ['current', 'group.useCurrent'], ['detach', 'group.unlink']]) {
+    const option = document.createElement('option'); option.value = value; option.textContent = uiText(label); choice.appendChild(option);
+  }
+  notice.appendChild(choice);
+  try {
+    const result = await new Popup(notice, POPUP_TYPE.CONFIRM, null, { okButton: uiText('group.apply'), cancelButton: uiText('dialog.cancel'), leftAlign: true }).show();
+    if (result !== POPUP_RESULT.AFFIRMATIVE || roomStateCharKey !== GROUP_ROOM_STORE_KEY || getActiveRoom()?.id !== roomId || groupContextKey() !== key) return false;
+    const room = getActiveRoom();
+    if (choice.value === 'current') {
+      room.groupBinding = current;
+      await refreshGroupReferenceSnapshot(room);
+    } else if (choice.value === 'detach') {
+      room.groupOptions = { recentRp: false, lorebook: false, extensionMemory: false };
+      room.groupBinding = current;
+      room.groupSnapshot = { persona: groupPersonaText(), recent: '', lorebook: '', extensionMemory: '' };
+    }
+    room.groupSeenContext = key;
+    room.updatedAt = Date.now();
+    await saveRooms(); renderAll();
+    return true;
+  } finally { pendingPersonaChoice = false; }
+}
+
+function getGroupCharacterBlock(participant, userName) {
+  // Resolve per-card identities before the provider can substitute the active RP character.
+  return getCharacterBlock(participant.character, { omitOpening: true })
+    .replace(/\{\{?\s*char\s*\}?\}/gi, () => participant.name)
+    .replace(/\{\{?\s*user\s*\}?\}/gi, () => userName);
+}
+
+async function buildGroupTalkSystemPrompt(userText, participants, room = getActiveRoom()) {
+  if (groupReferenceIsCurrent(room)) await refreshGroupReferenceSnapshot(room, userText);
+  const options = room.groupOptions || {};
+  const reference = room.groupSnapshot || {};
+  const human = room.groupBinding?.name || getUserName();
+  const cards = participants.map((person, index) => '[Participant ' + (index + 1) + ': ' + person.name + ']\n' + getGroupCharacterBlock(person, human)).join('\n\n');
+  const examples = JSON.stringify({ messages: [
+    { speaker: 1, text: '내 생각은 조금 달라. 아까 네가 얘기한 게 마음에 걸리거든. 처음엔 별일 아니라고 생각했는데, 다시 들으니까 그냥 넘길 일은 아닌 것 같아.' },
+    { speaker: 2, text: '그렇게 말하니까 무슨 뜻인지는 알겠네. 다만 내가 걱정했던 건 다른 부분이었어. 그 얘기부터 마저 해도 돼?' },
+  ] });
+  return [
+    'Write the next exchange in a separate Kongtalk GROUP conversation, not a continuation of the main RP scene.',
+    'The human USER is ' + JSON.stringify(human) + '. Only the human writes USER messages. Output only numbered participant messages; leave the human\'s responses, decisions, feelings and actions for the human to provide.',
+    'Each numbered participant speaks only as their own character. Preserve that card\'s voice, habits, humor, emotional intensity, knowledge and motives, including distinctive flaws and disagreements.',
+    'Use existing relationships from cards, the room conversation and selected references: familiar people remain familiar, rivals retain their tension, and strangers react individually. Shared setting alone does not imply a personal relationship. Do not manufacture intimacy or mandatory awkward introductions.',
+    'The latest human message is the live topic. Respond to it in character; let other characters react to what was actually said. On a continuation, continue from the real room history without inventing a human reply.',
+    'Keep established events, topic and relationship development continuous. Card example dialogues are voice samples, not messages to replay; room history is the actual conversation.',
+    'One output item is ONE COMPLETE SPEAKING TURN. Let the speaker develop their thought naturally across several sentences or paragraphs in the same item. Do not create a new item at each sentence or line break. A naturally brief reaction is also allowed.',
+    'The whole exchange shares a target of ' + room.groupOutputTokens + ' tokens, comparable to ONE normal Kongtalk answer. This is a TOTAL target, not an allocation for each participant. Share it naturally; do not multiply it by the number of participants.',
+    'Choose participation and length by relevance and character. There is no required message count, rotation or equal airtime, and some participants may remain silent. Do not pad the exchange to fill a quota.',
+    'Keep the output direct conversation rather than scene narration, stage directions or a report. Character-specific warmth, dryness, jealousy, affection or wit should come from the cards and actual situation, not from a generic cheerful persona.',
+    'Return ONLY JSON: {"messages":[{"speaker":1,"text":"one complete speaking turn"},{"speaker":2,"text":"another complete speaking turn"}]}. Use only valid participant numbers. USER and 0 are not output speakers. Put paragraph breaks inside text as escaped newlines.',
+    'Format example only; neither these sentences nor their personality are live context. Notice that several sentences stay in one text field:\n' + examples,
+    buildOutputLanguageInstruction(false).replace(/\{char\}/g, 'each participant').replace(/\{user\}/g, human),
+    '[HUMAN USER IDENTITY — never a generated speaker]\n' + (reference.persona || groupPersonaText()),
+    '[PARTICIPANT CARDS — separate identities]\n' + cards,
+    options.recentRp && reference.recent ? '[SELECTED RECENT RP BACKGROUND — not group conversation history]\n' + reference.recent : '',
+    options.lorebook && reference.lorebook ? '[SELECTED ACTIVE LOREBOOK]\n' + reference.lorebook : '',
+    options.extensionMemory && reference.extensionMemory ? '[SELECTED EXTENSION MEMORY]\n' + reference.extensionMemory : '',
+  ].filter(Boolean).join('\n\n');
+}
+
+async function generateGroupCompletion(userText, task) {
+  const room = getActiveRoom();
+  const participants = getGroupParticipants(room);
+  if (participants.length < 2 || participants.length !== room.groupCharacterKeys.length) throw new Error(uiText('group.missing'));
+  const history = getGroupHistory(room.messages, room.groupMemoryMessages, userText);
+  const userName = room.groupBinding?.name || getUserName();
+  const format = message => {
+    const number = participants.findIndex(person => person.key === message.speakerKey);
+    const who = message.role === 'user' ? 'USER (' + userName + ')'
+      : (number >= 0 ? 'Participant ' + (number + 1) : 'Former participant') + ' (' + (message.speakerName || 'Unknown') + ')';
+    return who + ': ' + formatQuotedMessageContent(message.content, message.role === 'user' ? message.quote : null);
+  };
+  const system = await buildGroupTalkSystemPrompt(userText, participants, room);
+  assertGroupTaskCurrent(task);
+  const latest = userText ? '[NEW HUMAN MESSAGE]\nUSER (' + userName + '): ' + formatQuotedMessageContent(userText, getCurrentUserQuote(userText))
+    : '[CONTINUE]\nThere is no new human message. ' + (history.length ? 'Continue the latest actual exchange.' : 'Start a natural exchange consistent with the established character relationships.');
+  const prompt = '[PREVIOUS GROUP CONVERSATION]\n' + (history.length ? history.map(format).join('\n\n') : '(This room has no earlier conversation.)') + '\n\n' + latest;
+  addDebugLog('group.request', 'Group Talk: one request with complete speaking turns.', {
+    participantCount: participants.length, historyMessages: history.length,
+    historyLimit: room.groupMemoryMessages, outputTarget: room.groupOutputTokens,
+    characterLengths: participants.map(person => getGroupCharacterBlock(person, userName).length),
+    historyCharacters: history.map(format).join('\n\n').length,
+  });
+  const raw = await generateWithSelectedProfile(system, [{ role: 'user', content: prompt }], room.groupOutputTokens,
+    'Return only the numbered group messages JSON. Keep every complete speaking turn together.', task, { outputFormat: 'group' });
+  assertGroupTaskCurrent(task);
+  const turns = parseGroupCompletion(raw, participants);
+  if (!turns.length) throw new Error(uiText('group.parseFailed'));
+  return turns;
 }
 
 
@@ -2611,12 +2823,30 @@ function ensurePanel() {
           <label>${uiHtml('panel.roomMemory')}
             <input id="tua-panel-memory" type="number" min="5" max="80" step="1" title="${uiHtml('panel.roomMemoryHint')}">
           </label>
+          <div id="tua-group-settings" class="tua-group-settings" style="display:none">
+            <button type="button" id="tua-group-edit-members" class="tua-danger-light">${uiHtml('group.editMembers')}</button>
+            <label title="${uiHtml('group.outputHint')}">${uiHtml('group.output')}
+              <input id="tua-group-output" type="number" min="100" max="8000" step="100">
+            </label>
+            <label title="${uiHtml('group.memoryHint')}">${uiHtml('group.memoryMessages')}
+              <input id="tua-group-memory-messages" type="number" min="20" max="320" step="1">
+            </label>
+            <label class="tua-checkbox-row"><input id="tua-group-ref-recent" type="checkbox"><span>${uiHtml('group.recentRp')}</span></label>
+            <label class="tua-checkbox-row"><input id="tua-group-ref-lore" type="checkbox"><span>${uiHtml('group.lorebook')}</span></label>
+            <label class="tua-checkbox-row"><input id="tua-group-ref-extension" type="checkbox"><span>${uiHtml('group.extension')}</span></label>
+            <div id="tua-group-rp-label" class="tua-guest-caption"></div>
+            <div class="tua-group-picker-actions">
+              <button type="button" id="tua-group-link-current">${uiHtml('group.linkCurrent')}</button>
+              <button type="button" id="tua-group-unlink">${uiHtml('group.unlink')}</button>
+            </div>
+          </div>
           <button type="button" id="tua-preview-context" class="tua-danger-light">${uiHtml('preview.open')}</button>
           <div class="tua-data-management">
             <label class="tua-data-scope-label" for="tua-data-scope-select">${uiHtml('data.manage')}
               <select id="tua-data-scope-select" aria-label="${uiHtml('data.manage')}">
                 <option value="character">${uiHtml('data.character')}</option>
                 <option value="guest">${uiHtml('data.guest')}</option>
+                <option value="group">${uiHtml('group.data')}</option>
               </select>
             </label>
             <div class="tua-data-actions">
@@ -2626,6 +2856,7 @@ function ensurePanel() {
             </div>
             <input id="tua-import-file" type="file" accept="application/json,.json" style="display:none">
             <input id="tua-import-guest-file" type="file" accept="application/json,.json" style="display:none">
+            <input id="tua-import-group-file" type="file" accept="application/json,.json" style="display:none">
           </div>
         </details>
         <div id="tua-status" class="tua-status" aria-hidden="true" style="display:none"></div>
@@ -2634,6 +2865,7 @@ function ensurePanel() {
       <div id="tua-reply-preview" class="tua-reply-preview" style="display:none"></div>
       <div class="tua-input-row">
         <textarea id="tua-input" placeholder="${uiHtml('panel.messagePlaceholder')}"></textarea>
+        <button type="button" id="tua-group-show-all" style="display:none" title="${uiHtml('group.all')}">${uiHtml('group.all')}</button>
         <button type="button" id="tua-send" title="${uiHtml('panel.send')}" aria-label="${uiHtml('panel.send')}">🐶</button>
       </div>
       <div id="tua-resize-handle" title="${uiHtml('panel.resize')}" aria-hidden="true"></div>
@@ -2678,6 +2910,20 @@ function ensurePanel() {
   $('#tua-panel-sentence-count,#tua-panel-output-language').on('change', readPanelSettingsUI);
   $('#tua-panel-include-preset,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-fixed-scrollbar').on('change', readPanelSettingsUI);
   $('#tua-panel-voice-note').on('change input', readPanelSettingsUI);
+  $('#tua-group-output,#tua-group-memory-messages').on('change', () => void saveGroupPanelOptions());
+  $('#tua-group-ref-recent,#tua-group-ref-lore,#tua-group-ref-extension').on('change', () => void saveGroupPanelOptions());
+  $('#tua-group-edit-members').on('click', () => {
+    if (generationInFlight || groupStartPending) return;
+    closeSettingsPanel(); renderGroupCharacterPicker(getActiveRoom());
+  });
+  $('#tua-group-link-current').on('click', () => void linkGroupToCurrentRp());
+  $('#tua-group-unlink').on('click', () => void unlinkGroupRp());
+  $('#tua-group-show-all').on('click', () => {
+    const task = activeGenerationTask;
+    if (task?.kind === 'group' && task.phase === 'delivery') {
+      task.revealAll = true; task.resolveDelivery?.();
+    }
+  });
   $('.tua-theme-buttons button').on('click', function(e) {
     e.preventDefault();
     const key = $(this).data('theme');
@@ -2694,14 +2940,15 @@ function ensurePanel() {
     setDataManageScope($(this).val());
   });
   $('#tua-export-rooms').on('click', () =>
-    dataManageScope === 'guest' ? exportGuestRooms() : exportCurrentCharacterRooms());
+    dataManageScope === 'guest' ? exportGuestRooms() : dataManageScope === 'group' ? exportGroupRooms() : exportCurrentCharacterRooms());
   $('#tua-import-rooms').on('click', () => {
-    $(dataManageScope === 'guest' ? '#tua-import-guest-file' : '#tua-import-file').trigger('click');
+    $(dataManageScope === 'guest' ? '#tua-import-guest-file' : dataManageScope === 'group' ? '#tua-import-group-file' : '#tua-import-file').trigger('click');
   });
   $('#tua-import-file').on('change', importCurrentCharacterRooms);
   $('#tua-import-guest-file').on('change', importGuestRooms);
+  $('#tua-import-group-file').on('change', importGroupRooms);
   $('#tua-reset-all-rooms').on('click', () =>
-    dataManageScope === 'guest' ? resetGuestRooms() : resetAllRoomsForCurrentCharacter());
+    dataManageScope === 'guest' ? resetGuestRooms() : dataManageScope === 'group' ? resetGroupRooms() : resetAllRoomsForCurrentCharacter());
   $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
 
   makePanelDraggable();
@@ -2949,12 +3196,13 @@ function toggleModePicker(force, targetRoomId = null) {
 function renderModePicker() {
   const picker = $('#tua-mode-picker');
   if (!picker.length) return;
+  picker.removeClass('tua-group-picker');
   picker.empty();
   const targetRoom = modePickerTargetRoomId ? roomState.rooms.find(room => room.id === modePickerTargetRoomId) : null;
   picker.append(`<div class="tua-mode-picker-title">${uiHtml(targetRoom ? 'room.changeModeTitle' : 'room.modePicker', targetRoom?.title || uiText('room.name'))}</div>`);
   const buttons = $('<div class="tua-mode-picker-buttons"></div>');
   for (const [key, mode] of Object.entries(MODES)) {
-    if (targetRoom && key === 'guestOoc') continue;
+    if (targetRoom && (key === 'guestOoc' || key === 'groupTalk')) continue;
     const active = targetRoom && getRoomMode(targetRoom) === key ? ' active' : '';
     buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${key === 'guestOoc' ? uiHtml('mode.guestOocPicker') : uiHtml('mode.' + key)}</button>`);
   }
@@ -2971,6 +3219,8 @@ function renderModePicker() {
         setRoomModeById(targetRoomId, modeKey);
       } else if (modeKey === 'guestOoc') {
         renderGuestCharacterPicker();
+      } else if (modeKey === 'groupTalk') {
+        renderGroupCharacterPicker();
       } else {
         await createRoomWithModeIntro(modeKey);
       }
@@ -3081,6 +3331,164 @@ async function createGuestOocRoom(characterKey) {
   return room;
 }
 
+
+function renderGroupCharacterPicker(editRoom = null) {
+  if (generationInFlight || groupStartPending) return;
+  const picker = $('#tua-mode-picker');
+  const characters = getInstalledGuestCharacters();
+  const editing = !!editRoom && getRoomMode(editRoom) === 'groupTalk';
+  const selected = new Set(editing ? editRoom.groupCharacterKeys : []);
+  for (const key of selected) if (!characters.some(item => item.key === key)) characters.push({ key, name: key + ' (' + uiText('guest.missing') + ')' });
+  picker.empty();
+  picker.append('<div class="tua-mode-picker-title">' + uiHtml(editing ? 'group.editMembers' : 'group.title') + '</div>');
+  if (!editing) picker.append('<label class="tua-group-field">' + uiHtml('group.name')
+    + '<input type="text" id="tua-group-name" maxlength="90" placeholder="' + uiHtml('group.namePlaceholder') + '"></label>');
+  picker.append('<input id="tua-group-search" class="tua-guest-search" type="search" placeholder="' + uiHtml('group.search') + '">');
+  picker.append('<div class="tua-guest-caption" id="tua-group-count"></div>');
+  picker.append('<div class="tua-guest-results tua-group-results" id="tua-group-results"></div>');
+  if (!editing) {
+    picker.append('<div class="tua-group-reference"><b>' + uiHtml('group.references') + '</b>'
+      + '<label><input id="tua-group-recent" type="checkbox"> ' + uiHtml('group.recentRp') + '</label>'
+      + '<label><input id="tua-group-lore" type="checkbox"> ' + uiHtml('group.lorebook') + '</label>'
+      + '<label><input id="tua-group-extension" type="checkbox"> ' + uiHtml('group.extension') + '</label></div>');
+  }
+  picker.append('<div class="tua-group-picker-actions"><button type="button" id="tua-group-back">' + uiHtml('group.cancel') + '</button>'
+    + '<button type="button" id="tua-group-submit">' + uiHtml(editing ? 'group.save' : 'group.create') + '</button></div>');
+  const redraw = () => {
+    const query = String($('#tua-group-search').val() || '').trim().toLocaleLowerCase();
+    const results = $('#tua-group-results').empty();
+    for (const character of characters.filter(c => c.name.toLocaleLowerCase().includes(query))) {
+      const option = $('<label class="tua-group-character"></label>');
+      const check = $('<input type="checkbox">').val(character.key).prop('checked', selected.has(character.key));
+      option.append(check).append($('<span></span>').text(character.name));
+      if (character.key === getCharKey()) option.append($('<small></small>').text(uiText('group.current')));
+      results.append(option);
+    }
+    if (!results.children().length) results.append('<div class="tua-guest-empty">' + uiHtml('guest.noMatch') + '</div>');
+    $('#tua-group-count').text(uiText('group.count', selected.size));
+    $('#tua-group-submit').prop('disabled', selected.size < 2);
+  };
+  picker.off('.tuaGroup');
+  picker.on('input.tuaGroup', '#tua-group-search', redraw);
+  picker.on('change.tuaGroup', '#tua-group-results input[type=checkbox]', function() {
+    const key = String($(this).val() || '');
+    if (this.checked) selected.add(key); else selected.delete(key);
+    $('#tua-group-count').text(uiText('group.count', selected.size));
+    $('#tua-group-submit').prop('disabled', selected.size < 2);
+  });
+  picker.on('click.tuaGroup', '#tua-group-back', () => {
+    if (editing) closeModePicker(); else renderModePicker();
+  });
+  picker.on('click.tuaGroup', '#tua-group-submit', async function() {
+    if (generationInFlight || groupStartPending) return;
+    if (selected.size < 2) return alert(uiText('group.minimum'));
+    const button = $(this).prop('disabled', true);
+    try {
+      if (editing) {
+        if (roomStateCharKey !== GROUP_ROOM_STORE_KEY) return;
+        const room = roomState.rooms.find(r => r.id === editRoom.id);
+        if (!room) return;
+        room.groupCharacterKeys = [...selected];
+        room.updatedAt = Date.now();
+        await saveRooms();
+        closeModePicker(); renderAll();
+      } else {
+        const name = String($('#tua-group-name').val() || '').trim() || uiText('mode.groupTalk');
+        const options = {
+          recentRp: $('#tua-group-recent').prop('checked'),
+          lorebook: $('#tua-group-lore').prop('checked'),
+          extensionMemory: $('#tua-group-extension').prop('checked')
+        };
+        await createGroupTalkRoom(name, [...selected], options);
+      }
+    } catch (error) {
+      console.error('[Konggomul] group picker failed', error);
+      alert(String(error?.message || error));
+      button.prop('disabled', false);
+    }
+  });
+  picker.addClass('open tua-group-picker');
+  redraw();
+  $('#tua-group-search').trigger('focus');
+}
+
+async function createGroupTalkRoom(name, keys, options) {
+  const installed = getInstalledGuestCharacters();
+  const chosen = [...new Set(keys)].filter(key => installed.some(character => character.key === key));
+  if (chosen.length < 2 || chosen.length !== new Set(keys).size) throw new Error(uiText('group.missing'));
+  if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+  const loaded = await loadRooms({ storageKey: GROUP_ROOM_STORE_KEY, skipRender: true });
+  if (!loaded) throw new Error(uiText('group.storeFailed'));
+  const room = createRoom(false, 'groupTalk', false);
+  Object.assign(room, groupRoomFields({
+    groupCharacterKeys: chosen, groupOptions: options,
+    groupMemoryMessages: getChatMemoryLimit() * 4, groupOutputTokens: GROUP_OUTPUT_DEFAULT,
+  }));
+  room.title = String(name || uiText('mode.groupTalk')).slice(0, 90);
+  room.groupBinding = getCurrentGuestPersonaBinding();
+  room.groupSeenContext = groupContextKey(room.groupBinding);
+  room.groupSnapshot = { persona: groupPersonaText(), recent: '', lorebook: '', extensionMemory: '' };
+  await refreshGroupReferenceSnapshot(room);
+  await saveRooms();
+  closeModePicker(); closeRoomList(); closeSettingsPanel();
+  renderAll(); setPanelVisible(true);
+  $('#tua-input').trigger('focus');
+  return getActiveRoom();
+}
+
+async function saveGroupPanelOptions() {
+  const room = getActiveRoom();
+  if (getRoomMode(room) !== 'groupTalk' || generationInFlight || groupStartPending) return;
+  room.groupOutputTokens = clampInt($('#tua-group-output').val(), 100, 8000, GROUP_OUTPUT_DEFAULT);
+  room.groupMemoryMessages = clampInt($('#tua-group-memory-messages').val(), 20, 320, GROUP_MEMORY_DEFAULT);
+  room.groupOptions = {
+    recentRp: $('#tua-group-ref-recent').prop('checked'),
+    lorebook: $('#tua-group-ref-lore').prop('checked'),
+    extensionMemory: $('#tua-group-ref-extension').prop('checked'),
+  };
+  room.updatedAt = Date.now();
+  await saveRooms();
+  hydrateGroupPanelOptions();
+}
+
+function hydrateGroupPanelOptions() {
+  const room = getActiveRoom();
+  const group = getRoomMode(room) === 'groupTalk';
+  panelEl?.classList.toggle('tua-group-active', group);
+  $('#tua-group-settings').toggle(group);
+  $('#tua-panel-sentence-count,#tua-panel-memory,#tua-panel-voice-note,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-tokens').closest('label').toggle(!group);
+  if (!group) return;
+  $('#tua-group-output').val(room.groupOutputTokens);
+  $('#tua-group-memory-messages').val(room.groupMemoryMessages);
+  $('#tua-group-ref-recent').prop('checked', room.groupOptions?.recentRp === true);
+  $('#tua-group-ref-lore').prop('checked', room.groupOptions?.lorebook === true);
+  $('#tua-group-ref-extension').prop('checked', room.groupOptions?.extensionMemory === true);
+  $('#tua-group-rp-label').text(uiText('group.linked', room.groupBinding?.rpCharacterName || '—'));
+  $('#tua-group-settings input,#tua-group-settings button').prop('disabled', generationInFlight || groupStartPending);
+}
+
+async function linkGroupToCurrentRp() {
+  const room = getActiveRoom();
+  if (getRoomMode(room) !== 'groupTalk' || generationInFlight || groupStartPending) return;
+  try {
+    room.groupBinding = getCurrentGuestPersonaBinding();
+    room.groupSeenContext = groupContextKey();
+    await refreshGroupReferenceSnapshot(room);
+    room.updatedAt = Date.now(); await saveRooms(); hydrateGroupPanelOptions();
+  } catch (error) { alert(uiText('dialog.restoreError', String(error?.message || error))); }
+}
+
+async function unlinkGroupRp() {
+  const room = getActiveRoom();
+  if (getRoomMode(room) !== 'groupTalk' || generationInFlight || groupStartPending) return;
+  room.groupOptions = { recentRp: false, lorebook: false, extensionMemory: false };
+  room.groupBinding = getCurrentGuestPersonaBinding();
+  room.groupSeenContext = groupContextKey();
+  room.groupSnapshot = { persona: groupPersonaText(), recent: '', lorebook: '', extensionMemory: '' };
+  room.updatedAt = Date.now(); await saveRooms(); hydrateGroupPanelOptions();
+}
+
+
 function applyRoomActionsCollapseState() {
   const settings = getSettings();
   const collapsed = settings.roomActionsCollapsed !== false;
@@ -3153,6 +3561,9 @@ function normalizeImportedRoomState(raw) {
       ...(migrateModeKey(room.mode) === 'guestOoc' && room.guestCharacterKey ? { guestCharacterKey: String(room.guestCharacterKey), guestCharacterName: String(room.guestCharacterName || '') } : {}),
       ...(migrateModeKey(room.mode) === 'guestOoc' && normalizeGuestPersonaBinding(room.personaBinding) ? { personaBinding: normalizeGuestPersonaBinding(room.personaBinding) } : {}),
       ...(migrateModeKey(room.mode) === 'guestOoc' && Array.isArray(room.personaTransitions) ? { personaTransitions: room.personaTransitions } : {}),
+      ...(migrateModeKey(room.mode) === 'groupTalk' ? {
+        ...groupRoomFields(room), groupBinding: normalizeGuestPersonaBinding(room.groupBinding)
+      } : {}),
       messages: Array.isArray(room.messages) ? room.messages.map(m => {
         const role = m.role === 'user' ? 'user' : 'assistant';
         const variantState = normalizeAssistantVariantState(role, m.content, m.variants, m.variantIndex);
@@ -3163,6 +3574,9 @@ function normalizeImportedRoomState(raw) {
           at: Number(m.at || Date.now()),
           ...(variantState.variants ? { variants: variantState.variants, variantIndex: variantState.variantIndex } : {}),
           ...(m.error ? { error: true } : {}),
+          ...(role === 'assistant' && m.speakerKey ? {
+            speakerKey: String(m.speakerKey), speakerName: String(m.speakerName || '')
+          } : {}),
           ...(role === 'user' && normalizeQuotedReference(m.quote) ? { quote: normalizeQuotedReference(m.quote) } : {})
         };
       }) : []
@@ -3187,7 +3601,7 @@ function importCurrentCharacterRooms(e) {
   reader.onload = async () => {
     try {
       const parsed = JSON.parse(String(reader.result || '{}'));
-      if (parsed.scope === 'guestOoc') throw new Error(uiText('dialog.guestBackupWrong'));
+      if (parsed.scope === 'guestOoc' || parsed.scope === 'groupTalk') throw new Error(uiText('dialog.guestBackupWrong'));
       if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
       const imported = normalizeImportedRoomState(parsed);
       imported.rooms = imported.rooms.filter(room => getRoomMode(room) !== 'guestOoc');
@@ -3304,6 +3718,66 @@ async function resetGuestRooms() {
   } else {
     await persistRoomSnapshot(GUEST_ROOM_STORE_KEY, empty);
   }
+  renderAll();
+}
+
+
+function exportGroupRooms() {
+  try {
+    const state = roomStateCharKey === GROUP_ROOM_STORE_KEY ? roomState : getServerRoomStore()[GROUP_ROOM_STORE_KEY];
+    const payload = {
+      app: 'Konggomul Talk', version: EXTENSION_VERSION, scope: 'groupTalk',
+      exportedAt: new Date().toISOString(), data: state || { rooms: [] }
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'konggomul-talk-group-talk-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('[Konggomul] group export failed', error);
+    alert(String(error?.message || error));
+  }
+}
+
+function importGroupRooms(event) {
+  const input = event?.target;
+  const file = input?.files?.[0];
+  if (!file) return;
+  if (!confirm(uiText('group.importConfirm'))) { input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || '{}'));
+      if (parsed.scope !== 'groupTalk' || !Array.isArray(parsed.data?.rooms)) throw new Error(uiText('group.importWrong'));
+      if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+      const imported = normalizeImportedRoomState(parsed);
+      imported.rooms = imported.rooms.filter(room => getRoomMode(room) === 'groupTalk' && room.groupCharacterKeys?.length >= 2);
+      imported.updatedAt = Date.now(); imported.resetAt = imported.updatedAt;
+      imported.deletedRooms = {}; imported.deletedMessages = {};
+      const next = normalizeStoredRoomState(imported);
+      if (roomStateCharKey === GROUP_ROOM_STORE_KEY) {
+        roomState = next; activeRoomId = getMostRecentRoomId(next) || null;
+        await saveRooms();
+        if (!roomState.rooms.length) await loadRooms({ storageKey: getCharKey() });
+      } else await persistRoomSnapshot(GROUP_ROOM_STORE_KEY, next);
+      renderAll();
+    } catch (error) {
+      console.error('[Konggomul] group import failed', error);
+      alert(String(error?.message || error));
+    } finally { input.value = ''; }
+  };
+  reader.readAsText(file);
+}
+
+async function resetGroupRooms() {
+  if (!confirm(uiText('group.resetConfirm'))) return;
+  if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+  const empty = normalizeStoredRoomState({ rooms: [], resetAt: Date.now(), updatedAt: Date.now() });
+  if (roomStateCharKey === GROUP_ROOM_STORE_KEY) {
+    roomState = empty; activeRoomId = null;
+    await saveRooms(); await loadRooms({ storageKey: getCharKey() });
+  } else await persistRoomSnapshot(GROUP_ROOM_STORE_KEY, empty);
   renderAll();
 }
 
@@ -3433,7 +3907,7 @@ function setPanelVisible(show, { persistPreference = true } = {}) {
     panelEl.classList.toggle('tua-collapsed', !!getSettings().collapsed);
     applyVisualSettings();
     applyPanelPosition();
-    scrollMessagesToBottom();
+    if (getRoomMode() !== 'groupTalk') scrollMessagesToBottom();
   }
   if (persistPreference) {
     const settings = getSettings();
@@ -3573,7 +4047,7 @@ async function createRoomWithModeIntro(modeKey) {
   closeModePicker();
   closeRoomList();
   closeSettingsPanel();
-  if (roomStateCharKey === GUEST_ROOM_STORE_KEY) {
+  if (isSharedRoomStore(roomStateCharKey)) {
     const loaded = await loadRooms({ storageKey: getCharKey(), skipRender: true });
     if (!loaded) return null;
   }
@@ -3667,10 +4141,11 @@ async function createRoomWithModeIntro(modeKey) {
 function refreshSendButtonState() {
   const send = $('#tua-send');
   if (!send.length) return;
-  if (generationInFlight) {
+  if (generationInFlight && activeGenerationTask?.phase !== 'delivery') {
     send.text('...').attr('title', uiText('panel.generating')).attr('aria-label', uiText('panel.generating')).prop('disabled', false);
   } else {
-    send.text(getTheme().sendIcon).attr('title', uiText('panel.send')).attr('aria-label', uiText('panel.send')).prop('disabled', false);
+    const label = activeGenerationTask?.phase === 'delivery' ? 'group.delivering' : 'panel.send';
+    send.text(getTheme().sendIcon).attr('title', uiText(label)).attr('aria-label', uiText(label)).prop('disabled', false);
   }
 }
 
@@ -3678,6 +4153,7 @@ function setComposerBusy(isBusy) {
   $('#tua-input').prop('disabled', !!isBusy);
   refreshSendButtonState();
   if (panelEl) panelEl.classList.toggle('tua-generating', !!isBusy);
+  if (getRoomMode() === 'groupTalk') $('#tua-group-settings input,#tua-group-settings button').prop('disabled', generationInFlight || groupStartPending);
 }
 
 function isAbortError(error) {
@@ -3689,7 +4165,7 @@ function isGenerationStorageContextCurrent(task) {
     && !cleanInProgress
     && task.persistenceEpoch === persistenceEpoch
     && roomStateCharKey === task.requestCharKey
-    && (task.requestCharKey === GUEST_ROOM_STORE_KEY || getCharKey() === task.requestCharKey)
+    && (isSharedRoomStore(task.requestCharKey) || getCharKey() === task.requestCharKey)
     && (!task.rpSignature || task.rpSignature === getCurrentRpSignature())
     && (!task.personaKey || task.personaKey === getCurrentGuestPersonaBinding().key);
 }
@@ -3793,6 +4269,8 @@ function getActiveGenerationKeepLoadingId(roomId) {
 function isGenerationPlaceholderMessage(item) {
   const id = String(item?.id || '');
   if (item?.role !== 'assistant') return false;
+  // A real Group Talk speaker can legitimately send a one-character ellipsis.
+  if (!item?.loading && item?.speakerKey) return false;
   const ellipsisOnly = isStandaloneEllipsisContent(item?.content);
   if (item?.loading) return true;
   // A msg_loading_* id alone is not enough: older builds could accidentally keep that id on a completed reply.
@@ -3833,6 +4311,12 @@ async function cancelCurrentGeneration({ persist = true, render = true, announce
   if (!task || !generationInFlight) return;
   task.cancelled = true;
   try { task.controller?.abort(); } catch { /* best effort */ }
+  if (task.deliveryTimer) clearTimeout(task.deliveryTimer);
+  task.resolveDelivery?.();
+  task.deliveryTimer = null;
+  task.resolveDelivery = null;
+  task.removeReaderListener?.();
+  $('#tua-group-show-all').hide();
 
   removeGenerationLoadingMessages(task);
   if (activeGenerationTask?.id === task.id) {
@@ -3846,9 +4330,193 @@ async function cancelCurrentGeneration({ persist = true, render = true, announce
   if (announce && runtimeActive) setStatus('생성을 중지했습니다.');
 }
 
+
+let groupStartPending = false;
+
+function assertGroupTaskCurrent(task) {
+  if (task && !task.cancelled && !task.completed && activeGenerationTask?.id === task.id &&
+      activeRoomId === task.roomId && lifecycleEnabled && task.lifecycleEpoch === lifecycleEpoch &&
+      isGenerationStorageContextCurrent(task) && groupContextKey() === task.groupContextKey) return;
+  const error = new Error('Group Talk request was cancelled or its context changed.');
+  error.name = 'AbortError';
+  throw error;
+}
+
+function renderGroupMessages(room) {
+  const box = document.getElementById('tua-messages');
+  if (!box || !room) return;
+  const oldTop = box.scrollTop;
+  const owner = GROUP_ROOM_STORE_KEY + ':' + room.id;
+  const switched = box.dataset.groupRoom !== owner;
+  if (switched) { box.replaceChildren(); box.dataset.groupRoom = owner; }
+  const visible = (room.messages || []).filter(message => !isOrphanGenerationPlaceholder(message, room.id));
+  const existing = new Map(Array.from(box.children).map(node => [node.dataset.id, node]));
+  const retained = new Set(visible.map(message => String(message.id)));
+  for (const [id, node] of existing) if (!retained.has(id)) node.remove();
+  let cursor = box.firstElementChild;
+  for (const message of visible) {
+    const id = String(message.id);
+    let node = existing.get(id);
+    const speaker = message.role === 'user' ? getUserKongtalkNickname() : message.speakerName || uiText('mode.groupTalk');
+    const signature = JSON.stringify([message.role, speaker, message.content, message.loading, message.error, message.quote]);
+    if (!node) {
+      node = document.createElement('div'); node.dataset.id = id; node.tabIndex = 0;
+      node.title = uiText('message.pressHint');
+    }
+    if (node._groupSignature !== signature) {
+      node.className = 'tua-msg tua-' + (message.role === 'user' ? 'user' : 'assistant')
+        + (message.loading ? ' tua-loading' : '') + (message.error ? ' tua-error' : '');
+      const reference = normalizeQuotedReference(message.quote);
+      const quote = reference ? '<div class="tua-quoted-message"><b>' + uiHtml('message.quotedFrom', reference.speaker) + '</b><span>' + escapeHtml(reference.content.slice(0, 220)) + '</span></div>' : '';
+      node.innerHTML = (speaker ? '<div class="tua-msg-name">' + escapeHtml(speaker) + '</div>' : '')
+        + '<div class="tua-bubble">' + quote + normalizeNewlines(message.content) + '</div>';
+      node._groupSignature = signature;
+    }
+    if (node !== cursor) box.insertBefore(node, cursor);
+    cursor = node.nextElementSibling;
+  }
+  bindMessagePressHandlers();
+  // No scrolling to bottom and no delayed scroll timers: reading and text selection survive arrivals.
+  box.scrollTop = switched ? 0 : oldTop;
+}
+
+function groupPauseBetweenTurns(task) {
+  if (task.revealAll || task.cancelled) return Promise.resolve();
+  return new Promise(resolve => {
+    task.resolveDelivery = () => {
+      if (task.deliveryTimer) clearTimeout(task.deliveryTimer);
+      task.deliveryTimer = null; task.resolveDelivery = null; resolve();
+    };
+    task.deliveryTimer = setTimeout(task.resolveDelivery, 500 + Math.floor(Math.random() * 501));
+  });
+}
+
+async function runGroupGeneration({ text = '', continuation = false }) {
+  if (groupStartPending || generationInFlight || !lifecycleEnabled || !getSettings().enabled || getRoomMode() !== 'groupTalk') return;
+  groupStartPending = true;
+  let task = null;
+  try {
+    const initialId = getActiveRoom()?.id;
+    if (!(await checkGroupReferenceBeforeGeneration()) || !lifecycleEnabled || !getSettings().enabled || getActiveRoom()?.id !== initialId) return;
+    const room = getActiveRoom();
+    if (getGroupParticipants(room).length < 2 || getGroupParticipants(room).length !== room.groupCharacterKeys.length) {
+      alert(uiText('group.missing')); return;
+    }
+    const box = document.getElementById('tua-messages');
+    task = {
+      id: ++generationTaskCounter, kind: 'group', phase: 'generating', roomId: room.id,
+      loadingId: '', startedAt: Date.now(), requestCharKey: GROUP_ROOM_STORE_KEY,
+      rpSignature: '', personaKey: getCurrentGuestPersonaBinding().key, groupContextKey: groupContextKey(),
+      persistenceEpoch, lifecycleEpoch, controller: new AbortController(),
+      cancelled: false, completed: false, cancelCleanupComplete: false,
+      revealAll: false, deliveryTimer: null, resolveDelivery: null,
+      canRevealFirst: !!box && box.scrollHeight - box.clientHeight - box.scrollTop < 48,
+      readerMoved: false, originalScrollTop: box?.scrollTop || 0,
+    };
+    const readerMoved = () => { task.readerMoved = true; };
+    $('#tua-messages').on('wheel.tuaGroupReader touchmove.tuaGroupReader', readerMoved);
+    task.removeReaderListener = () => $('#tua-messages').off('.tuaGroupReader');
+    activeGenerationTask = task; generationInFlight = true; groupStartPending = false;
+    setComposerBusy(true);
+    if (!continuation && String(text).trim()) {
+      const quote = pendingQuote?.roomId === room.id && pendingQuote?.storeKey === GROUP_ROOM_STORE_KEY ? normalizeQuotedReference(pendingQuote) : null;
+      const now = Date.now();
+      room.messages.push({ id: 'msg_group_user_' + now + '_' + task.id, role: 'user', content: text, at: now, ...(quote ? { quote } : {}) });
+      room.lastMessageAt = now;
+      $('#tua-input').val(''); autoGrowInput(); pendingQuote = null; renderPendingQuote();
+    }
+    if (!panelEl?.classList.contains('tua-visible')) setPanelVisible(true);
+    removeStaleLoadingMessages(room);
+    task.loadingId = 'msg_loading_group_' + task.id + '_' + Date.now();
+    room.messages.push({ id: task.loadingId, role: 'assistant', content: '...', at: Date.now(), loading: true });
+    room.updatedAt = Date.now();
+    await saveRooms();
+    assertGroupTaskCurrent(task);
+    renderMessages(); renderRoomList();
+    const turns = await generateGroupCompletion(text, task);
+    assertGroupTaskCurrent(task);
+    task.phase = 'delivery'; setComposerBusy(false);
+    $('#tua-group-show-all').show();
+    for (let index = 0; index < turns.length; index++) {
+      if (index > 0) await groupPauseBetweenTurns(task);
+      assertGroupTaskCurrent(task);
+      const current = getActiveRoom();
+      const placeholder = current.messages.find(message => message.id === task.loadingId);
+      if (!placeholder) throw new Error('Group Talk delivery placeholder is missing.');
+      const oldId = task.loadingId;
+      const turn = turns[index];
+      const now = Date.now();
+      placeholder.id = 'msg_group_' + task.id + '_' + index + '_' + now;
+      placeholder.content = turn.text; placeholder.speakerKey = turn.speakerKey; placeholder.speakerName = turn.speakerName;
+      placeholder.loading = false; placeholder.at = now;
+      current.updatedAt = now; current.lastMessageAt = now;
+      task.loadingId = ''; markMessageDeleted(oldId, now);
+      if (index + 1 < turns.length) {
+        task.loadingId = 'msg_loading_group_' + task.id + '_' + index + '_' + now;
+        current.messages.push({ id: task.loadingId, role: 'assistant', content: '...', at: now, loading: true });
+      }
+      await saveRooms();
+      assertGroupTaskCurrent(task);
+      const reader = document.getElementById('tua-messages');
+      const topBefore = reader?.scrollTop || 0;
+      renderMessages(); renderRoomList();
+      if (index === 0 && reader && task.canRevealFirst && !task.readerMoved && Math.abs(topBefore - task.originalScrollTop) < 3) {
+        const first = Array.from(reader.children).find(node => node.dataset.id === placeholder.id);
+        if (first) reader.scrollTop += first.getBoundingClientRect().top - reader.getBoundingClientRect().top;
+      }
+      // Subsequent arrivals never move the reader, even when a turn is longer than the viewport.
+    }
+    task.completed = true;
+  } catch (error) {
+    if (task && !task.cancelled && !isAbortError(error) && isGenerationStorageContextCurrent(task)) {
+      const current = roomState.rooms.find(room => room.id === task.roomId);
+      const message = current?.messages?.find(item => item.id === task.loadingId);
+      if (message) {
+        markMessageDeleted(task.loadingId);
+        message.id = 'msg_group_error_' + task.id + '_' + Date.now();
+        message.content = uiText('dialog.restoreError', String(error?.message || error));
+        message.loading = false; message.error = true; task.loadingId = '';
+        current.updatedAt = Date.now();
+      }
+      addDebugLog('group.error', 'Group Talk request failed.', { error: String(error?.message || error) });
+      await saveRooms(); renderMessages();
+    } else if (!task && !isAbortError(error)) {
+      alert(uiText('dialog.restoreError', String(error?.message || error)));
+    }
+  } finally {
+    if (!task) groupStartPending = false;
+    if (task) {
+      if (task.deliveryTimer) clearTimeout(task.deliveryTimer);
+      task.resolveDelivery?.();
+      if (activeGenerationTask?.id === task.id) {
+        task.removeReaderListener?.();
+        if (task.loadingId && isGenerationStorageContextCurrent(task)) {
+          removeGenerationLoadingMessages(task); await saveRooms(); task.loadingId = '';
+        }
+        activeGenerationTask = null; generationInFlight = false;
+        $('#tua-group-show-all').hide(); setComposerBusy(false);
+        if (runtimeActive) renderMessages();
+      }
+    }
+  }
+}
+
+async function sendGroupInput() {
+  if (groupStartPending) return;
+  const text = String($('#tua-input').val() || '').trim();
+  if (generationInFlight) {
+    const canInterrupt = activeGenerationTask?.kind === 'group' && activeGenerationTask?.phase === 'delivery' && !!text;
+    await cancelCurrentGeneration();
+    if (!canInterrupt) return;
+  }
+  return runGroupGeneration({ text, continuation: !text });
+}
+
+
 async function runAssistantGeneration({ text = '', continuation = false }) {
+  if (getRoomMode() === 'groupTalk') return runGroupGeneration({ text, continuation });
   const input = $('#tua-input');
-  const currentCharKey = roomStateCharKey === GUEST_ROOM_STORE_KEY ? GUEST_ROOM_STORE_KEY : getCharKey();
+  const currentCharKey = isSharedRoomStore(roomStateCharKey) ? roomStateCharKey : getCharKey();
   if (roomStateCharKey !== currentCharKey) {
     const loaded = await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch, storageKey: currentCharKey });
     if (!loaded || roomStateCharKey !== currentCharKey) return;
@@ -3996,13 +4664,13 @@ function getLastRegenerableAssistantMessage(room = getActiveRoom()) {
 }
 
 function canRegenerateAssistantMessage(messageId, room = getActiveRoom()) {
-  if (generationInFlight || !room) return false;
+  if (generationInFlight || !room || getRoomMode(room) === 'groupTalk') return false;
   const latest = getLastRegenerableAssistantMessage(room);
   return !!latest && String(latest.id) === String(messageId || '');
 }
 
 async function regenerateAssistantMessage(messageId) {
-  const currentCharKey = roomStateCharKey === GUEST_ROOM_STORE_KEY ? GUEST_ROOM_STORE_KEY : getCharKey();
+  const currentCharKey = isSharedRoomStore(roomStateCharKey) ? roomStateCharKey : getCharKey();
   if (roomStateCharKey !== currentCharKey) {
     const loaded = await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch, storageKey: currentCharKey });
     if (!loaded || roomStateCharKey !== currentCharKey) return;
@@ -4119,10 +4787,8 @@ async function regenerateAssistantMessage(messageId) {
 async function sendCurrentInput() {
   const settings = getSettings();
   if (!settings.enabled) { alert(uiText('dialog.disabled')); return; }
-  if (generationInFlight) {
-    await cancelCurrentGeneration();
-    return;
-  }
+  if (getRoomMode() === 'groupTalk') return sendGroupInput();
+  if (generationInFlight) { await cancelCurrentGeneration(); return; }
   const text = String($('#tua-input').val() || '').trim();
   await runAssistantGeneration(text ? { text, continuation: false } : { continuation: true });
 }
@@ -4181,7 +4847,7 @@ function readGlobalSettingsUI() {
 }
 
 function setDataManageScope(scope = 'character') {
-  if (scope !== 'character' && scope !== 'guest') return;
+  if (!['character', 'guest', 'group'].includes(scope)) return;
   dataManageScope = scope;
   $('#tua-data-scope-select').val(scope);
 }
@@ -4201,6 +4867,7 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-include-extension-memory').prop('checked', s.includeExtensionMemory !== false);
   $('#tua-panel-fixed-scrollbar').prop('checked', s.fixedScrollbar !== false);
   $('#tua-panel-voice-note').val(getVoiceNote());
+  hydrateGroupPanelOptions();
   $('.tua-theme-buttons button').removeClass('active').filter(`[data-theme="${getThemeKey()}"]`).addClass('active');
 }
 
@@ -4234,14 +4901,15 @@ function renderProfileOptions(options = {}) {
 
 function readPanelSettingsUI() {
   const s = getSettings();
+  const group = getRoomMode() === 'groupTalk';
 
   const sentenceCount = String($('#tua-panel-sentence-count').val() || '');
-  if (SENTENCE_COUNT_KEYS.has(sentenceCount)) s.sentenceCount = sentenceCount;
+  if (!group && SENTENCE_COUNT_KEYS.has(sentenceCount)) s.sentenceCount = sentenceCount;
   const outputLanguage = String($('#tua-panel-output-language').val() || '');
   if (OUTPUT_LANGUAGE_KEYS.has(outputLanguage)) s.outputLanguage = outputLanguage;
 
   const tokenValue = String($('#tua-panel-tokens').val() ?? '').trim();
-  if (tokenValue !== '') {
+  if (!group && tokenValue !== '') {
     const maxTokensRaw = Number(tokenValue);
     if (Number.isFinite(maxTokensRaw)) s.maxTokens = Math.max(100, Math.min(8000, Math.floor(maxTokensRaw)));
   }
@@ -4253,7 +4921,7 @@ function readPanelSettingsUI() {
   }
 
   const memoryValue = String($('#tua-panel-memory').val() ?? '').trim();
-  if (memoryValue !== '') {
+  if (!group && memoryValue !== '') {
     const memoryRaw = Number(memoryValue);
     if (Number.isFinite(memoryRaw)) {
       s.chatMemoryLimit = Math.max(5, Math.min(80, Math.floor(memoryRaw)));
@@ -4271,9 +4939,9 @@ function readPanelSettingsUI() {
   const includePresetEl = $('#tua-panel-include-preset');
   if (includePresetEl.length) s.includePreset = includePresetEl.prop('checked') !== false;
   const includeLorebookEl = $('#tua-panel-include-lorebook');
-  if (includeLorebookEl.length) s.includeLorebook = includeLorebookEl.prop('checked') !== false;
+  if (!group && includeLorebookEl.length) s.includeLorebook = includeLorebookEl.prop('checked') !== false;
   const includeExtensionMemoryEl = $('#tua-panel-include-extension-memory');
-  if (includeExtensionMemoryEl.length) s.includeExtensionMemory = includeExtensionMemoryEl.prop('checked') !== false;
+  if (!group && includeExtensionMemoryEl.length) s.includeExtensionMemory = includeExtensionMemoryEl.prop('checked') !== false;
   const fixedScrollbarEl = $('#tua-panel-fixed-scrollbar');
   if (fixedScrollbarEl.length) s.fixedScrollbar = fixedScrollbarEl.prop('checked') !== false;
 
@@ -4284,7 +4952,7 @@ function readPanelSettingsUI() {
     $('#tua-panel-font').val(s.fontSize);
   }
 
-  setVoiceNote($('#tua-panel-voice-note').val() || '');
+  if (!group) setVoiceNote($('#tua-panel-voice-note').val() || '');
   saveSettings();
   applyVisualSettings();
   renderAll();
@@ -4441,7 +5109,8 @@ function setStatus(_text) { /* v4.5.0: keep settings panel quiet; no visible act
 function renderAll() {
   if (!panelEl) return;
   const s = getSettings();
-  $('#tua-char-name').text(getSpeakerName());
+  $('#tua-char-name').text(getRoomMode() === 'groupTalk'
+    ? getGroupParticipants().map(item => item.name).join(', ') : getSpeakerName());
   const currentMode = getRoomMode();
   const binding = currentMode === 'guestOoc' ? normalizeGuestPersonaBinding(getActiveRoom()?.personaBinding) : null;
   $('#tua-mode-badge').text(binding ? modeUiLabel(currentMode) + ' · ' + uiText('guest.personaLabel', binding.name, binding.rpCharacterName || '—') : modeUiLabel(currentMode));
@@ -4469,7 +5138,7 @@ function renderRoomList() {
   if (!list.length) return;
   list.empty();
   const currentMainKey = getCharKey();
-  const keys = [currentMainKey, GUEST_ROOM_STORE_KEY];
+  const keys = [currentMainKey, GUEST_ROOM_STORE_KEY, GROUP_ROOM_STORE_KEY];
   const entries = [];
   for (const ownerKey of keys) {
     const state = roomStateCharKey === ownerKey ? roomState : getServerRoomStore()[ownerKey];
@@ -4535,6 +5204,7 @@ function scrollMessagesToBottom() {
   const box = $('#tua-messages');
   const el = box[0];
   if (!el) return;
+  if (getRoomMode() === 'groupTalk') { el.scrollTop = el.scrollHeight || 0; return; }
   const run = () => { el.scrollTop = el.scrollHeight || 0; };
   run();
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
@@ -4546,6 +5216,9 @@ function renderMessages() {
   const box = $('#tua-messages');
   if (!box.length) return;
   const room = getActiveRoom();
+  if (getRoomMode(room) === 'groupTalk') return renderGroupMessages(room);
+  delete box[0].dataset.groupRoom;
+  if (!room) { box.empty(); return; }
   box.empty();
   hideContextMenu();
   const visibleMessages = (room.messages || []).filter(m => !isOrphanGenerationPlaceholder(m, room.id));
@@ -4577,6 +5250,8 @@ function renderMessages() {
   bindMessagePressHandlers();
   box.scrollTop(box[0]?.scrollHeight || 0);
 }
+
+
 
 function switchAssistantVariant(messageId, direction) {
   if (generationInFlight) return;
@@ -4681,7 +5356,7 @@ function openContextMenuForMessage(id, x, y) {
   menu.dataset.tuaTheme = getThemeKey();
   menu.querySelector('[data-action="regenerate"]')?.toggleAttribute('hidden', !canRegenerateAssistantMessage(id));
   const replyButton = menu.querySelector('[data-action="reply"]');
-  if (replyButton) replyButton.disabled = generationInFlight;
+  if (replyButton) replyButton.disabled = generationInFlight && activeGenerationTask?.phase !== 'delivery';
   const deleteButton = menu.querySelector('[data-action="delete"]');
   if (deleteButton) deleteButton.disabled = generationInFlight;
   showContextMenuAt(menu, x, y);
@@ -4747,7 +5422,7 @@ async function openRoomContextMenuForRoom(roomId, x, y, ownerKey = roomStateChar
   menu.dataset.roomId = roomId;
   menu.dataset.tuaTheme = getThemeKey();
   const modeButton = menu.querySelector('[data-action="change-mode"]');
-  if (modeButton) modeButton.disabled = generationInFlight || getRoomMode(roomState.rooms.find(item => item.id === roomId)) === 'guestOoc';
+  if (modeButton) modeButton.disabled = generationInFlight || ['guestOoc', 'groupTalk'].includes(getRoomMode(roomState.rooms.find(item => item.id === roomId)));
   showContextMenuAt(menu, x, y);
 }
 
@@ -4758,8 +5433,8 @@ function beginRoomModeChange(roomId) {
   }
   const room = roomState.rooms.find(item => item.id === roomId);
   if (!room) return;
-  if (getRoomMode(room) === 'guestOoc') {
-    alert(uiText('dialog.guestModeLocked'));
+  if (getRoomMode(room) === 'guestOoc' || getRoomMode(room) === 'groupTalk') {
+    alert(uiText(getRoomMode(room) === 'groupTalk' ? 'group.modeLocked' : 'dialog.guestModeLocked'));
     return;
   }
   closeSettingsPanel();
@@ -4888,10 +5563,10 @@ function bindRuntimeEvents() {
         // The room state still belongs to the previous character until the new load
         // completes. Cancel first so loading placeholders are saved only to that
         // previous character and can never be copied into the next one.
-        if (generationInFlight && (roomStateCharKey === GUEST_ROOM_STORE_KEY || activeGenerationTask?.requestCharKey !== getCharKey())) {
+        if (generationInFlight && (isSharedRoomStore(roomStateCharKey) || activeGenerationTask?.requestCharKey !== getCharKey())) {
           await cancelCurrentGeneration({ persist: true, render: false, announce: false });
         }
-        if (roomStateCharKey === GUEST_ROOM_STORE_KEY) renderAll();
+        if (isSharedRoomStore(roomStateCharKey)) renderAll();
         else await loadRooms({ expectedLifecycleEpoch: eventEpoch, storageKey: getCharKey() });
       } catch (error) {
         console.warn('[Konggomul] CHAT_CHANGED handler failed', error);
