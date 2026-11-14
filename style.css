@@ -4048,3 +4048,22 @@ body.tua-panel-resizing-body {
   cursor: pointer;
 }
 #tua-panel .tua-avatar-size-limits { display: flex; justify-content: space-between; color: var(--tua-muted); font-size: calc(var(--tua-font-size) - 2px); }
+
+
+/* Settings layout: shared display settings, independent personal and group controls. */
+#tua-panel .tua-setting-section-label {
+  color: var(--tua-text); font-weight: 700;
+  border-bottom: 1px solid var(--tua-line);
+  padding: 2px 0 7px; margin: 4px 0 10px;
+}
+#tua-panel .tua-group-room-management {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 9px 8px; margin: 10px 0;
+  border-radius: 10px; border: 1px solid var(--tua-line);
+  color: var(--tua-text); background: var(--tua-button-bg);
+}
+#tua-panel .tua-group-room-management > strong { font-size: var(--tua-font-size); }
+#tua-panel .tua-group-room-management .tua-group-picker-actions { gap: 6px; }
+#tua-panel .tua-group-room-management .tua-guest-caption { overflow-wrap: anywhere; }
+#tua-panel .tua-personal-advanced summary, #tua-panel .tua-group-advanced summary,
+#tua-panel .tua-data-advanced summary { color: var(--tua-text); font-weight: 700; }
