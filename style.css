@@ -4040,12 +4040,47 @@ body.tua-panel-resizing-body {
 #tua-panel .tua-avatar-size-control { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 5px; }
 #tua-panel .tua-avatar-size-control > label { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
 #tua-panel .tua-avatar-size-control output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--tua-text); white-space: nowrap; }
+/* Draw the bar explicitly: iOS WebKit can lose the native track under
+   the SillyTavern input theme overrides. Colors follow current text/lines,
+   not the old olive/brown native accent. */
 #tua-panel #tua-panel-avatar-size {
+  --tua-avatar-slider-fill: color-mix(in srgb, var(--tua-line, #d9aebb) 52%, var(--tua-text, #48333a) 48%);
+  --tua-avatar-slider-empty: color-mix(in srgb, var(--tua-line, #d9aebb) 80%, var(--tua-input-bg, white) 20%);
   box-sizing: border-box; display: block; width: 100%;
-  height: 24px; min-height: 24px; margin: 0; padding: 0 !important;
-  border: 0 !important; background: transparent !important; box-shadow: none !important;
-  accent-color: var(--tua-accent);
-  cursor: pointer;
+  height: 32px !important; min-height: 32px !important; margin: 2px 0 !important;
+  padding: 0 !important; border: 0 !important;
+  -webkit-appearance: none !important; appearance: none !important;
+  border-radius: 0 !important;
+  background: linear-gradient(to right,
+    var(--tua-avatar-slider-fill) 0 var(--tua-avatar-slider-progress, 26.667%),
+    var(--tua-avatar-slider-empty) var(--tua-avatar-slider-progress, 26.667%) 100%
+  ) center / 100% 8px no-repeat !important;
+  box-shadow: none !important; cursor: pointer;
+}
+#tua-panel #tua-panel-avatar-size::-webkit-slider-runnable-track {
+  -webkit-appearance: none !important;
+  height: 8px !important; background: transparent !important; border: 0 !important;
+}
+#tua-panel #tua-panel-avatar-size::-webkit-slider-thumb {
+  -webkit-appearance: none !important; appearance: none !important;
+  width: 21px !important; height: 21px !important; margin-top: -6.5px !important;
+  border-radius: 50% !important;
+  background: var(--tua-input-bg, white) !important;
+  border: 2px solid var(--tua-avatar-slider-fill) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.13) !important;
+}
+#tua-panel #tua-panel-avatar-size::-moz-range-track {
+  height: 8px !important; background: transparent !important; border: 0 !important;
+}
+#tua-panel #tua-panel-avatar-size::-moz-range-thumb {
+  width: 17px !important; height: 17px !important; border-radius: 50% !important;
+  background: var(--tua-input-bg, white) !important;
+  border: 2px solid var(--tua-avatar-slider-fill) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.13) !important;
+}
+#tua-panel #tua-panel-avatar-size:focus-visible {
+  outline: 2px solid var(--tua-avatar-slider-fill) !important;
+  outline-offset: 2px;
 }
 #tua-panel .tua-avatar-size-limits { display: flex; justify-content: space-between; color: var(--tua-muted); font-size: calc(var(--tua-font-size) - 2px); }
 

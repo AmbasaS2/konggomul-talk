@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.10
+ * 🐕 콩고물 톡 v5.5.0-rc.11
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.10';
+const EXTENSION_VERSION = '5.5.0-rc.11';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -3049,15 +3049,15 @@ function ensurePanel() {
         <details class="tua-advanced-settings tua-group-advanced" id="tua-group-settings">
           <summary>${uiHtml('settings.groupAdvanced')}</summary>
           <div class="tua-group-settings">
-            <label class="tua-checkbox-row" title="${uiHtml('settings.groupPresetHint')}">
-              <input id="tua-group-include-preset" type="checkbox">
-              <span>${uiHtml('panel.preset')}</span>
-            </label>
             <label title="${uiHtml('group.outputHint')}">${uiHtml('group.output')}
               <input id="tua-group-output" type="number" min="100" max="8000" step="100">
             </label>
             <label title="${uiHtml('group.memoryHint')}">${uiHtml('group.memoryMessages')}
               <input id="tua-group-memory-messages" type="number" min="20" max="320" step="1">
+            </label>
+            <label class="tua-checkbox-row" title="${uiHtml('settings.groupPresetHint')}">
+              <input id="tua-group-include-preset" type="checkbox">
+              <span>${uiHtml('panel.preset')}</span>
             </label>
             <label class="tua-checkbox-row"><input id="tua-group-ref-recent" type="checkbox"><span>${uiHtml('group.recentRp')}</span></label>
             <label class="tua-checkbox-row"><input id="tua-group-ref-lore" type="checkbox"><span>${uiHtml('group.lorebook')}</span></label>
@@ -3147,6 +3147,7 @@ function ensurePanel() {
   $('#tua-panel-avatar-size').on('input', function () {
     const size = clampInt(this.value, 18, 48, DEFAULT_SETTINGS.speakerAvatarSize);
     $('#tua-panel-avatar-size-value').text(size + 'px');
+    this.style.setProperty('--tua-avatar-slider-progress', ((size - 18) / 30 * 100) + '%');
     document.documentElement.style.setProperty('--tua-speaker-avatar-size', size + 'px');
   }).on('change', readPanelSettingsUI);
   $('#tua-panel-sentence-count,#tua-panel-output-language').on('change', readPanelSettingsUI);
@@ -5115,7 +5116,8 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-output-language').val(s.outputLanguage);
   $('#tua-panel-user-nickname').val(s.userKongtalkNickname ?? DEFAULT_SETTINGS.userKongtalkNickname);
   $('#tua-panel-font').val(s.fontSize);
-  $('#tua-panel-avatar-size').val(s.speakerAvatarSize);
+  $('#tua-panel-avatar-size').val(s.speakerAvatarSize)
+    .css('--tua-avatar-slider-progress', ((s.speakerAvatarSize - 18) / 30 * 100) + '%');
   $('#tua-panel-avatar-size-value').text(s.speakerAvatarSize + 'px');
   $('#tua-panel-include-preset').prop('checked', s.includePreset !== false);
   $('#tua-panel-include-lorebook').prop('checked', s.includeLorebook !== false);
