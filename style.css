@@ -4161,3 +4161,151 @@ body.tua-panel-resizing-body {
   font: inherit; font-size: 18px !important; line-height: 1 !important;
   cursor: pointer; touch-action: manipulation;
 }
+
+
+/* Home is a view of existing rooms, never a conversation or saved room. */
+#tua-panel .tua-home { display: none; }
+#tua-panel.tua-home-active .tua-roombar-wrap,
+#tua-panel.tua-home-active #tua-room-list,
+#tua-panel.tua-home-active #tua-messages,
+#tua-panel.tua-home-active .tua-input-row,
+#tua-panel.tua-home-active #tua-reply-preview {
+  display: none !important;
+}
+#tua-panel.tua-home-active #tua-home {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 0;
+  padding: 12px;
+  color: var(--tua-text);
+  background: var(--tua-bg);
+}
+#tua-panel.tua-home-active.tua-home-choosing-mode #tua-home {
+  display: none !important;
+}
+#tua-panel.tua-home-active.tua-home-choosing-mode #tua-mode-picker.open {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#tua-panel.tua-home-active.tua-home-choosing-mode #tua-mode-picker.open.tua-group-picker {
+  flex: 1 1 auto;
+  height: min(65dvh, 440px);
+  max-height: min(65dvh, 440px);
+  overflow: hidden;
+}
+#tua-panel #tua-home-new {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: var(--tua-button-bg);
+  color: var(--tua-text);
+  border: 1px solid var(--tua-line);
+  font-size: var(--tua-font-size);
+  font-weight: 700;
+  cursor: pointer;
+}
+#tua-panel #tua-home-new:hover { background: var(--tua-button-hover); }
+#tua-panel .tua-home-list-heading {
+  font-weight: 750;
+  font-size: var(--tua-font-size);
+  padding: 3px 0 0;
+}
+#tua-panel .tua-home-search-wrap { position: relative; flex: 0 0 auto; min-width: 0; }
+#tua-panel #tua-home-search {
+  width: 100%;
+  min-height: 36px;
+  border-radius: 10px;
+  padding: 8px 39px 8px 11px;
+  background: var(--tua-input-bg);
+  color: var(--tua-text);
+  border: 1px solid var(--tua-line);
+  font-size: var(--tua-font-size);
+  box-sizing: border-box;
+}
+#tua-panel #tua-home-search::-webkit-search-cancel-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: none !important;
+}
+#tua-panel #tua-home-search-clear {
+  display: none;
+  position: absolute;
+  right: 6px; top: 50%; transform: translateY(-50%);
+  width: 27px; height: 27px;
+  padding: 0; border: 1px solid var(--tua-line);
+  background: var(--tua-card); color: var(--tua-text);
+  border-radius: 50%;
+  font-size: 17px; line-height: 1;
+  cursor: pointer;
+}
+#tua-panel .tua-home-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1px 2px 8px;
+}
+#tua-panel .tua-home-room {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 66px;
+  padding: 9px 10px;
+  border: 1px solid var(--tua-line);
+  background: var(--tua-card);
+  color: var(--tua-text);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+#tua-panel .tua-home-room:hover { background: var(--tua-button-hover); }
+#tua-panel .tua-home-room-icon {
+  display: inline-flex;
+  flex: 0 0 35px;
+  width: 35px; height: 35px;
+  align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--tua-button-bg);
+  font-size: 17px;
+}
+#tua-panel .tua-home-room-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+#tua-panel .tua-home-room-copy b,
+#tua-panel .tua-home-room-copy small,
+#tua-panel .tua-home-room-preview {
+  min-width: 0; display: block; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+#tua-panel .tua-home-room-copy b {
+  font-size: var(--tua-font-size); font-weight: 700;
+}
+#tua-panel .tua-home-room-copy small,
+#tua-panel .tua-home-room-preview {
+  color: var(--tua-muted);
+  font-size: calc(var(--tua-font-size) - 2px);
+}
+#tua-panel .tua-home-pin { flex: 0 0 auto; font-size: 12px; }
+#tua-panel .tua-home-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--tua-muted);
+  font-size: var(--tua-font-size);
+}

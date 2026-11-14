@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.13
+ * 🐕 콩고물 톡 v5.5.0-rc.14
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.13';
+const EXTENSION_VERSION = '5.5.0-rc.14';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -144,6 +144,14 @@ const UI_ENGLISH = Object.freeze({
   "group.namePlaceholder": "My group",
   "group.search": "Search character sheets…",
   "group.clearSearch": "Clear character search",
+  "home.newChat": "New conversation",
+  "home.list": "Conversations",
+  "home.search": "Search rooms or participants…",
+  "home.clearSearch": "Clear room search",
+  "home.empty": "No conversations yet. Start a new conversation.",
+  "home.noResults": "No matching conversations.",
+  "home.back": "Back to home",
+  "home.title": "Konggomul Talk",
   "group.current": "Current RP character",
   "group.count": "Selected: {0}",
   "group.create": "Create Group Talk",
@@ -428,6 +436,8 @@ const DEFAULT_SETTINGS = Object.freeze({
 
 let activeRoomId = null;
 let roomState = { rooms: [] };
+// The home screen is UI-only, not a room/mode and never part of saved chats.
+let homeVisible = true;
 let explicitRoomSelectionThisSession = false;
 const LAST_ROOM_MIRROR_KEY = 'konggomul-last-selected-room-v1';
 let pendingPersonaChoice = false;
@@ -2953,6 +2963,7 @@ function ensurePanel() {
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
+          <button type="button" id="tua-home-button" title="${uiHtml('home.back')}" aria-label="${uiHtml('home.back')}">⌂</button>
           <button type="button" id="tua-collapse" title="${uiHtml('panel.collapse')}">—</button>
           <button type="button" id="tua-settings-open" title="${uiHtml('panel.settings')}">⚙</button>
           <button type="button" id="tua-close" title="${uiHtml('panel.close')}">×</button>
@@ -2971,6 +2982,15 @@ function ensurePanel() {
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
       <div id="tua-mode-picker" class="tua-mode-picker"></div>
+      <section id="tua-home" class="tua-home" aria-label="${uiHtml('home.title')}">
+        <button type="button" id="tua-home-new" class="tua-home-new">＋ ${uiHtml('home.newChat')}</button>
+        <div class="tua-home-list-heading">${uiHtml('home.list')}</div>
+        <div class="tua-home-search-wrap">
+          <input type="search" id="tua-home-search" placeholder="${uiHtml('home.search')}" aria-label="${uiHtml('home.search')}">
+          <button type="button" id="tua-home-search-clear" aria-label="${uiHtml('home.clearSearch')}" title="${uiHtml('home.clearSearch')}">×</button>
+        </div>
+        <div id="tua-home-list" class="tua-home-list" role="list"></div>
+      </section>
       <div id="tua-in-panel-settings" class="tua-in-panel-settings">
         <div class="tua-settings-title"><span id="tua-settings-icon">🐕</span><span id="tua-settings-title-text">${uiHtml('app.settings')}</span></div>
         <div class="tua-setting-section-label">${uiHtml('settings.common')}</div>
@@ -3112,6 +3132,23 @@ function ensurePanel() {
   document.body.appendChild(panelEl);
 
   $('#tua-close').on('click', () => setPanelVisible(false));
+  $('#tua-home-button').on('click', (event) => { event.preventDefault(); showHome(); });
+  $('#tua-home-new').on('click', event => {
+    event.preventDefault();
+    hideRoomContextMenu(); closeSettingsPanel(); closeRoomList();
+    toggleModePicker(true);
+  });
+  $('#tua-home-search').on('input search', renderHome);
+  $('#tua-home-search-clear').on('click', event => {
+    event.preventDefault();
+    $('#tua-home-search').val('');
+    renderHome();
+    $('#tua-home-search').trigger('focus');
+  });
+  $('#tua-home-list').on('click', 'button[data-owner][data-id]', async function(event) {
+    event.preventDefault();
+    await openSelectedRoom($(this).attr('data-owner'), $(this).attr('data-id'));
+  });
   $('#tua-collapse').on('click', (e) => { e.preventDefault(); e.stopPropagation(); setPanelCollapsed(true); });
   $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } setPanelCollapsed(false); setPanelVisible(true); });
   $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); hideRoomContextMenu(); closeRoomList(); closeModePicker(); $('#tua-in-panel-settings').toggleClass('open'); });
@@ -3425,6 +3462,7 @@ function closeRoomList() {
 
 function closeModePicker() {
   $('#tua-mode-picker').removeClass('open');
+  panelEl?.classList.remove('tua-home-choosing-mode');
   modePickerTargetRoomId = null;
 }
 
@@ -3435,6 +3473,7 @@ function toggleModePicker(force, targetRoomId = null) {
   renderModePicker();
   if (typeof force === 'boolean') picker.toggleClass('open', force);
   else picker.toggleClass('open');
+  panelEl?.classList.toggle('tua-home-choosing-mode', homeVisible && picker.hasClass('open'));
 }
 
 function renderModePicker() {
@@ -3444,6 +3483,10 @@ function renderModePicker() {
   picker.empty();
   const targetRoom = modePickerTargetRoomId ? roomState.rooms.find(room => room.id === modePickerTargetRoomId) : null;
   picker.append(`<div class="tua-mode-picker-title">${uiHtml(targetRoom ? 'room.changeModeTitle' : 'room.modePicker', targetRoom?.title || uiText('room.name'))}</div>`);
+  if (homeVisible && !targetRoom) {
+    picker.append('<button type="button" id="tua-home-picker-back" class="tua-home-picker-back">← ' + uiHtml('home.back') + '</button>');
+    picker.find('#tua-home-picker-back').on('click', closeModePicker);
+  }
   const buttons = $('<div class="tua-mode-picker-buttons"></div>');
   for (const [key, mode] of Object.entries(MODES)) {
     if (targetRoom && (key === 'guestOoc' || key === 'groupTalk')) continue;
@@ -3566,6 +3609,7 @@ async function createGuestOocRoom(characterKey) {
   rememberRecentGuest(selected.key);
   await saveRooms();
   rememberLastActiveRoom();
+  leaveHomeForRoom();
   closeModePicker();
   closeRoomList();
   closeSettingsPanel();
@@ -3686,6 +3730,7 @@ async function createGroupTalkRoom(name, keys, options) {
   await refreshGroupReferenceSnapshot(room);
   await saveRooms();
   rememberLastActiveRoom();
+  leaveHomeForRoom();
   closeModePicker(); closeRoomList(); closeSettingsPanel();
   renderAll(); setPanelVisible(true);
   $('#tua-input').trigger('focus');
@@ -4325,6 +4370,7 @@ async function createRoomWithModeIntro(modeKey) {
   }
   const room = createRoom(false, mode, mode === 'kongtalk');
   rememberLastActiveRoom();
+  leaveHomeForRoom();
   renderAll();
   setPanelVisible(true);
   $('#tua-input').trigger('focus');
@@ -5406,12 +5452,15 @@ function setStatus(_text) { /* v4.5.0: keep settings panel quiet; no visible act
 
 function renderAll() {
   if (!panelEl) return;
+  panelEl.classList.toggle('tua-home-active', homeVisible);
+  $('#tua-home-button').toggle(!homeVisible);
+  $('#tua-home').attr('aria-hidden', homeVisible ? 'false' : 'true');
   const s = getSettings();
-  $('#tua-char-name').text(getRoomMode() === 'groupTalk'
+  $('#tua-char-name').text(homeVisible ? uiText('home.title') : getRoomMode() === 'groupTalk'
     ? getGroupParticipants().map(item => item.name).join(', ') : getSpeakerName());
   const currentMode = getRoomMode();
   const binding = currentMode === 'guestOoc' ? normalizeGuestPersonaBinding(getActiveRoom()?.personaBinding) : null;
-  $('#tua-mode-badge').text(binding ? modeUiLabel(currentMode) + ' · ' + uiText('guest.personaLabel', binding.name, binding.rpCharacterName || '—') : modeUiLabel(currentMode));
+  $('#tua-mode-badge').text(homeVisible ? uiText('home.list') : binding ? modeUiLabel(currentMode) + ' · ' + uiText('guest.personaLabel', binding.name, binding.rpCharacterName || '—') : modeUiLabel(currentMode));
   const activeRoom = getActiveRoom();
   $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${getRoomDisplayTitle(activeRoom)}`);
   $('#tua-pin-room').toggleClass('active', !!activeRoom?.pinned).attr('title', uiText(activeRoom?.pinned ? 'panel.unpinRoom' : 'panel.pinRoom'));
@@ -5422,6 +5471,111 @@ function renderAll() {
   applyVisualSettings();
 }
 
+
+function leaveHomeForRoom() {
+  homeVisible = false;
+  panelEl?.classList.remove('tua-home-choosing-mode');
+}
+
+function showHome() {
+  homeVisible = true;
+  closeRoomList(); closeModePicker(); closeSettingsPanel();
+  hideRoomContextMenu();
+  $('#tua-home-search').val('');
+  renderAll();
+}
+
+// All stores are read, not copied or merged. Regular rooms belong only to
+// the currently selected RP character; guest/group stores remain shared.
+function getVisibleRoomEntries() {
+  const keys = [getCharKey(), GUEST_ROOM_STORE_KEY, GROUP_ROOM_STORE_KEY];
+  const entries = [];
+  for (const ownerKey of keys) {
+    const saved = roomStateCharKey === ownerKey ? roomState : getServerRoomStore()[ownerKey];
+    for (const room of getSortedRooms(saved || { rooms: [] })) entries.push({ room, ownerKey });
+  }
+  entries.sort((a, b) => {
+    if (!!a.room.pinned !== !!b.room.pinned) return a.room.pinned ? -1 : 1;
+    const aLast = getRoomSortTime(a.room);
+    const bLast = getRoomSortTime(b.room);
+    if (aLast !== bLast) return bLast - aLast;
+    return Number(b.room.createdAt || 0) - Number(a.room.createdAt || 0);
+  });
+  return entries;
+}
+
+function getHomeParticipants(room) {
+  if (getRoomMode(room) === 'groupTalk') {
+    const installed = getGroupParticipants(room).map(item => item.name);
+    return installed.length ? installed.join(', ') : (room.groupCharacterKeys || []).join(', ');
+  }
+  if (getRoomMode(room) === 'guestOoc') return String(room.guestCharacterName || '');
+  return getCharName();
+}
+
+function renderHome() {
+  if (!homeVisible) return;
+  const list = $('#tua-home-list');
+  if (!list.length) return;
+  const query = String($('#tua-home-search').val() || '').trim().toLocaleLowerCase();
+  $('#tua-home-search-clear').toggle(!!query);
+  const entries = getVisibleRoomEntries().filter(({room}) => {
+    const haystack = [getRoomDisplayTitle(room), getHomeParticipants(room)]
+      .join(' ').toLocaleLowerCase();
+    return !query || haystack.includes(query);
+  });
+  list.empty();
+  if (!entries.length) {
+    list.append('<div class="tua-home-empty">' + uiHtml(query ? 'home.noResults' : 'home.empty') + '</div>');
+    return;
+  }
+  for (const {room,ownerKey} of entries) {
+    const mode = getRoomMode(room);
+    const icon = mode === 'groupTalk' ? '👥' : mode === 'guestOoc' ? '💬' : '🐕';
+    const participants = getHomeParticipants(room);
+    const last = (Array.isArray(room.messages) ? room.messages : [])
+      .filter(msg => isRoomSortConversationMessage(msg, room) &&
+        !(msg.role === 'assistant' && isKongtalkIntroContent(String(msg.content || '')))).at(-1);
+    const preview = last ? String(last.content || '').replace(/\s+/g, ' ').slice(0, 85) : uiText('room.noMessages');
+    const label = getRoomDisplayTitle(room);
+    const participantSuffix = participants ? ' · ' + participants : '';
+    list.append('<button type="button" class="tua-home-room" role="listitem" data-owner="' +
+      escapeHtml(ownerKey) + '" data-id="' + escapeHtml(room.id) + '">' +
+      '<span class="tua-home-room-icon" aria-hidden="true">' + icon + '</span>' +
+      '<span class="tua-home-room-copy"><b>' + escapeHtml(label) + '</b>' +
+      '<small>' + escapeHtml(modeUiLabel(mode) + participantSuffix) + '</small>' +
+      '<span class="tua-home-room-preview">' + escapeHtml(preview) + '</span></span>' +
+      (room.pinned ? '<span class="tua-home-pin" aria-label="📌">📌</span>' : '') + '</button>');
+  }
+}
+
+async function openSelectedRoom(ownerKey, id) {
+  if (!id || !ownerKey) return false;
+  // A stale button must never redirect to another room by fallback selection.
+  if (!getVisibleRoomEntries().some(entry => entry.ownerKey === ownerKey && entry.room.id === id)) {
+    renderHome(); return false;
+  }
+  hideRoomContextMenu();
+  closeSettingsPanel();
+  if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+  if (ownerKey !== roomStateCharKey) {
+    const loaded = await loadRooms({ storageKey: ownerKey, selectedRoomId: id, skipRender: true });
+    if (!loaded) return false;
+  } else if (roomState.rooms.some(room => room.id === id)) {
+    activeRoomId = id;
+  }
+  if (getActiveRoom()?.id !== id || !roomState.rooms.some(room => room.id === id)) {
+    renderHome(); return false;
+  }
+  const selected = getActiveRoom();
+  rememberLastActiveRoom();
+  if (getRoomMode(selected) === 'guestOoc' && selected.guestCharacterKey) rememberRecentGuest(selected.guestCharacterKey);
+  closeRoomList(); closeModePicker();
+  leaveHomeForRoom();
+  renderAll();
+  scrollMessagesToBottom();
+  return true;
+}
 
 function toggleRoomList(force) {
   const list = $('#tua-room-list');
@@ -5435,20 +5589,7 @@ function renderRoomList() {
   const list = $('#tua-room-list');
   if (!list.length) return;
   list.empty();
-  const currentMainKey = getCharKey();
-  const keys = [currentMainKey, GUEST_ROOM_STORE_KEY, GROUP_ROOM_STORE_KEY];
-  const entries = [];
-  for (const ownerKey of keys) {
-    const state = roomStateCharKey === ownerKey ? roomState : getServerRoomStore()[ownerKey];
-    for (const room of getSortedRooms(state)) entries.push({ room, ownerKey });
-  }
-  entries.sort((a, b) => {
-    if (!!a.room.pinned !== !!b.room.pinned) return a.room.pinned ? -1 : 1;
-    const aLast = getRoomSortTime(a.room);
-    const bLast = getRoomSortTime(b.room);
-    if (aLast !== bLast) return bLast - aLast;
-    return Number(b.room.createdAt || 0) - Number(a.room.createdAt || 0);
-  });
+  const entries = getVisibleRoomEntries();
   for (const { room, ownerKey } of entries) {
     const count = Array.isArray(room.messages) ? room.messages.length : 0;
     const active = room.id === activeRoomId && ownerKey === roomStateCharKey ? 'active' : '';
@@ -5467,23 +5608,8 @@ function renderRoomList() {
         roomContextSuppressClick = false;
         return;
       }
-      const id = String($(this).attr('data-id') || '');
-      const ownerKey = String($(this).attr('data-owner') || '');
-      hideRoomContextMenu();
-      closeSettingsPanel();
-      if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
-      if (ownerKey !== roomStateCharKey) {
-        const loaded = await loadRooms({ storageKey: ownerKey, selectedRoomId: id, skipRender: true });
-        if (!loaded) return;
-      } else {
-        activeRoomId = id;
-      }
-      const selectedRoom = getActiveRoom();
-      rememberLastActiveRoom();
-      if (getRoomMode(selectedRoom) === 'guestOoc' && selectedRoom?.guestCharacterKey) rememberRecentGuest(selectedRoom.guestCharacterKey);
-      $('#tua-room-list').removeClass('open');
-      renderAll();
-      scrollMessagesToBottom();
+      await openSelectedRoom(String($(this).attr('data-owner') || ''),
+        String($(this).attr('data-id') || ''));
     })
     .on('contextmenu.tuaRoom', function (e) {
       e.preventDefault();
@@ -5512,6 +5638,7 @@ function scrollMessagesToBottom() {
 }
 
 function renderMessages() {
+  if (homeVisible) renderHome();
   const box = $('#tua-messages');
   if (!box.length) return;
   const room = getActiveRoom();
@@ -5869,15 +5996,14 @@ function bindRuntimeEvents() {
         if (generationInFlight && (isSharedRoomStore(roomStateCharKey) || activeGenerationTask?.requestCharKey !== getCharKey())) {
           await cancelCurrentGeneration({ persist: true, render: false, announce: false });
         }
-        if (isSharedRoomStore(roomStateCharKey)) {
+        if (homeVisible) {
+          // Refresh the current RP character's room list, not a last-room route.
+          if (!generationInFlight) await loadRooms({ expectedLifecycleEpoch: eventEpoch, storageKey: getCharKey() });
+          renderHome();
+        } else if (isSharedRoomStore(roomStateCharKey)) {
           renderAll();
-        } else if (!(await reconcileLastActiveRoomAfterStartup(eventEpoch))) {
-          // Normal rooms follow the currently selected RP character.
-          if (!isSharedRoomStore(roomStateCharKey) && roomStateCharKey !== getCharKey()) {
-            await loadRooms({ expectedLifecycleEpoch: eventEpoch, storageKey: getCharKey() });
-          } else if (!isSharedRoomStore(roomStateCharKey)) {
-            await loadRooms({ expectedLifecycleEpoch: eventEpoch, storageKey: getCharKey() });
-          }
+        } else {
+          await loadRooms({ expectedLifecycleEpoch: eventEpoch, storageKey: getCharKey() });
         }
       } catch (error) {
         console.warn('[Konggomul] CHAT_CHANGED handler failed', error);
@@ -5946,6 +6072,7 @@ function cleanupRuntimeState() {
   pendingPersonaChoice = false;
   lastRequestPreview = null;
   dataManageScope = 'character';
+  homeVisible = true;
   if (panelEl) setPanelVisible(false, { persistPreference: false });
 }
 
@@ -5975,12 +6102,8 @@ async function init() {
     ensurePanel();
     if (!ensureLauncher()) return false;
     applyVisualSettings();
-    const restored = getRestorableLastActiveRoom();
-    const loaded = await loadRooms({
-      expectedLifecycleEpoch: runEpoch,
-      storageKey: restored?.ownerKey || null,
-      selectedRoomId: restored?.roomId || null,
-    });
+    homeVisible = true;
+    const loaded = await loadRooms({ expectedLifecycleEpoch: runEpoch });
     if (!loaded || !lifecycleEnabled || cleanInProgress || runEpoch !== lifecycleEpoch) return false;
     bindRuntimeEvents();
     const startupSettings = getSettings();
@@ -6012,8 +6135,8 @@ jQuery(() => {
       if (!lifecycleEnabled || cleanInProgress) return;
       try {
         await init();
-        await reconcileLastActiveRoomAfterStartup();
-      } catch (error) { console.warn('[Konggomul] APP_READY restore failed', error); }
+        if (homeVisible) renderHome();
+      } catch (error) { console.warn('[Konggomul] APP_READY home refresh failed', error); }
     };
     if (context.eventSource && context.event_types?.APP_READY) context.eventSource.on(context.event_types.APP_READY, appReadyInitHandler);
   } catch (e) { console.error('[TUA] init failed', e); }

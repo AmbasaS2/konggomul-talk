@@ -98,7 +98,7 @@ Right-click or long-press a message to open its menu.
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
-## 👥 Group Talk — complete speaking turns (5.5.0-rc.13 preview)
+## 👥 Group Talk — complete speaking turns (5.5.0-rc.14 preview)
 
 Create a Group Talk room from the mode picker, name it, and search/select at least two character cards. The current RP character is optional. Participants can be added or removed later. Recent RP, active lorebook, and accessible extension memory are independent reference choices; the same selective collectors as Kongtalk are used.
 
@@ -110,7 +110,7 @@ Create a Group Talk room from the mode picker, name it, and search/select at lea
 
 Settings are now divided into common, Personal Talk advanced, and Group Talk advanced sections, accessible from any room. Group Talk has one global setting shared by all group rooms (including preset inclusion, off by default); each group retains its own members, linked RP, reference snapshot, and history. Existing group settings are migrated from the last selected or most recent group without deleting legacy room data. Speaker avatars now appear in all Kongtalk modes, using the shared size slider.
 
-The last selected room is restored across reloads for Kongtalk, Guest Talk, and Group Talk. If a room was removed or belongs to a different current RP character, startup safely selects a room for the current character.
+A fresh load opens the **Konggomul Talk home** rather than automatically selecting the last room. **New conversation** opens the existing mode picker; **Conversations** shows pinned rooms first, then rooms with the newest actual messages. Search matches room titles and group participant names. Selecting a room opens its exact saved owner and ID; a home button returns from chat to the list. Regular rooms shown on home belong only to the current RP character; existing Guest Talk and Group Talk rooms remain available across RP changes. No home room or duplicate chat data is created.
 
 Group records, settings and participant identities are separate from regular Kongtalk and Guest Talk. Export/import/reset has its own “All Group Talk” scope. Empty send starts or continues the exchange; response regeneration is not offered. If the RP or persona changes, choose whether to retain the saved reference context, use the current RP/persona, or disconnect RP references. Keeping an inactive RP uses its last saved reference snapshot, not a live reread of that chat.
 
@@ -279,7 +279,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
-## 👥 그룹톡 — 발언 단위 대화 (5.5.0-rc.13 미리보기)
+## 👥 그룹톡 — 발언 단위 대화 (5.5.0-rc.14 미리보기)
 
 모드 선택에서 그룹톡을 만들고, 방 이름과 참여 캐릭터 2명 이상을 고릅니다. 게스트톡처럼 캐시트를 검색할 수 있으며 현재 RP 캐릭터는 자유롭게 포함하거나 제외할 수 있습니다. 참여자는 나중에도 추가·제외할 수 있습니다. 최근 RP·로어북·확장 데이터는 각각 선택하며 기존 콩톡의 선택적 수집 방식을 사용합니다.
 
@@ -291,7 +291,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 설정은 모든 방에서 열람할 수 있는 공통 설정·개인톡 고급 설정·그룹톡 고급 설정으로 나눕니다. 그룹톡의 토큰·기억·프리셋 포함(기본 OFF)·참고 자료 설정은 모든 그룹톡방에 공통으로 적용하고, 초대 인원·연결 RP·참고 맥락·대화 기록은 방별로 유지합니다. 기존 그룹톡 설정은 마지막 선택 방 또는 최근 그룹방에서 이관하되 이전 방별 기록은 삭제하지 않습니다. 프로필 이미지는 모든 개인톡 모드에도 표시합니다.
 
-마지막으로 선택한 콩톡·게스트톡·그룹톡 방은 새로고침 후에도 복원합니다. 방이 삭제됐거나 다른 RP 캐릭터의 일반 방이면 현재 캐릭터의 방으로 안전하게 돌아갑니다.
+새로고침하면 마지막 채팅방으로 자동 이동하지 않고 **콩고물톡 홈**이 열립니다. **새로운 대화**를 누르면 기존 모드 선택 화면이, **대화 목록**에서는 고정한 방과 실제 최근 메시지 순으로 정렬된 기존 채팅방이 표시됩니다. 방 이름·그룹톡 참여 캐릭터 이름으로 검색할 수 있으며, 방을 직접 눌러 해당 저장 기록을 엽니다. 채팅방 상단의 집 모양 버튼으로 홈에 돌아갈 수 있습니다. 현재 RP 캐릭터의 개인톡과 저장된 게스트톡·그룹톡만 목록에 표시하며, 새 홈 대화방이나 별도 기록은 만들지 않습니다.
 
 일반 콩톡·게스트톡과 별도 영역에 방·참여자·설정·기록을 저장합니다. ‘전체 그룹톡’ 대상으로 내보내기·가져오기·초기화가 가능합니다. 빈 전송으로 대화를 시작하거나 이어갈 수 있으며 재생성은 제공하지 않습니다. RP·페르소나가 달라지면 저장된 이전 맥락 유지, 현재 맥락 사용, RP 참고 해제 중 선택합니다. 열려 있지 않은 이전 RP는 마지막으로 저장된 참고 내용을 사용하며 실시간으로 다시 읽는 것은 아닙니다.
 
