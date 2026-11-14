@@ -22,6 +22,18 @@ const UI_ENGLISH = Object.freeze({
   "app.short": "Kongtalk",
   "app.settings": "Konggomul Talk Settings",
   "app.settingsShort": "Settings",
+  "modePicker.subtitle": "How would you like to chat?",
+  "modePicker.changeSubtitle": "Choose how to continue chatting.",
+  "modePicker.general": "Everyday chat",
+  "modePicker.rp": "Roleplay extras",
+  "modePicker.title.parallelClassic": "Parallel Universe AU",
+  "modePicker.title.parallel": "Reverse Parallel Universe AU",
+  "modePicker.desc.kongtalk": "Chat one-on-one with the current character",
+  "modePicker.desc.guestOoc": "Chat with a different character",
+  "modePicker.desc.groupTalk": "Bring multiple characters into one conversation",
+  "modePicker.desc.rpAssistant": "Discuss how the RP should unfold with your character",
+  "modePicker.desc.parallelClassic": "Watch the RP as a show with the character's original personality",
+  "modePicker.desc.parallel": "Watch the RP as a show with the character's opposite personality",
   "mode.kongtalk": "Kongtalk",
   "mode.rpAssistant": "RP Assistant Mode",
   "mode.guestOoc": "Guest Talk",
@@ -3479,21 +3491,36 @@ function toggleModePicker(force, targetRoomId = null) {
 function renderModePicker() {
   const picker = $('#tua-mode-picker');
   if (!picker.length) return;
-  picker.removeClass('tua-group-picker');
+  picker.removeClass('tua-group-picker').addClass('tua-mode-selection');
   picker.empty();
   const targetRoom = modePickerTargetRoomId ? roomState.rooms.find(room => room.id === modePickerTargetRoomId) : null;
-  picker.append(`<div class="tua-mode-picker-title">${uiHtml(targetRoom ? 'room.changeModeTitle' : 'room.modePicker', targetRoom?.title || uiText('room.name'))}</div>`);
-  if (homeVisible && !targetRoom) {
-    picker.append('<button type="button" id="tua-home-picker-back" class="tua-home-picker-back">← ' + uiHtml('home.back') + '</button>');
-    picker.find('#tua-home-picker-back').on('click', closeModePicker);
+  const showHomeBack = homeVisible && !targetRoom;
+  const heading = $('<div class="tua-mode-picker-heading"></div>');
+  if (showHomeBack) {
+    heading.append(`<button type="button" id="tua-home-picker-back" class="tua-home-picker-back" title="${uiHtml('home.back')}" aria-label="${uiHtml('home.back')}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>`);
   }
-  const buttons = $('<div class="tua-mode-picker-buttons"></div>');
-  for (const [key, mode] of Object.entries(MODES)) {
-    if (targetRoom && (key === 'guestOoc' || key === 'groupTalk')) continue;
-    const active = targetRoom && getRoomMode(targetRoom) === key ? ' active' : '';
-    buttons.append(`<button type="button" class="${active}" data-mode="${escapeHtml(key)}">${key === 'guestOoc' ? uiHtml('mode.guestOocPicker') : key === 'groupTalk' ? uiHtml('mode.groupTalkPicker') : uiHtml('mode.' + key)}</button>`);
+  heading.append(`<div class="tua-mode-picker-heading-copy"><div class="tua-mode-picker-title">${targetRoom ? uiHtml('room.changeModeTitle', targetRoom.title || uiText('room.name')) : uiHtml('home.newChat')}</div><div class="tua-mode-picker-subtitle">${uiHtml(targetRoom ? 'modePicker.changeSubtitle' : 'modePicker.subtitle')}</div></div>`);
+  picker.append(heading);
+  if (showHomeBack) picker.find('#tua-home-picker-back').on('click', closeModePicker);
+  const sections = [
+    { title: 'modePicker.general', keys: ['kongtalk', 'guestOoc', 'groupTalk'] },
+    { title: 'modePicker.rp', keys: ['rpAssistant', 'parallelClassic', 'parallel'] },
+  ];
+  const icons = { kongtalk: '💬', guestOoc: '🛎️', groupTalk: '👥', rpAssistant: '🧭', parallelClassic: '🎬', parallel: '🙃' };
+  for (const section of sections) {
+    const buttons = $('<div class="tua-mode-picker-buttons"></div>');
+    for (const key of section.keys) {
+      if (targetRoom && (key === 'guestOoc' || key === 'groupTalk')) continue;
+      const active = targetRoom && getRoomMode(targetRoom) === key ? ' active' : '';
+      const titleKey = key === 'parallelClassic' ? 'modePicker.title.parallelClassic' : key === 'parallel' ? 'modePicker.title.parallel' : 'mode.' + key;
+      buttons.append(`<button type="button" class="tua-mode-card${active}" data-mode="${escapeHtml(key)}"${active ? ' aria-current="true"' : ''}><span class="tua-mode-card-icon" aria-hidden="true">${icons[key]}</span><span class="tua-mode-card-copy"><span class="tua-mode-card-title">${uiHtml(titleKey)}</span><span class="tua-mode-card-desc">${uiHtml('modePicker.desc.' + key)}</span></span><i class="fa-solid fa-chevron-right tua-mode-card-chevron" aria-hidden="true"></i></button>`);
+    }
+    if (!buttons.children().length) continue;
+    const sectionEl = $('<section class="tua-mode-picker-section"></section>');
+    sectionEl.append(`<div class="tua-mode-picker-section-title">${uiHtml(section.title)}</div>`);
+    sectionEl.append(buttons);
+    picker.append(sectionEl);
   }
-  picker.append(buttons);
   picker.find('button[data-mode]').on('click', async function () {
     const button = $(this);
     if (button.data('busy')) return;
@@ -3516,7 +3543,6 @@ function renderModePicker() {
     }
   });
 }
-
 
 function getInstalledGuestCharacters() {
   const characters = ctx().characters;
@@ -3541,6 +3567,7 @@ function rememberRecentGuest(characterKey) {
 function renderGuestCharacterPicker() {
   const picker = $('#tua-mode-picker');
   if (!picker.length) return;
+  picker.removeClass('tua-mode-selection');
   const characters = getInstalledGuestCharacters();
   if (!characters.length) {
     picker.empty().append(`<div class="tua-mode-picker-title">${uiHtml('guest.noCharacters')}</div>`);
@@ -3624,6 +3651,7 @@ async function createGuestOocRoom(characterKey) {
 function renderGroupCharacterPicker(editRoom = null) {
   if (generationInFlight || groupStartPending) return;
   const picker = $('#tua-mode-picker');
+  picker.removeClass('tua-mode-selection');
   const characters = getInstalledGuestCharacters();
   const editing = !!editRoom && getRoomMode(editRoom) === 'groupTalk';
   const selected = new Set(editing ? editRoom.groupCharacterKeys : []);
