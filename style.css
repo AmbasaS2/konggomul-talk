@@ -2760,6 +2760,7 @@ body.tua-panel-resizing-body {
 /* Theme-colored overlay/auto scrollbars when fixed scrollbar is off. */
 @supports (-moz-appearance: none) {
   #tua-panel:not(.tua-fixed-scrollbar) .tua-messages,
+  #tua-panel:not(.tua-fixed-scrollbar) #tua-home-list,
   #tua-panel:not(.tua-fixed-scrollbar) .tua-room-list,
   #tua-panel:not(.tua-fixed-scrollbar) .tua-in-panel-settings,
   #tua-panel:not(.tua-fixed-scrollbar) .tua-mode-picker,
@@ -2770,6 +2771,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel:not(.tua-fixed-scrollbar) .tua-messages::-webkit-scrollbar,
+#tua-panel:not(.tua-fixed-scrollbar) #tua-home-list::-webkit-scrollbar,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-room-list::-webkit-scrollbar,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-in-panel-settings::-webkit-scrollbar,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-mode-picker::-webkit-scrollbar,
@@ -2779,6 +2781,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel:not(.tua-fixed-scrollbar) .tua-messages::-webkit-scrollbar-track,
+#tua-panel:not(.tua-fixed-scrollbar) #tua-home-list::-webkit-scrollbar-track,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-room-list::-webkit-scrollbar-track,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-in-panel-settings::-webkit-scrollbar-track,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-mode-picker::-webkit-scrollbar-track,
@@ -2787,6 +2790,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel:not(.tua-fixed-scrollbar) .tua-messages::-webkit-scrollbar-thumb,
+#tua-panel:not(.tua-fixed-scrollbar) #tua-home-list::-webkit-scrollbar-thumb,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-room-list::-webkit-scrollbar-thumb,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-in-panel-settings::-webkit-scrollbar-thumb,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-mode-picker::-webkit-scrollbar-thumb,
@@ -2798,6 +2802,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel:not(.tua-fixed-scrollbar) .tua-messages::-webkit-scrollbar-thumb:hover,
+#tua-panel:not(.tua-fixed-scrollbar) #tua-home-list::-webkit-scrollbar-thumb:hover,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-room-list::-webkit-scrollbar-thumb:hover,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-in-panel-settings::-webkit-scrollbar-thumb:hover,
 #tua-panel:not(.tua-fixed-scrollbar) .tua-mode-picker::-webkit-scrollbar-thumb:hover,
@@ -2809,6 +2814,7 @@ body.tua-panel-resizing-body {
 /* Fixed scrollbar option. When disabled, the panel falls back to the browser's
    normal overlay/auto scrollbar behavior. */
 #tua-panel.tua-fixed-scrollbar .tua-messages,
+#tua-panel.tua-fixed-scrollbar #tua-home-list,
 #tua-panel.tua-fixed-scrollbar .tua-room-list,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker {
@@ -2824,6 +2830,7 @@ body.tua-panel-resizing-body {
    Chromium/WebKit can render the full custom scrollbar below. */
 @supports (-moz-appearance: none) {
   #tua-panel.tua-fixed-scrollbar .tua-messages,
+  #tua-panel.tua-fixed-scrollbar #tua-home-list,
   #tua-panel.tua-fixed-scrollbar .tua-room-list,
   #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings,
   #tua-panel.tua-fixed-scrollbar .tua-mode-picker,
@@ -2834,6 +2841,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar,
@@ -2844,6 +2852,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-track,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-track,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-track,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-track,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-track,
@@ -2854,6 +2863,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-thumb,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-thumb,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-thumb,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-thumb,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-thumb,
@@ -2866,6 +2876,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-thumb:hover,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-thumb:hover,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-thumb:hover,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-thumb:hover,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-thumb:hover,
@@ -2875,6 +2886,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical,
@@ -2888,6 +2900,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:decrement,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:decrement,
@@ -2899,6 +2912,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:increment,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:increment,
@@ -2910,6 +2924,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:hover,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:hover,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:hover,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:hover,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:hover,
@@ -2918,6 +2933,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-corner,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-corner,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-corner,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-corner,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-corner,
@@ -3034,6 +3050,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar,
@@ -3043,6 +3060,7 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical,
@@ -3057,11 +3075,13 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:decrement,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:decrement,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:decrement,
@@ -3080,11 +3100,13 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:increment,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:increment,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:increment,
@@ -3103,11 +3125,13 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:increment,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:increment,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:increment,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:increment,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:increment,
 #tua-panel.tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:vertical:start:increment,
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:decrement,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:decrement,
@@ -3120,21 +3144,25 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:decrement,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:decrement,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:increment,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel.tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:increment,
+#tua-panel.tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel.tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:increment,
@@ -3152,11 +3180,13 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:decrement,
+#tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:decrement,
+#tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:decrement,
@@ -3164,11 +3194,13 @@ body.tua-panel-resizing-body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5' viewBox='0 0 7 5'%3E%3Cpath d='M3.5 0 L7 5 H0 Z' fill='%238e6a45'/%3E%3C/svg%3E") !important;
 }
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:increment,
+#tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:increment,
+#tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="konggomul"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:increment,
@@ -3177,11 +3209,13 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:decrement,
+#tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:decrement,
+#tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:decrement,
@@ -3189,11 +3223,13 @@ body.tua-panel-resizing-body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5' viewBox='0 0 7 5'%3E%3Cpath d='M3.5 0 L7 5 H0 Z' fill='%239e6f68'/%3E%3C/svg%3E") !important;
 }
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:increment,
+#tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:increment,
+#tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="chocoStrawberry"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:increment,
@@ -3202,11 +3238,13 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:decrement,
+#tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:decrement,
+#tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:decrement,
@@ -3214,11 +3252,13 @@ body.tua-panel-resizing-body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5' viewBox='0 0 7 5'%3E%3Cpath d='M3.5 0 L7 5 H0 Z' fill='%23789d68'/%3E%3C/svg%3E") !important;
 }
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:increment,
+#tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:increment,
+#tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="melonSoda"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:increment,
@@ -3227,11 +3267,13 @@ body.tua-panel-resizing-body {
 }
 
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:decrement,
+#tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:decrement,
+#tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:decrement,
@@ -3239,11 +3281,13 @@ body.tua-panel-resizing-body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5' viewBox='0 0 7 5'%3E%3Cpath d='M3.5 0 L7 5 H0 Z' fill='%23727277'/%3E%3C/svg%3E") !important;
 }
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:increment,
+#tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:increment,
+#tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="blackWhite"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:increment,
@@ -3852,53 +3896,53 @@ body.tua-panel-resizing-body {
   align-self: stretch;
 }
 
-/* Custom theme: render real arrow glyph silhouettes, not overlapping gradient triangles.
-   The arrow inherits SillyTavern theme color; other theme scrollbars are untouched. */
+/* Custom theme: draw up/down triangles in CSS. WebKit scrollbar buttons do not
+   reliably render SVG masks, so keep the arrows in the background image instead. */
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:decrement,
+#tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:start:decrement,
+#tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:start:decrement,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:vertical:start:decrement {
-  background: var(--tua-scrollbar-arrow) !important;
-  background-image: none !important;
+  background-color: var(--tua-scrollbar-track) !important;
+  background-image: conic-gradient(from 145deg at 50% 0%, var(--tua-scrollbar-arrow) 0deg 70deg, transparent 70deg 360deg) !important;
+  background-position: center !important;
+  background-size: 7px 5px !important;
+  background-repeat: no-repeat !important;
   border: 0 !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5' viewBox='0 0 7 5'%3E%3Cpath d='M3.5 0 L7 5 H0 Z' fill='%23000'/%3E%3C/svg%3E") !important;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5' viewBox='0 0 7 5'%3E%3Cpath d='M3.5 0 L7 5 H0 Z' fill='%23000'/%3E%3C/svg%3E") !important;
-  -webkit-mask-position: center !important;
-  mask-position: center !important;
-  -webkit-mask-size: 7px 5px !important;
-  mask-size: 7px 5px !important;
-  -webkit-mask-repeat: no-repeat !important;
-  mask-repeat: no-repeat !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:single-button:vertical:increment,
+#tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:single-button:vertical:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-messages::-webkit-scrollbar-button:vertical:end:increment,
+#tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar #tua-home-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-room-list::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-in-panel-settings::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar .tua-mode-picker::-webkit-scrollbar-button:vertical:end:increment,
 #tua-panel[data-tua-theme="custom"].tua-fixed-scrollbar #tua-input::-webkit-scrollbar-button:vertical:end:increment {
-  background: var(--tua-scrollbar-arrow) !important;
-  background-image: none !important;
+  background-color: var(--tua-scrollbar-track) !important;
+  background-image: conic-gradient(from 325deg at 50% 100%, var(--tua-scrollbar-arrow) 0deg 70deg, transparent 70deg 360deg) !important;
+  background-position: center !important;
+  background-size: 7px 5px !important;
+  background-repeat: no-repeat !important;
   border: 0 !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5' viewBox='0 0 7 5'%3E%3Cpath d='M0 0 H7 L3.5 5 Z' fill='%23000'/%3E%3C/svg%3E") !important;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5' viewBox='0 0 7 5'%3E%3Cpath d='M0 0 H7 L3.5 5 Z' fill='%23000'/%3E%3C/svg%3E") !important;
-  -webkit-mask-position: center !important;
-  mask-position: center !important;
-  -webkit-mask-size: 7px 5px !important;
-  mask-size: 7px 5px !important;
-  -webkit-mask-repeat: no-repeat !important;
-  mask-repeat: no-repeat !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 
 
@@ -4184,6 +4228,17 @@ body.tua-panel-resizing-body {
 }
 #tua-panel.tua-home-active.tua-home-choosing-mode #tua-home {
   display: none !important;
+}
+/* Home settings replace the room list beneath the persistent header. */
+#tua-panel.tua-home-active.tua-home-settings-open #tua-home {
+  display: none !important;
+}
+#tua-panel.tua-home-active.tua-home-settings-open #tua-in-panel-settings.open {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 #tua-panel.tua-home-active.tua-home-choosing-mode #tua-mode-picker.open {
   flex: 1 1 auto;

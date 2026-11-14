@@ -3163,7 +3163,16 @@ function ensurePanel() {
   });
   $('#tua-collapse').on('click', (e) => { e.preventDefault(); e.stopPropagation(); setPanelCollapsed(true); });
   $('#tua-collapsed-button').on('click', (e) => { e.preventDefault(); e.stopPropagation(); if (collapsedButtonSuppressClick) { collapsedButtonSuppressClick = false; return; } setPanelCollapsed(false); setPanelVisible(true); });
-  $('#tua-settings-open').on('click', (e) => { e.preventDefault(); e.stopPropagation(); hideRoomContextMenu(); closeRoomList(); closeModePicker(); $('#tua-in-panel-settings').toggleClass('open'); });
+  $('#tua-settings-open').on('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    hideRoomContextMenu();
+    closeRoomList();
+    closeModePicker();
+    const settingsPanel = $('#tua-in-panel-settings');
+    settingsPanel.toggleClass('open');
+    panelEl?.classList.toggle('tua-home-settings-open', homeVisible && settingsPanel.hasClass('open'));
+  });
   $('#tua-active-room-title')
     .on('click', (e) => {
       e.preventDefault();
@@ -3466,6 +3475,7 @@ function makePanelDraggable() {
 
 function closeSettingsPanel() {
   $('#tua-in-panel-settings').removeClass('open');
+  panelEl?.classList.remove('tua-home-settings-open');
 }
 
 function closeRoomList() {
@@ -5500,7 +5510,7 @@ function renderAll() {
 
 function leaveHomeForRoom() {
   homeVisible = false;
-  panelEl?.classList.remove('tua-home-choosing-mode');
+  panelEl?.classList.remove('tua-home-choosing-mode', 'tua-home-settings-open');
 }
 
 function showHome() {
