@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.14
+ * 🐕 콩고물 톡 v5.5.0-rc.15
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.14';
+const EXTENSION_VERSION = '5.5.0-rc.15';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -2963,21 +2963,21 @@ function ensurePanel() {
           <div class="tua-subtitle"><span id="tua-char-name">Character</span> · <span id="tua-mode-badge">Mode</span></div>
         </div>
         <div class="tua-header-actions">
-          <button type="button" id="tua-home-button" title="${uiHtml('home.back')}" aria-label="${uiHtml('home.back')}">⌂</button>
-          <button type="button" id="tua-collapse" title="${uiHtml('panel.collapse')}">—</button>
-          <button type="button" id="tua-settings-open" title="${uiHtml('panel.settings')}">⚙</button>
-          <button type="button" id="tua-close" title="${uiHtml('panel.close')}">×</button>
+          <button type="button" id="tua-home-button" title="${uiHtml('home.back')}" aria-label="${uiHtml('home.back')}"><i class="fa-solid fa-house" aria-hidden="true"></i></button>
+          <button type="button" id="tua-collapse" title="${uiHtml('panel.collapse')}" aria-label="${uiHtml('panel.collapse')}"><i class="fa-solid fa-minus" aria-hidden="true"></i></button>
+          <button type="button" id="tua-settings-open" title="${uiHtml('panel.settings')}" aria-label="${uiHtml('panel.settings')}"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+          <button type="button" id="tua-close" title="${uiHtml('panel.close')}" aria-label="${uiHtml('panel.close')}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
         </div>
       </div>
       <div class="tua-roombar-wrap">
         <div class="tua-roombar">
           <button type="button" id="tua-active-room-title" class="tua-active-room-title" title="${uiHtml('panel.openRooms')}"></button>
           <div class="tua-room-actions" id="tua-room-actions">
-            <button type="button" id="tua-new-room" title="${uiHtml('panel.newRoom')}">＋</button>
-            <button type="button" id="tua-pin-room" title="${uiHtml('panel.pinRoom')}">📌</button>
-            <button type="button" id="tua-delete-room" title="${uiHtml('panel.deleteRoom')}">🗑️</button>
+            <button type="button" id="tua-new-room" title="${uiHtml('panel.newRoom')}" aria-label="${uiHtml('panel.newRoom')}"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
+            <button type="button" id="tua-pin-room" title="${uiHtml('panel.pinRoom')}" aria-label="${uiHtml('panel.pinRoom')}"><i class="fa-solid fa-thumbtack" aria-hidden="true"></i></button>
+            <button type="button" id="tua-delete-room" title="${uiHtml('panel.deleteRoom')}" aria-label="${uiHtml('panel.deleteRoom')}"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
           </div>
-          <button type="button" id="tua-roombar-toggle" class="tua-roombar-toggle" title="${uiHtml('panel.expandActions')}" aria-label="${uiHtml('panel.expandActions')}">⋯</button>
+          <button type="button" id="tua-roombar-toggle" class="tua-roombar-toggle" title="${uiHtml('panel.expandActions')}" aria-label="${uiHtml('panel.expandActions')}"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button>
         </div>
       </div>
       <div id="tua-room-list" class="tua-room-list"></div>
@@ -3796,7 +3796,7 @@ function applyRoomActionsCollapseState() {
   if (panelEl) panelEl.classList.toggle('tua-room-actions-collapsed', collapsed);
   const button = $('#tua-roombar-toggle');
   if (button.length) {
-    button.text(collapsed ? '⋯' : '‹')
+    button.html('<i class="fa-solid ' + (collapsed ? 'fa-ellipsis' : 'fa-chevron-left') + '" aria-hidden="true"></i>')
       .attr('title', uiText(collapsed ? 'panel.expandActions' : 'panel.collapseActions'))
       .attr('aria-label', uiText(collapsed ? 'panel.expandActions' : 'panel.collapseActions'));
   }
@@ -5418,10 +5418,8 @@ function applyThemeUI() {
     $('#tua-title-text').text(simple ? '' : uiText('app.short'));
     $('#tua-settings-icon').text(theme.titleIcon).toggle(!!theme.titleIcon);
     $('#tua-settings-title-text').text(uiText(simple ? 'app.settingsShort' : 'app.settings'));
-    $('#tua-settings-open').text('⚙');
-    $('#tua-new-room').text(simple ? '+' : '＋');
-    $('#tua-pin-room').text(simple ? '⌖' : '📌');
-    $('#tua-delete-room').text(simple ? '⌫' : '🗑️');
+    // Keep functional Font Awesome icons through theme changes.
+    // Theme title, mascot, and send icon continue using the theme's own emojis.
     refreshSendButtonState();
     $('#tua-collapsed-button .tua-collapsed-emoji').text(theme.titleIcon).toggle(!!theme.titleIcon);
   }

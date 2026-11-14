@@ -4309,3 +4309,26 @@ body.tua-panel-resizing-body {
   color: var(--tua-muted);
   font-size: var(--tua-font-size);
 }
+
+
+/* Same header height in Home and Chat, preserving the existing compact
+   Simple theme height and unaffected mascot and send button. */
+#tua-panel:not(.tua-collapsed) .tua-header {
+  min-height: 48px !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto;
+}
+#tua-panel[data-tua-theme="blackWhite"]:not(.tua-collapsed) .tua-header {
+  min-height: 42px !important;
+}
+
+/* Header and toolbar Font Awesome function icons only. */
+#tua-panel .tua-header-actions button > .fa-solid,
+#tua-panel .tua-room-actions button > .fa-solid,
+#tua-panel .tua-roombar-toggle > .fa-solid {
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+}
