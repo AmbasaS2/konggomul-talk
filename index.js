@@ -2,14 +2,14 @@ import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.0-rc.8
+ * 🐕 콩고물 톡 v5.5.0-rc.9
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.0-rc.8';
+const EXTENSION_VERSION = '5.5.0-rc.9';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -406,6 +406,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   characterRooms: {},
   guestRecentCharacters: [],
   guestVoiceNotes: {},
+  lastActiveRoom: null,
   profileSettingsV407Migrated: false
 });
 
@@ -1078,6 +1079,42 @@ function getRoomSortTime(room) {
   return getRoomLastMessageAt(room) || 0;
 }
 
+// Restore only an existing room in the current RP character store or either
+// shared store. A stale/deleted/foreign-character selection falls back safely.
+function getRestorableLastActiveRoom() {
+  const selection = getSettings().lastActiveRoom;
+  if (!selection || typeof selection !== 'object') return null;
+  const ownerKey = String(selection.ownerKey || '');
+  const roomId = String(selection.roomId || '');
+  if (!ownerKey || !roomId) return null;
+  if (!isSharedRoomStore(ownerKey) && ownerKey !== getCharKey()) return null;
+  const saved = getServerRoomStore()[ownerKey];
+  const room = Array.isArray(saved?.rooms) ? saved.rooms.find(item => item?.id === roomId) : null;
+  if (!room) return null;
+  if (ownerKey === GUEST_ROOM_STORE_KEY && migrateModeKey(room.mode) !== 'guestOoc') return null;
+  if (ownerKey === GROUP_ROOM_STORE_KEY && migrateModeKey(room.mode) !== 'groupTalk') return null;
+  return { ownerKey, roomId };
+}
+
+function rememberLastActiveRoom() {
+  if (!lifecycleEnabled || cleanInProgress || !roomStateCharKey) return;
+  const selected = roomState.rooms.find(room => room.id === activeRoomId);
+  if (!selected) return;
+  if (!isSharedRoomStore(roomStateCharKey) && roomStateCharKey !== getCharKey()) return;
+  const settings = getSettings();
+  if (settings.lastActiveRoom?.ownerKey === roomStateCharKey &&
+      settings.lastActiveRoom?.roomId === activeRoomId) return;
+  settings.lastActiveRoom = { ownerKey: roomStateCharKey, roomId: activeRoomId };
+  saveSettings();
+}
+
+function clearLastActiveRoomIfDeleted(ownerKey, roomId) {
+  const settings = getSettings();
+  if (settings.lastActiveRoom?.ownerKey !== ownerKey || settings.lastActiveRoom?.roomId !== roomId) return;
+  settings.lastActiveRoom = null;
+  saveSettings();
+}
+
 function getMostRecentRoomId(data = roomState) {
   const rooms = Array.isArray(data?.rooms) ? data.rooms : [];
   return [...rooms].sort((a, b) => {
@@ -1276,10 +1313,13 @@ function deleteRoom(id) {
   if (!roomState.deletedRooms || typeof roomState.deletedRooms !== 'object' || Array.isArray(roomState.deletedRooms)) roomState.deletedRooms = {};
   if (id) roomState.deletedRooms[String(id)] = deletedAt;
   roomState.rooms = roomState.rooms.filter(r => r.id !== id);
+  clearLastActiveRoomIfDeleted(roomStateCharKey, String(id || ''));
   if (!roomState.rooms.length && isSharedRoomStore(roomStateCharKey)) {
     activeRoomId = null;
     roomState.updatedAt = deletedAt;
-    void saveRooms().then(() => loadRooms({ storageKey: getCharKey() })).catch(error => console.error('[Konggomul] return to main rooms failed', error));
+    void saveRooms().then(async () => {
+      if (await loadRooms({ storageKey: getCharKey() })) rememberLastActiveRoom();
+    }).catch(error => console.error('[Konggomul] return to main rooms failed', error));
     return true;
   }
   if (!roomState.rooms.length) createRoom(false, 'kongtalk', true);
@@ -1288,6 +1328,7 @@ function deleteRoom(id) {
   }
   roomState.updatedAt = deletedAt;
   saveRooms();
+  rememberLastActiveRoom();
   renderAll();
   return true;
 }
@@ -2854,9 +2895,13 @@ function ensurePanel() {
         </label>
         <details class="tua-advanced-settings">
           <summary>${uiHtml('panel.advanced')}</summary>
-          <label title="${uiHtml('panel.speakerAvatarSizeHint')}">${uiHtml('panel.speakerAvatarSize')}
-            <input id="tua-panel-avatar-size" type="number" min="18" max="48" step="1">
-          </label>
+          <div class="tua-avatar-size-control" title="${uiHtml('panel.speakerAvatarSizeHint')}">
+            <label for="tua-panel-avatar-size">${uiHtml('panel.speakerAvatarSize')}
+              <output id="tua-panel-avatar-size-value" for="tua-panel-avatar-size">26px</output>
+            </label>
+            <input id="tua-panel-avatar-size" type="range" min="18" max="48" step="1" value="26">
+            <div class="tua-avatar-size-limits"><span>18px</span><span>48px</span></div>
+          </div>
           <label class="tua-checkbox-row" title="${uiHtml('panel.presetHint')}">
             <input id="tua-panel-include-preset" type="checkbox">
             <span>${uiHtml('panel.preset')}</span>
@@ -2961,7 +3006,12 @@ function ensurePanel() {
   $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
   $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); } });
   $('#tua-input').on('input', autoGrowInput);
-  $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-memory,#tua-panel-font,#tua-panel-avatar-size,#tua-panel-user-nickname').on('change blur', readPanelSettingsUI);
+  $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-memory,#tua-panel-font,#tua-panel-user-nickname').on('change blur', readPanelSettingsUI);
+  $('#tua-panel-avatar-size').on('input', function () {
+    const size = clampInt(this.value, 18, 48, DEFAULT_SETTINGS.speakerAvatarSize);
+    $('#tua-panel-avatar-size-value').text(size + 'px');
+    document.documentElement.style.setProperty('--tua-speaker-avatar-size', size + 'px');
+  }).on('change', readPanelSettingsUI);
   $('#tua-panel-sentence-count,#tua-panel-output-language').on('change', readPanelSettingsUI);
   $('#tua-panel-include-preset,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-fixed-scrollbar').on('change', readPanelSettingsUI);
   $('#tua-panel-voice-note').on('change input', readPanelSettingsUI);
@@ -3376,6 +3426,7 @@ async function createGuestOocRoom(characterKey) {
   room.messages.push({ id: 'msg_intro_guest_' + now, role: 'assistant', content: getKongtalkIntroIcon(), at: now });
   rememberRecentGuest(selected.key);
   await saveRooms();
+  rememberLastActiveRoom();
   closeModePicker();
   closeRoomList();
   closeSettingsPanel();
@@ -3488,6 +3539,7 @@ async function createGroupTalkRoom(name, keys, options) {
   room.groupSnapshot = { persona: groupPersonaText(), recent: '', lorebook: '', extensionMemory: '' };
   await refreshGroupReferenceSnapshot(room);
   await saveRooms();
+  rememberLastActiveRoom();
   closeModePicker(); closeRoomList(); closeSettingsPanel();
   renderAll(); setPanelVisible(true);
   $('#tua-input').trigger('focus');
@@ -4110,6 +4162,7 @@ async function createRoomWithModeIntro(modeKey) {
     if (!loaded) return null;
   }
   const room = createRoom(false, mode, mode === 'kongtalk');
+  rememberLastActiveRoom();
   renderAll();
   setPanelVisible(true);
   $('#tua-input').trigger('focus');
@@ -4928,6 +4981,7 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-user-nickname').val(s.userKongtalkNickname ?? DEFAULT_SETTINGS.userKongtalkNickname);
   $('#tua-panel-font').val(s.fontSize);
   $('#tua-panel-avatar-size').val(s.speakerAvatarSize);
+  $('#tua-panel-avatar-size-value').text(s.speakerAvatarSize + 'px');
   $('#tua-panel-include-preset').prop('checked', s.includePreset !== false);
   $('#tua-panel-include-lorebook').prop('checked', s.includeLorebook !== false);
   $('#tua-panel-include-extension-memory').prop('checked', s.includeExtensionMemory !== false);
@@ -5022,6 +5076,7 @@ function readPanelSettingsUI() {
   if (avatarValue !== '') {
     s.speakerAvatarSize = clampInt(avatarValue, 18, 48, DEFAULT_SETTINGS.speakerAvatarSize);
     $('#tua-panel-avatar-size').val(s.speakerAvatarSize);
+    $('#tua-panel-avatar-size-value').text(s.speakerAvatarSize + 'px');
   }
 
   if (!group) setVoiceNote($('#tua-panel-voice-note').val() || '');
@@ -5254,6 +5309,7 @@ function renderRoomList() {
         activeRoomId = id;
       }
       const selectedRoom = getActiveRoom();
+      rememberLastActiveRoom();
       if (getRoomMode(selectedRoom) === 'guestOoc' && selectedRoom?.guestCharacterKey) rememberRecentGuest(selectedRoom.guestCharacterKey);
       $('#tua-room-list').removeClass('open');
       renderAll();
@@ -5490,6 +5546,7 @@ async function openRoomContextMenuForRoom(roomId, x, y, ownerKey = roomStateChar
     if (generationInFlight) return;
     const loaded = await loadRooms({ storageKey: ownerKey, selectedRoomId: roomId, skipRender: true });
     if (!loaded) return;
+    rememberLastActiveRoom();
     renderAll();
   }
   if (!roomState.rooms.some(room => room.id === roomId)) return;
@@ -5739,7 +5796,12 @@ async function init() {
     ensurePanel();
     if (!ensureLauncher()) return false;
     applyVisualSettings();
-    const loaded = await loadRooms({ expectedLifecycleEpoch: runEpoch });
+    const restored = getRestorableLastActiveRoom();
+    const loaded = await loadRooms({
+      expectedLifecycleEpoch: runEpoch,
+      storageKey: restored?.ownerKey || null,
+      selectedRoomId: restored?.roomId || null,
+    });
     if (!loaded || !lifecycleEnabled || cleanInProgress || runEpoch !== lifecycleEpoch) return false;
     bindRuntimeEvents();
     const startupSettings = getSettings();

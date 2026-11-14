@@ -98,15 +98,17 @@ Right-click or long-press a message to open its menu.
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
-## 👥 Group Talk — complete speaking turns (5.5.0-rc.8 preview)
+## 👥 Group Talk — complete speaking turns (5.5.0-rc.9 preview)
 
 Create a Group Talk room from the mode picker, name it, and search/select at least two character cards. The current RP character is optional. Participants can be added or removed later. Recent RP, active lorebook, and accessible extension memory are independent reference choices; the same selective collectors as Kongtalk are used.
 
 **One request, one shared answer length.** The default target is **1,000 tokens total**, shared naturally among the characters—not 1,000 tokens per character. Change it from 100 to 8,000 in this room's Advanced settings. Group Talk enforces a separate actual output cap (target plus a small JSON-formatting margin), including when using a dedicated connection profile. Ordinary Kongtalk and Guest Talk retain their previous request limits. Speakers join only when relevant; no roll call or equal airtime is required.
 
-**One speaking turn, one bubble.** A character can develop a thought across sentences and paragraphs without being split at each sentence. Completed turns arrive sequentially. Speaker names in Group Talk and Guest Talk include round character-card avatars, with one shared size in Advanced settings (18–48 px, default 26). Reading position and existing text selection are preserved; when starting at the bottom, only the beginning of the first reply is revealed. Later arrivals never force the view downward. “Show all” reveals the remaining turns. A new user message during delivery cancels only the undisplayed turns and starts a new request.
+**One speaking turn, one bubble.** A character can develop a thought across sentences and paragraphs without being split at each sentence. Completed turns arrive sequentially. Speaker names in Group Talk and Guest Talk include round character-card avatars, with one shared live-preview slider in Advanced settings (18–48 px, default 26). Reading position and existing text selection are preserved; when starting at the bottom, only the beginning of the first reply is revealed. Later arrivals never force the view downward. “Show all” reveals the remaining turns. A new user message during delivery cancels only the undisplayed turns and starts a new request.
 
 **Room memory uses messages, not a new token budget.** New rooms start with the normal Kongtalk memory setting ×4 (normally **80 earlier messages**). Adjust each room from 20 to 320 user/character messages combined. The latest user message is added once, separately. There is no Group Talk preflight gate based on the main RP context setting, no per-character API request, and no automatic summarization request.
+
+The last selected room is restored across reloads for Kongtalk, Guest Talk, and Group Talk. If a room was removed or belongs to a different current RP character, startup safely selects a room for the current character.
 
 Group records, settings and participant identities are separate from regular Kongtalk and Guest Talk. Export/import/reset has its own “All Group Talk” scope. Empty send starts or continues the exchange; response regeneration is not offered. If the RP or persona changes, choose whether to retain the saved reference context, use the current RP/persona, or disconnect RP references. Keeping an inactive RP uses its last saved reference snapshot, not a live reread of that chat.
 
@@ -275,15 +277,17 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
-## 👥 그룹톡 — 발언 단위 대화 (5.5.0-rc.8 미리보기)
+## 👥 그룹톡 — 발언 단위 대화 (5.5.0-rc.9 미리보기)
 
 모드 선택에서 그룹톡을 만들고, 방 이름과 참여 캐릭터 2명 이상을 고릅니다. 게스트톡처럼 캐시트를 검색할 수 있으며 현재 RP 캐릭터는 자유롭게 포함하거나 제외할 수 있습니다. 참여자는 나중에도 추가·제외할 수 있습니다. 최근 RP·로어북·확장 데이터는 각각 선택하며 기존 콩톡의 선택적 수집 방식을 사용합니다.
 
 **API 한 번, 전체 답변 분량 하나.** 기본 목표는 캐릭터들이 나눠 쓰는 **전체 1,000토큰**입니다. 캐릭터마다 1,000토큰을 할당하지 않습니다. 이 방의 고급 설정에서 100~8,000토큰으로 바꿀 수 있습니다. 그룹톡은 전용 연결 프로필에서도 목표 분량에 JSON 형식용 여유만 더한 실제 출력 상한을 적용합니다. 기존 콩톡·게스트톡의 호출 방식은 유지하며, 말풍선 개수·균등한 발언량·전원 참여를 강제하지 않습니다.
 
-**한 차례 발언을 한 말풍선에 담습니다.** 여러 문장이나 문단을 말해도 문장별로 쪼개지 않습니다. 완성된 캐릭터 발언은 순서대로 도착하지만 읽던 위치와 선택한 텍스트는 유지됩니다. 그룹톡과 게스트톡에서는 화자 이름 옆에 캐시트의 원형 프로필 이미지를 표시하며, 고급 설정에서 크기를 전체 공통으로 18~48px(기본 26px) 조절합니다. 맨 아래에서 시작했을 때는 첫 답변의 시작만 보여주며, 이후 도착 때문에 아래로 끌려가지 않습니다. ‘모두 표시’로 남은 발언을 펼칠 수 있습니다. 도착 중 새 메시지를 보내면 아직 보이지 않은 발언만 취소하고 새 요청을 시작합니다.
+**한 차례 발언을 한 말풍선에 담습니다.** 여러 문장이나 문단을 말해도 문장별로 쪼개지 않습니다. 완성된 캐릭터 발언은 순서대로 도착하지만 읽던 위치와 선택한 텍스트는 유지됩니다. 그룹톡과 게스트톡에서는 화자 이름 옆에 캐시트의 원형 프로필 이미지를 표시하며, 고급 설정의 슬라이더로 크기를 전체 공통으로 18~48px(기본 26px) 조절하며 값이 실시간 반영됩니다. 맨 아래에서 시작했을 때는 첫 답변의 시작만 보여주며, 이후 도착 때문에 아래로 끌려가지 않습니다. ‘모두 표시’로 남은 발언을 펼칠 수 있습니다. 도착 중 새 메시지를 보내면 아직 보이지 않은 발언만 취소하고 새 요청을 시작합니다.
 
 **기억은 새 토큰 계산기 대신 메시지 수를 씁니다.** 새 방은 기존 콩톡 기억 설정의 4배, 기본 **이전 메시지 80개**로 시작합니다. 방마다 유저·캐릭터 메시지를 합쳐 20~320개로 조절합니다. 방금 입력한 메시지는 별도로 한 번만 포함됩니다. 일반 RP 컨텍스트 수치로 그룹톡 요청을 사전 차단하지 않으며, 캐릭터별 호출이나 자동 요약 호출도 하지 않습니다.
+
+마지막으로 선택한 콩톡·게스트톡·그룹톡 방은 새로고침 후에도 복원합니다. 방이 삭제됐거나 다른 RP 캐릭터의 일반 방이면 현재 캐릭터의 방으로 안전하게 돌아갑니다.
 
 일반 콩톡·게스트톡과 별도 영역에 방·참여자·설정·기록을 저장합니다. ‘전체 그룹톡’ 대상으로 내보내기·가져오기·초기화가 가능합니다. 빈 전송으로 대화를 시작하거나 이어갈 수 있으며 재생성은 제공하지 않습니다. RP·페르소나가 달라지면 저장된 이전 맥락 유지, 현재 맥락 사용, RP 참고 해제 중 선택합니다. 열려 있지 않은 이전 RP는 마지막으로 저장된 참고 내용을 사용하며 실시간으로 다시 읽는 것은 아닙니다.
 
