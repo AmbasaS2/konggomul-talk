@@ -69,8 +69,8 @@ const UI_ENGLISH = Object.freeze({
   "panel.korean": "Korean",
   "panel.english": "English",
   "panel.bilingual": "English / Korean bilingual",
-  "panel.fixedScrollbar": "Fixed scrollbar",
-  "panel.fixedScrollbarHint": "Enable the themed scrollbar; disable to use the browser's default scrollbar.",
+  "panel.fixedScrollbar": "Style scrollbar (PC)",
+  "panel.fixedScrollbarHint": "Use the themed scrollbar style on desktop. Scrolling still works when off; arrow buttons depend on browser support.",
   "panel.nickname": "Kongtalk user nickname",
   "panel.nicknameHint": "Name or emoji shown next to your messages. Up to 4 characters; leave blank to hide.",
   "panel.fontSize": "Chat font size (px)",
@@ -3581,6 +3581,8 @@ function renderGuestCharacterPicker() {
   const characters = getInstalledGuestCharacters();
   if (!characters.length) {
     picker.empty().append(`<div class="tua-mode-picker-title">${uiHtml('guest.noCharacters')}</div>`);
+    picker.append(`<button id="tua-guest-back" class="tua-guest-back" type="button">${uiHtml('guest.back')}</button>`);
+    picker.find('#tua-guest-back').on('click', renderModePicker);
     return;
   }
   const recentKeys = getSettings().guestRecentCharacters.slice(0, 5);

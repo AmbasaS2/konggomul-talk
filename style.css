@@ -4053,6 +4053,12 @@ body.tua-panel-resizing-body {
   min-height: 0;
   overflow: hidden;
 }
+/* Fixed scrollbar styling must not turn the entire Group Talk picker into a
+   second scroll container. Only the participant list scrolls. */
+#tua-panel.tua-fixed-scrollbar .tua-mode-picker.tua-group-picker {
+  overflow: hidden !important;
+  scrollbar-gutter: auto !important;
+}
 #tua-panel .tua-mode-picker.tua-group-picker .tua-group-results {
   flex: 1 1 auto;
   min-height: min(110px, 17dvh);
