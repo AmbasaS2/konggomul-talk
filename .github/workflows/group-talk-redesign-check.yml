@@ -36,8 +36,8 @@ jobs:
           assert hashlib.sha256(test_code).hexdigest() == payload['tests_sha256']
           (test_root / 'tests-node.cjs').write_bytes(test_code)
           PY
-          node --check index.js
-          node --check group-talk.js
+          node --input-type=module --check < index.js
+          node --input-type=module --check < group-talk.js
           node /tmp/kongtalk-candidate-verification/tests-node.cjs
       - name: Keep verified candidate on work branch only
         shell: bash
