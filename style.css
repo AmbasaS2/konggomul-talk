@@ -4384,6 +4384,8 @@ body.tua-panel-resizing-body {
   background: var(--tua-button-hover) !important;
 }
 #tua-panel .tua-mode-picker.tua-mode-selection #tua-home-picker-back .fa-solid {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;
   font-size: calc(var(--tua-font-size) + 2px) !important;
 }
 #tua-panel .tua-mode-picker.tua-mode-selection .tua-mode-picker-section {
@@ -4468,5 +4470,7 @@ body.tua-panel-resizing-body {
 #tua-panel .tua-mode-picker.tua-mode-selection .tua-mode-card-chevron {
   flex: 0 0 auto;
   color: var(--tua-muted) !important;
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;
   font-size: calc(var(--tua-font-size) - 1px) !important;
 }
