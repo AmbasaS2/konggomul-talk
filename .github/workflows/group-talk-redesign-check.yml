@@ -1,0 +1,50 @@
+name: Group Talk candidate verification
+on:
+  push:
+    branches: [work/group-talk-redesign-20261114]
+    paths: [.github/group-talk-redesign.payload.json]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Apply the reviewed candidate and verify exact file hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, gzip, hashlib, json, pathlib, subprocess
+          root = pathlib.Path.cwd()
+          payload = json.loads((root / '.github/group-talk-redesign.payload.json').read_text())
+          assert payload['base'] == 'cb94c74f06e4cc8b3a543fb59b3eee7478da95d8'
+          patch = gzip.decompress(base64.b64decode(payload['patch_gzip_base64']))
+          assert hashlib.sha256(patch).hexdigest() == payload['patch_sha256']
+          subprocess.run(['git', 'apply', '--check', '-'], input=patch, check=True)
+          subprocess.run(['git', 'apply', '-'], input=patch, check=True)
+          for path, expected in payload['file_sha256'].items():
+              assert path in ['index.js', 'group-talk.js', 'style.css', 'manifest.json', 'README.md', 'i18n/ko-kr.json', 'i18n/ja-jp.json', 'i18n/zh-cn.json', 'i18n/zh-tw.json', 'i18n/es-es.json']
+              assert hashlib.sha256((root / path).read_bytes()).hexdigest() == expected, path
+          test_root = pathlib.Path('/tmp/kongtalk-candidate-verification')
+          test_root.mkdir(exist_ok=True)
+          (test_root / 'repo').symlink_to(root, target_is_directory=True)
+          test_code = gzip.decompress(base64.b64decode(payload['tests_gzip_base64']))
+          assert hashlib.sha256(test_code).hexdigest() == payload['tests_sha256']
+          (test_root / 'tests-node.cjs').write_bytes(test_code)
+          PY
+          node --check index.js
+          node --check group-talk.js
+          node /tmp/kongtalk-candidate-verification/tests-node.cjs
+      - name: Keep verified candidate on work branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.js group-talk.js style.css manifest.json README.md i18n
+          git commit -m 'feat: verified complete-turn Group Talk candidate (5.5.0-rc.5)'
+          git push origin HEAD:work/group-talk-redesign-20261114
