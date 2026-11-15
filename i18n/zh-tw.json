@@ -145,6 +145,8 @@
   "konggomul.dialog.cleanupAllHint": "重設新檔案中的全部 Kongtalk、訪客與群組聊天；settings.json 的舊副本需透過第一項另行清理。",
   "konggomul.dialog.cleanupCharacter": "依角色初始化對話",
   "konggomul.dialog.cleanupCharacterHint": "選擇一個主要RP角色，只清空該角色的一般 Kongtalk 對話。",
+  "konggomul.dialog.storageRecoveryMode": "伺服器對話檔案儲存失敗，已切換回舊的 settings.json 儲存模式。還原對話記錄仍可使用。修復儲存問題前請勿初始化聊天資料。",
+  "konggomul.dialog.storageWriteFailed": "無法儲存獨立對話檔案。已要求將目前記錄儲存到 settings.json 以供還原。請勿初始化擴充資料，並檢查錯誤紀錄與備份。",
   "konggomul.dialog.cleanupUnavailable": "伺服器檔案儲存尚未就緒，已為保護資料而禁止初始化。",
   "konggomul.dialog.cleanupBusy": "請等待目前的 AI 回覆完成。",
   "konggomul.dialog.cleanupBackupNote": "已驗證的還原備份會保留在伺服器上，不會自動刪除。",
