@@ -4481,6 +4481,16 @@ async function cleanupLegacySettingsData() {
   finally { if (legacyCleanupInFlight === work) legacyCleanupInFlight = null; }
 }
 
+async function attemptAutomaticLegacyCleanup() {
+  try { return await cleanupLegacySettingsData(); }
+  catch (error) {
+    // File-backed conversations remain usable. Failed verification must
+    // never turn an optional old-settings cleanup into a startup failure.
+    console.warn('[Konggomul] skipped automatic legacy cleanup; original copies retained', error);
+    return false;
+  }
+}
+
 async function runBulkConversationCleanup(scope) {
   if (scope !== 'all') throw new Error('Unknown conversation cleanup scope');
   if (!roomFilesReady || !roomFileIndex || cleanInProgress || !lifecycleEnabled) {
@@ -6575,7 +6585,7 @@ async function init() {
     initialized = true;
     // Run after the room UI is ready; save failures must never block access to
     // verified file-backed conversations or remove the original backup.
-    await cleanupLegacySettingsData();
+    await attemptAutomaticLegacyCleanup();
     return true;
   })();
   initPromise = run;
@@ -6610,7 +6620,7 @@ jQuery(() => {
         // Startup can begin before SillyTavern finishes restoring its global
         // settings. Retry once when APP_READY fires if copies still remain.
         if (roomFilesReady && Object.keys(getSettings().characterRooms || {}).length) {
-          await cleanupLegacySettingsData();
+          await attemptAutomaticLegacyCleanup();
         }
         if (homeVisible) renderHome();
       } catch (error) { reportRoomMigrationError(error); }
