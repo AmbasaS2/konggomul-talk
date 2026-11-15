@@ -944,6 +944,11 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
   // An interrupted migration must not delete even one message from settings.
   let index = await readRoomIndex(ctx());
   if (!index) {
+    // Once settings records a completed migration, a missing server index
+    // is a recovery problem, not permission to initialize an empty database.
+    if (settings.roomFileStorage?.format === 'server-files-v1') {
+      throw new Error('Room storage index is missing after a completed migration; data was not reset');
+    }
     const keys = Object.keys(legacy);
     const backup = keys.length ? await backupLegacyRooms(legacy, ctx()) : '';
     for (const key of keys) {
