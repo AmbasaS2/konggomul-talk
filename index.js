@@ -237,6 +237,8 @@ const UI_ENGLISH = Object.freeze({
   "dialog.cleanupAllHint": "Clear all new-file Kongtalk, Guest Talk and Group Talk histories. Old settings.json copies are cleaned separately.",
   "dialog.cleanupCharacter": "Reset by character",
   "dialog.cleanupCharacterHint": "Choose one main RP character and clear only that character's ordinary Kongtalk rooms.",
+  "dialog.storageRecoveryMode": "Konggomul Talk is using its previous settings.json storage because a server-file save failed. Your recovery conversations remain available. Do not reset conversation data until storage is repaired.",
+  "dialog.storageWriteFailed": "Konggomul Talk could not save the separate conversation file. The in-memory records were copied to settings.json for recovery. Do not reset extension data; check the console and keep a backup.",
   "dialog.cleanupUnavailable": "Server-file storage is not ready. Cleanup is disabled to protect existing data.",
   "dialog.cleanupBusy": "Wait for the current AI reply to finish before resetting conversations.",
   "dialog.cleanupBackupNote": "A verified recovery backup will remain on the server; it is never deleted automatically.",
