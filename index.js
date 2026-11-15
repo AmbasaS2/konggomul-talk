@@ -1,7 +1,7 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { saveSettings as saveSillyTavernSettings } from '../../../../script.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
-import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, backupLegacyRooms, readLegacyRoomBackup, backupRoomDataBeforeReset } from './room-storage.js';
+import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, backupLegacyRooms, readLegacyRoomBackup } from './room-storage.js';
 import { countRoomData } from './room-reset.js';
 
 /*
@@ -242,16 +242,14 @@ const UI_ENGLISH = Object.freeze({
   "dialog.storageWriteFailed": "Konggomul Talk could not save the separate conversation file. The in-memory records were copied to settings.json for recovery. Do not reset extension data; check the console and keep a backup.",
   "dialog.cleanupUnavailable": "Server-file storage is not ready. Cleanup is disabled to protect existing data.",
   "dialog.cleanupBusy": "Wait for the current AI reply to finish before resetting conversations.",
-  "dialog.cleanupBackupNote": "A verified recovery backup will remain on the server; it is never deleted automatically.",
-  "dialog.cleanupConfirm": "Back up and reset",
+  "dialog.cleanupConfirm": "Reset",
   "dialog.cleanupSummary": "Data stores: {0}. Rooms affected: {1}. Messages affected: {2}. Continue?",
   "dialog.cleanupLegacyBlocked": "Original settings data differs from the migration backup or the new storage files could not be verified. No data was deleted; check for other devices using the old version.",
   "dialog.cleanupLegacySuccess": "Verified removal of old Konggomul room data from settings.json ({0} owner stores). New conversation files were left unchanged. Recovery backup: {1}",
   "dialog.cleanupLegacyVerifyFailed": "Could not verify old-data removal in the saved settings.json. The legacy data was restored in memory to prevent loss. New conversation files were not changed. Error: {0}",
   "dialog.cleanupNothingBefore": "No original settings.json conversation data remains to clean up.",
-  "dialog.cleanupBackupFailed": "Backup verification failed, so nothing was reset: {0}",
-  "dialog.cleanupSuccess": "Reset completed for {0} data store(s). Recovery backup: {1}",
-  "dialog.cleanupPartial": "Reset stopped after {0}/{1} stores; some changes may be applied. Recovery backup: {2}. Error: {3}",
+  "dialog.cleanupSuccess": "Reset completed for {0} data store(s).",
+  "dialog.cleanupPartial": "Reset stopped after {0}/{1} stores; some changes may be applied. Error: {2}",
   "dialog.cleanupFailure": "Conversation cleanup failed: {0}",
   "dialog.resetMainConfirm": "Reset all conversations for the current character?",
   "dialog.noResetData": "No saved Konggomul Talk conversations to reset.",
@@ -4372,7 +4370,7 @@ async function confirmConversationCleanup(title, summary) {
   const description = document.createElement('p');
   description.textContent = summary;
   const warning = document.createElement('p');
-  warning.textContent = uiText('dialog.resetDeviceWarning') + ' ' + uiText('dialog.cleanupBackupNote');
+  warning.textContent = uiText('dialog.resetDeviceWarning');
   content.append(strong, description, warning);
   const popup = new Popup(content, POPUP_TYPE.CONFIRM, null, {
     okButton: uiText('dialog.cleanupConfirm'),
@@ -4504,7 +4502,6 @@ async function runBulkConversationCleanup(scope) {
     return;
   }
   const changes = [];
-  const backup = {};
   let removedMessages = 0;
   let removedRooms = 0;
   const now = Date.now();
@@ -4515,18 +4512,9 @@ async function runBulkConversationCleanup(scope) {
     removedRooms += counts.rooms;
     const proposed = isSharedRoomStore(key) ? emptySharedRoomState(original, now) : createResetRoomState(original, now);
     changes.push({ key, data: proposed });
-    backup[key] = JSON.parse(JSON.stringify(original));
   }
   if (!await confirmConversationCleanup(uiText('dialog.cleanupAll'),
     uiText('dialog.cleanupSummary', changes.length, removedRooms, removedMessages))) return;
-  let backupPath;
-  try {
-    backupPath = await backupRoomDataBeforeReset(backup, scope, ctx());
-  } catch (error) {
-    console.error('[Konggomul] reset backup failed; no rooms were removed', error);
-    alert(uiText('dialog.cleanupBackupFailed', String(error?.message || error)));
-    return;
-  }
   let completed = 0;
   try {
     for (const { key, data } of changes) {
@@ -4545,10 +4533,10 @@ async function runBulkConversationCleanup(scope) {
       renderAll();
       if (homeVisible) renderHome();
     }
-    alert(uiText('dialog.cleanupSuccess', changes.length, backupPath));
+    alert(uiText('dialog.cleanupSuccess', changes.length));
   } catch (error) {
-    console.error('[Konggomul] bulk cleanup failed', { completed, total: changes.length, backupPath, error });
-    alert(uiText('dialog.cleanupPartial', completed, changes.length, backupPath, String(error?.message || error)));
+    console.error('[Konggomul] bulk cleanup failed', { completed, total: changes.length, error });
+    alert(uiText('dialog.cleanupPartial', completed, changes.length, String(error?.message || error)));
   }
 }
 
@@ -4652,11 +4640,9 @@ async function openStoredCharacterRoomResetPopup() {
   }
   try {
     await roomSaveQueue;
-    const source = roomStateCharKey === selectedKey ? roomState : getServerRoomStore()[selectedKey];
-    const path = await backupRoomDataBeforeReset({ [selectedKey]: JSON.parse(JSON.stringify(source)) }, 'character', ctx());
     await resetRoomsForCharacterKey(selectedKey);
     if (homeVisible) renderHome();
-    alert(uiText('dialog.cleanupSuccess', 1, path));
+    alert(uiText('dialog.cleanupSuccess', 1));
   } catch (error) {
     console.error('[Konggomul] character data reset failed', error);
     alert(uiText('dialog.cleanupFailure', String(error?.message || error)));

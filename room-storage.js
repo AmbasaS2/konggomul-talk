@@ -166,20 +166,3 @@ export async function readLegacyRoomBackup(path, context) {
   return payload.characterRooms;
 }
 
-export async function backupRoomDataBeforeReset(states, action, context) {
-  if (!states || typeof states !== 'object' || Array.isArray(states)) {
-    throw new Error('Invalid conversation reset backup data');
-  }
-  if (!['all', 'character'].includes(action)) {
-    throw new Error('Unknown reset backup scope');
-  }
-  const filename = 'konggomul-reset-' + Date.now() + '-' + Math.floor(Math.random() * 1e9).toString(36) + '.json';
-  const path = '/user/files/' + filename;
-  await fileWrite(path, {
-    format: 'konggomul-room-reset-backup-v1',
-    action,
-    createdAt: new Date().toISOString(),
-    characterRooms: states,
-  }, context);
-  return path;
-}

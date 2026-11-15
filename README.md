@@ -179,7 +179,7 @@ From 5.5.2, Konggomul Talk stores ordinary rooms in one server-side JSON file pe
 
 The first migration uploads and reads back a full legacy backup (`konggomul-legacy-*.json`), then verifies each room file. The original settings.json conversation records are cleaned up automatically after verified migration, while the recovery backup remains on the server. If any file is missing, corrupt, or conflicts with legacy data, migration stops rather than deleting or replacing conversations. On subsequent save errors, it returns to settings storage to preserve the current in-memory records.
 
-Extension Settings → **Conversation data cleanup** offers two actions: **Reset all conversation data** (all ordinary Kongtalk, Guest Talk, and Group Talk conversations stored in new files) and **Reset by character** (one character's ordinary Kongtalk records). Each destructive action requires another confirmation and creates a verified `konggomul-reset-*.json` recovery backup first. The obsolete pre-migration reset button has been removed because verified settings copies are now cleaned up automatically. Backups remain on the server; theme, profile, voice notes and main SillyTavern chats are unaffected.
+Extension Settings → **Conversation data cleanup** offers two actions: **Reset all conversation data** (all ordinary Kongtalk, Guest Talk, and Group Talk conversations stored in new files) and **Reset by character** (one character's ordinary Kongtalk records). Each destructive action requires confirmation and directly resets the selected conversation records without creating a reset backup. The obsolete pre-migration reset button has been removed because verified settings copies are now cleaned up automatically. The separate original migration backup is not affected; theme, profile, voice notes and main SillyTavern chats are unaffected.
 
 To roll back to 5.5.1, restore the original settings backup as well: switching code alone cannot read newer file-backed conversations. Keep backups of both `settings.json` and `user/files`. Avoid simultaneously using an older Konggomul version on another device; if legacy data changes unexpectedly, migration stops to protect records. Guest Talk still references the currently open RP for context.
 
@@ -368,7 +368,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 첫 이전 시 기존 기록 전체를 `konggomul-legacy-*.json`으로 백업하고 새 파일을 다시 읽어 검증합니다. 기존 `settings.json`의 대화 내용은 새로운 파일과 원본 백업을 검증한 뒤 자동으로 정리합니다. 복구 백업은 삭제하지 않습니다. 누락·충돌·오류가 있으면 이전을 중단하고 기존 기록을 보존합니다. 이후 파일 저장에 실패하면 메모리에 있는 기록을 설정 파일에 다시 저장하도록 복구합니다.
 
-확장 관리 → **대화 데이터 정리**에는 **전체 데이터 초기화**(새 파일에 저장된 일반 콩톡·게스트톡·그룹톡 전체 기록)와 **캐릭터별 대화 초기화**(선택한 메인 RP 캐릭터의 일반 콩톡 기록) 두 메뉴만 표시됩니다. 구 `settings.json` 중복 데이터는 안전성 검증 후 자동으로 정리하므로 ‘261115 이전 데이터 초기화’ 버튼을 제거했습니다. 대화 초기화 전에 확인 창과 `konggomul-reset-*.json` 복구 백업을 거치며 백업은 자동 삭제하지 않습니다. 테마·연결·말투 메모와 실리태번 일반 채팅은 유지됩니다.
+확장 관리 → **대화 데이터 정리**에는 **전체 데이터 초기화**(새 파일에 저장된 일반 콩톡·게스트톡·그룹톡 전체 기록)와 **캐릭터별 대화 초기화**(선택한 메인 RP 캐릭터의 일반 콩톡 기록) 두 메뉴만 표시됩니다. 구 `settings.json` 중복 데이터는 안전성 검증 후 자동으로 정리하므로 ‘261115 이전 데이터 초기화’ 버튼을 제거했습니다. 대화 초기화는 확인 창을 거쳐 바로 진행하며 별도의 복구 백업 파일을 만들지 않습니다. 테마·연결·말투 메모와 실리태번 일반 채팅은 유지됩니다.
 
 5.5.1로 되돌릴 때는 기존 설정 백업도 함께 복원해야 합니다. 구버전 코드는 새 대화 파일을 직접 읽을 수 없습니다. `settings.json`과 `user/files`의 백업을 유지해 주세요. 다른 기기에서 구버전 콩톡을 동시에 사용하지 않는 것이 안전하며, 이전 데이터가 달라지면 기록 보호를 위해 전환을 중단합니다. 게스트톡은 계속 현재 열려 있는 RP를 참고합니다.
 
