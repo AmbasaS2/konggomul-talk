@@ -145,6 +145,8 @@
   "konggomul.dialog.cleanupAllHint": "新しいファイル内のすべてのKongtalk・ゲスト・グループ会話を初期化します。旧settings.jsonのコピーは最初の項目で別途削除してください。",
   "konggomul.dialog.cleanupCharacter": "キャラクター別に初期化",
   "konggomul.dialog.cleanupCharacterHint": "メインRPキャラクターを一人選び、通常Kongtalkのルームだけを初期化。",
+  "konggomul.dialog.storageRecoveryMode": "会話ファイルの保存に失敗したため、以前のsettings.json保存方式に切り替えました。復元用の履歴は保持されています。問題が解決するまで会話データを初期化しないでください。",
+  "konggomul.dialog.storageWriteFailed": "別の会話ファイルを保存できませんでした。復元のため現在の履歴をsettings.jsonに保存するよう要求しました。拡張データを初期化せず、ログとバックアップを確認してください。",
   "konggomul.dialog.cleanupUnavailable": "サーバーファイル保存の準備ができていないため、初期化を停止しました。",
   "konggomul.dialog.cleanupBusy": "AIの応答が終了してから初期化してください。",
   "konggomul.dialog.cleanupBackupNote": "確認済みの復元バックアップはサーバーに残し、自動削除しません。",
