@@ -1,0 +1,23 @@
+name: Konggomul storage migration regression
+on:
+  push:
+    branches:
+      - experiment/server-file-room-storage
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  storage-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact branch sources
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exercise migration and recovery scenarios
+        run: node --test tests/storage.test.mjs
