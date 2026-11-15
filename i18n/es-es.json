@@ -145,6 +145,8 @@
   "konggomul.dialog.cleanupAllHint": "Restablece todas las conversaciones de Kongtalk, invitados y grupos en los nuevos archivos. Las copias antiguas de settings.json se limpian por separado.",
   "konggomul.dialog.cleanupCharacter": "Restablecer por personaje",
   "konggomul.dialog.cleanupCharacterHint": "Elige un personaje principal y restablece solo sus salas normales de Kongtalk.",
+  "konggomul.dialog.storageRecoveryMode": "Konggomul Talk está usando el almacenamiento anterior en settings.json tras fallar la escritura del archivo. Se conservan los mensajes de recuperación. No restablezcas las conversaciones hasta resolverlo.",
+  "konggomul.dialog.storageWriteFailed": "No se pudo guardar el archivo separado de conversaciones. Se solicitó conservar el historial actual en settings.json para recuperación. No restablezcas la extensión; revisa el registro y las copias.",
   "konggomul.dialog.cleanupUnavailable": "El almacenamiento del servidor no está listo. Restablecimiento bloqueado.",
   "konggomul.dialog.cleanupBusy": "Espera a que termine la respuesta de IA.",
   "konggomul.dialog.cleanupBackupNote": "La copia de recuperación verificada se conserva en el servidor y no se borra automáticamente.",
