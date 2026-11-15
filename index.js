@@ -513,6 +513,7 @@ let roomFileStoreCache = null;
 let roomFileRevisions = {};
 let roomFileIndex = null;
 let roomFilesReady = false;
+let roomRecoveryNoticeShown = false;
 
 let roomStateCharKey = null;
 let roomLoadSequence = 0;
@@ -958,6 +959,23 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
   if (roomFilesReady) return true;
   const settings = getSettings();
   const legacy = settings.characterRooms || {};
+  if (settings.roomFileStorage?.format === 'legacy-recovery') {
+    // A failed upload already restored every in-memory owner snapshot to the
+    // original settings field. Reopening in file mode would reject the newer
+    // unsaved messages and make the recovery history inaccessible.
+    if (!legacy || typeof legacy !== 'object' || Array.isArray(legacy)) {
+      throw new Error('Legacy conversation recovery data is invalid');
+    }
+    roomFileStoreCache = null;
+    roomFileRevisions = {};
+    roomFileIndex = null;
+    roomFilesReady = false;
+    if (!roomRecoveryNoticeShown) {
+      roomRecoveryNoticeShown = true;
+      alert(uiText('dialog.storageRecoveryMode'));
+    }
+    return true;
+  }
   const completedMigration = settings.roomFileStorage?.format === 'server-files-v1';
   // An interrupted migration must not delete even one message from settings.
   let index = await readRoomIndex(ctx());
@@ -1430,7 +1448,7 @@ async function persistRoomSnapshot(charKey, data, saveEpoch = persistenceEpoch) 
         roomFilesReady = false;
         saveSettings();
         console.error('[Konggomul] server-file save failed; kept room data in settings for recovery', error);
-        alert('Konggomul Talk could not save room files. Room data was kept in settings as a recovery fallback. Do not clear extension data. Check the console before reloading.');
+        alert(uiText('dialog.storageWriteFailed'));
         throw error;
       }
     } else {
