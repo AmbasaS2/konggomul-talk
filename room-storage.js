@@ -7,7 +7,7 @@
 export const ROOM_FILE_FORMAT = 'konggomul-room-snapshot-v1';
 export const ROOM_INDEX_FORMAT = 'konggomul-room-index-v1';
 export const ROOM_BACKUP_FORMAT = 'konggomul-settings-legacy-backup-v1';
-export const ROOM_INDEX_PATH = 'files/konggomul-room-index-v1.json';
+export const ROOM_INDEX_PATH = '/files/konggomul-room-index-v1.json';
 
 function keyHash(value) {
   const str = String(value);
@@ -25,7 +25,7 @@ function keyHash(value) {
 export function roomFilePath(ownerKey) {
   const key = String(ownerKey || '');
   if (!key) throw new Error('Missing room owner key');
-  return 'files/konggomul-room-' + keyHash(key) + '.json';
+  return '/files/konggomul-room-' + keyHash(key) + '.json';
 }
 
 function apiHeaders(context) {
@@ -52,7 +52,7 @@ async function fileExists(path, context) {
 
 async function fileRead(path, context) {
   if (!await fileExists(path, context)) return null;
-  const result = await fetch('/' + path, { method: 'GET', cache: 'no-store', headers: apiHeaders(context) });
+  const result = await fetch(path, { method: 'GET', cache: 'no-store', headers: apiHeaders(context) });
   if (!result.ok) throw new Error('Could not read stored room data (' + result.status + ')');
   let parsed;
   try { parsed = await result.json(); }
@@ -147,7 +147,7 @@ export async function backupLegacyRooms(legacyRooms, context) {
     throw new Error('Invalid legacy room store');
   }
   const filename = 'konggomul-legacy-' + Date.now() + '-' + Math.floor(Math.random() * 1e9).toString(36) + '.json';
-  const path = 'files/' + filename;
+  const path = '/files/' + filename;
   const data = { format: ROOM_BACKUP_FORMAT, createdAt: new Date().toISOString(), characterRooms: legacyRooms };
   await fileWrite(path, data, context);
   return path;
