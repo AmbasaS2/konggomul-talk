@@ -4,14 +4,14 @@ import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, bac
 import { countRoomData } from './room-reset.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.4
+ * 🐕 콩고물 톡 v5.5.5
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.4';
+const EXTENSION_VERSION = '5.5.5';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -230,11 +230,11 @@ const UI_ENGLISH = Object.freeze({
   "dialog.guestImportFailed": "Guest Talk import failed: {0}",
   "dialog.invalidGuestBackup": "This is not a Guest Talk backup.",
   "dialog.cleanupMenuTitle": "Which conversations would you like to reset?",
-  "dialog.cleanupMenuExplanation": "The first option removes only the legacy settings.json copies after migration. The other options reset new file-backed Kongtalk conversations. SillyTavern main chats and extension preferences are kept.",
+  "dialog.cleanupMenuExplanation": "Choose whether to reset all Konggomul Talk conversations or only those belonging to one character. Pre-migration copies in settings.json are cleaned automatically after verified backup and file migration. SillyTavern main chats and extension settings are kept.",
   "dialog.cleanupBefore": "Reset data before 261115",
   "dialog.cleanupBeforeHint": "Remove only old Kongtalk conversations stored in settings.json before the Nov 15 storage update. New conversation files are untouched regardless of message dates.",
   "dialog.cleanupAll": "Reset all conversation data",
-  "dialog.cleanupAllHint": "Clear all new-file Kongtalk, Guest Talk and Group Talk histories. Old settings.json copies are cleaned separately.",
+  "dialog.cleanupAllHint": "Clear all file-backed Kongtalk, Guest Talk and Group Talk histories. Main SillyTavern chats and extension settings are kept.",
   "dialog.cleanupCharacter": "Reset by character",
   "dialog.cleanupCharacterHint": "Choose one main RP character and clear only that character's ordinary Kongtalk rooms.",
   "dialog.storageRecoveryMode": "Konggomul Talk is using its previous settings.json storage because a server-file save failed. Your recovery conversations remain available. Do not reset conversation data until storage is repaired.",
@@ -953,8 +953,9 @@ function roomStatesEqual(a, b) {
 }
 
 function requireRoomFileCache(settings, store) {
-  // Keep original settings.characterRooms in the settings file until the user
-  // chooses 261115 legacy storage cleanup. New writes use file-backed cache.
+  // New conversations use file-backed cache. Old settings copies are discarded
+  // only after an independently verified server backup and successful settings
+  // disk write/read-back. Never mix the two stores.
   roomFileStoreCache = store;
 }
 
@@ -1046,8 +1047,8 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
     keys: [...index.keys],
     legacyPendingCleanup: Object.keys(legacy).length > 0,
   };
-  // After verification, file snapshots are authoritative. The original
-  // settings.json history remains untouched until explicit cleanup.
+  // File snapshots are authoritative. Keep the old settings copy intact until
+  // its verified backup exists and SillyTavern confirms the settings rewrite.
   saveSettings();
   return true;
 }
@@ -4391,115 +4392,93 @@ function emptySharedRoomState(oldState, now) {
   });
 }
 
+// The old pre-5.5.2 settings storage is a migration input, not a second chat
+// database. After the new files and full backup are verified, clear its copies
+// automatically. Failure is non-destructive and can be retried on next startup.
+let legacyCleanupInFlight = null;
 async function cleanupLegacySettingsData() {
-  if (!roomFilesReady || !roomFileIndex || cleanInProgress || !lifecycleEnabled) {
-    alert(uiText('dialog.cleanupUnavailable'));
-    return;
-  }
-  if (generationInFlight || groupStartPending) {
-    alert(uiText('dialog.cleanupBusy'));
-    return;
-  }
-  await roomSaveQueue;
-  const settings = getSettings();
-  const legacy = settings.characterRooms;
-  if (!legacy || typeof legacy !== 'object' || Array.isArray(legacy)) {
-    throw new Error('Invalid original settings conversation data');
-  }
-  const keys = Object.keys(legacy);
-  if (!keys.length) {
-    alert(uiText('dialog.cleanupNothingBefore'));
-    return;
-  }
-  if (settings.roomFileStorage?.format !== 'server-files-v1') {
-    alert(uiText('dialog.cleanupUnavailable'));
-    return;
-  }
-  // Before touching the old location, verify the migration baseline and all
-  // new server files. This path MUST NOT modify new-room snapshots.
-  const index = await readRoomIndex(ctx());
-  if (!index || !index.legacyBackup || index.legacyBackup !== roomFileIndex.legacyBackup) {
-    alert(uiText('dialog.cleanupLegacyBlocked'));
-    return;
-  }
-  const originalBackup = await readLegacyRoomBackup(index.legacyBackup, ctx());
-  if (!roomStatesEqual(legacy, originalBackup)) {
-    // Another device may have written fresh messages using the old version.
-    alert(uiText('dialog.cleanupLegacyBlocked'));
-    return;
-  }
-  for (const key of keys) {
-    if (!index.keys.includes(key) || !roomFileIndex.keys.includes(key) ||
-        !await readRoomSnapshot(key, ctx())) {
-      alert(uiText('dialog.cleanupLegacyBlocked'));
-      return;
+  if (legacyCleanupInFlight) return legacyCleanupInFlight;
+  const work = (async () => {
+    if (!roomFilesReady || !roomFileIndex || cleanInProgress || !lifecycleEnabled ||
+        generationInFlight || groupStartPending) return false;
+    await roomSaveQueue;
+    const settings = getSettings();
+    const legacy = settings.characterRooms;
+    if (!legacy || typeof legacy !== 'object' || Array.isArray(legacy)) return false;
+    const keys = Object.keys(legacy);
+    if (!keys.length) return true;
+    if (settings.roomFileStorage?.format !== 'server-files-v1') return false;
+
+    // No deletion until both the original migration backup and each new owner
+    // file have been confirmed present. Never substitute timestamps for paths.
+    const index = await readRoomIndex(ctx());
+    if (!index || !index.legacyBackup || index.legacyBackup !== roomFileIndex.legacyBackup) {
+      console.warn('[Konggomul] automatic legacy cleanup blocked: missing migration backup/index');
+      return false;
     }
-  }
-  const totals = keys.reduce((totals, key) => {
-    const count = countRoomData(legacy[key]);
-    totals.rooms += count.rooms;
-    totals.messages += count.messages;
-    return totals;
-  }, { rooms: 0, messages: 0 });
-  if (!await confirmConversationCleanup(
-    uiText('dialog.cleanupBefore'),
-    uiText('dialog.cleanupSummary', keys.length, totals.rooms, totals.messages)
-  )) return;
-  let backup;
-  try {
-    // Second independent verified backup, in addition to migration backup.
-    backup = await backupLegacyRooms(legacy, ctx());
-  } catch (error) {
-    console.error('[Konggomul] backup before legacy cleanup failed', error);
-    alert(uiText('dialog.cleanupBackupFailed', String(error?.message || error)));
-    return;
-  }
-  // No file-backed histories, the index, or recovery snapshots are changed.
-  // Commit settings through SillyTavern and read back the actual on-disk file;
-  // the in-memory map alone is not evidence that cleanup was saved.
-  const previousFileMetadata = settings.roomFileStorage;
-  settings.characterRooms = {};
-  settings.roomFileStorage = {
-    ...settings.roomFileStorage,
-    legacyPendingCleanup: false,
-    cleanupBackup: backup,
-  };
-  try {
-    const context = ctx();
-    const debounced = context?.saveSettingsDebounced;
-    if (typeof debounced !== 'function' || typeof debounced.flush !== 'function') {
-      throw new Error('SillyTavern settings save flush is unavailable');
+    const source = await readLegacyRoomBackup(index.legacyBackup, ctx());
+    if (!roomStatesEqual(legacy, source)) {
+      console.warn('[Konggomul] automatic legacy cleanup blocked: old settings changed after migration');
+      return false;
     }
-    debounced();
-    await debounced.flush();
-    const response = await fetch('/api/settings/get', {
-      method: 'POST',
-      headers: context.getRequestHeaders(),
-      body: '{}',
-      cache: 'no-store',
-    });
-    if (!response.ok) throw new Error('Settings read-back failed (HTTP ' + response.status + ')');
-    const result = await response.json();
-    const savedSettings = JSON.parse(result.settings);
-    const stored = savedSettings?.extension_settings?.[MODULE_NAME];
-    if (!stored?.characterRooms || typeof stored.characterRooms !== 'object' ||
-        Array.isArray(stored.characterRooms) || Object.keys(stored.characterRooms).length !== 0 ||
-        stored.roomFileStorage?.format !== 'server-files-v1' ||
-        stored.roomFileStorage?.legacyPendingCleanup !== false ||
-        stored.roomFileStorage?.cleanupBackup !== backup) {
-      throw new Error('Old room data is still present in the saved settings file');
+    for (const key of keys) {
+      if (!index.keys.includes(key) || !roomFileIndex.keys.includes(key) ||
+          !await readRoomSnapshot(key, ctx())) {
+        console.warn('[Konggomul] automatic legacy cleanup blocked: missing new room file', key);
+        return false;
+      }
     }
-  } catch (error) {
-    // If either the save or read-back fails, keep the old copy in memory and
-    // schedule a settings save. Verified recovery backups are untouched.
-    settings.characterRooms = legacy;
-    settings.roomFileStorage = previousFileMetadata;
-    saveSettings();
-    console.error('[Konggomul] legacy cleanup not verified on disk', error);
-    alert(uiText('dialog.cleanupLegacyVerifyFailed', String(error?.message || error)));
-    return;
-  }
-  alert(uiText('dialog.cleanupLegacySuccess', keys.length, backup));
+    if (cleanInProgress || !lifecycleEnabled || generationInFlight || groupStartPending ||
+        settings.characterRooms !== legacy) return false;
+
+    // The original verified backup stays on disk. We do not remove it or any
+    // file-backed chat, and do not claim a successful cleanup without read-back.
+    const priorMeta = settings.roomFileStorage;
+    settings.characterRooms = {};
+    settings.roomFileStorage = {
+      ...settings.roomFileStorage,
+      legacyPendingCleanup: false,
+      cleanupBackup: index.legacyBackup,
+    };
+    try {
+      const context = ctx();
+      const save = context?.saveSettingsDebounced;
+      if (typeof save !== 'function' || typeof save.flush !== 'function') {
+        throw new Error('SillyTavern settings save flush is unavailable');
+      }
+      save();
+      await save.flush();
+      const response = await fetch('/api/settings/get', {
+        method: 'POST',
+        headers: context.getRequestHeaders(),
+        body: '{}',
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error('Settings read-back failed (HTTP ' + response.status + ')');
+      const saved = await response.json();
+      const persisted = JSON.parse(saved.settings)?.extension_settings?.[MODULE_NAME];
+      if (!persisted?.characterRooms || typeof persisted.characterRooms !== 'object' ||
+          Array.isArray(persisted.characterRooms) || Object.keys(persisted.characterRooms).length !== 0 ||
+          persisted.roomFileStorage?.format !== 'server-files-v1' ||
+          persisted.roomFileStorage?.legacyPendingCleanup !== false ||
+          persisted.roomFileStorage?.cleanupBackup !== index.legacyBackup) {
+        throw new Error('Old room data remains in the saved settings file');
+      }
+      console.info('[Konggomul] verified automatic removal of old settings conversation copies');
+      return true;
+    } catch (error) {
+      // If save/readback cannot be confirmed, keep the original legacy copy
+      // accessible in memory. All separate conversation files remain intact.
+      settings.characterRooms = legacy;
+      settings.roomFileStorage = priorMeta;
+      saveSettings();
+      console.warn('[Konggomul] automatic legacy cleanup was not verified; old copies retained', error);
+      return false;
+    }
+  })();
+  legacyCleanupInFlight = work;
+  try { return await work; }
+  finally { if (legacyCleanupInFlight === work) legacyCleanupInFlight = null; }
 }
 
 async function runBulkConversationCleanup(scope) {
@@ -4593,7 +4572,6 @@ async function openConversationDataCleanupMenu() {
     allowVerticalScrolling: true,
   });
   for (const [titleKey, hintKey, result] of [
-    ['dialog.cleanupBefore', 'dialog.cleanupBeforeHint', POPUP_RESULT.CUSTOM1],
     ['dialog.cleanupAll', 'dialog.cleanupAllHint', POPUP_RESULT.CUSTOM2],
     ['dialog.cleanupCharacter', 'dialog.cleanupCharacterHint', POPUP_RESULT.CUSTOM3],
   ]) {
@@ -4613,8 +4591,7 @@ async function openConversationDataCleanupMenu() {
   content.append(heading, detail, choices);
   const result = await popup.show();
   try {
-    if (result === POPUP_RESULT.CUSTOM1) await cleanupLegacySettingsData();
-    else if (result === POPUP_RESULT.CUSTOM2) await runBulkConversationCleanup('all');
+    if (result === POPUP_RESULT.CUSTOM2) await runBulkConversationCleanup('all');
     else if (result === POPUP_RESULT.CUSTOM3) await openStoredCharacterRoomResetPopup();
   } catch (error) {
     console.error('[Konggomul] conversation cleanup failed', error);
@@ -6596,6 +6573,9 @@ async function init() {
       setPanelVisible(true, { persistPreference: false });
     }
     initialized = true;
+    // Run after the room UI is ready; save failures must never block access to
+    // verified file-backed conversations or remove the original backup.
+    await cleanupLegacySettingsData();
     return true;
   })();
   initPromise = run;
@@ -6627,6 +6607,11 @@ jQuery(() => {
       if (!lifecycleEnabled || cleanInProgress) return;
       try {
         await init();
+        // Startup can begin before SillyTavern finishes restoring its global
+        // settings. Retry once when APP_READY fires if copies still remain.
+        if (roomFilesReady && Object.keys(getSettings().characterRooms || {}).length) {
+          await cleanupLegacySettingsData();
+        }
         if (homeVisible) renderHome();
       } catch (error) { reportRoomMigrationError(error); }
     };
