@@ -174,3 +174,69 @@ test('261115 reset means old settings path, not date cutoff',()=>{
   assert.match(ko['konggomul.dialog.cleanupBeforeHint'],/메시지 작성 날짜와 관계없으며/);
   assert.match(ko['konggomul.guest.legacyPersonaUnknown'],/확인할 수 없습니다/);
 });
+
+function bulkCleanupHarness(mode='success') {
+  const states=original(),writes=[],backups=[],alerts=[];
+  const deps={
+    getServerRoomStore:()=>states,
+    getSettings:()=>({lastActiveRoom:null}),
+    writeLastRoomMirror:()=>{},saveSettings:()=>{},renderAll:()=>{},
+    renderHome:()=>{},getActiveRoom:()=>({id:'m'}),showHome:()=>{},
+    persistRoomSnapshot:async(key,value)=>{
+      if(mode==='partial'&&writes.length===1)throw Error('simulated disk fault');
+      states[key]=copy(value);
+      writes.push(key);
+    },
+    ctx:context,uiText:(key,...args)=>key+' '+args.join(','),
+    countRoomData,stripBefore261115:()=>{throw Error('old date filter must not run');},
+    normalizeStoredRoomState:copy,
+    createResetRoomState:(state,now)=>({
+      rooms:[{id:'new-default',createdAt:now,messages:[]}],
+      voiceNote:state.voiceNote||'',
+    }),
+    isSharedRoomStore:key=>key.startsWith('__konggomul_'),
+    backupRoomDataBeforeReset:async(data,scope)=>{
+      if(mode==='backup-failure')throw Error('simulated backup failure');
+      backups.push({scope,data:copy(data)});
+      return '/user/files/verified-reset-backup.json';
+    },
+    confirmConversationCleanup:async()=>true,
+    alert:value=>alerts.push(value),
+  };
+  const src=clip('function emptySharedRoomState(oldState, now) {',
+    '\nasync function openConversationDataCleanupMenu');
+  const run=new Function('d',
+    'const {getServerRoomStore,getSettings,writeLastRoomMirror,saveSettings,renderAll,renderHome,getActiveRoom,showHome,persistRoomSnapshot,ctx,uiText,countRoomData,stripBefore261115,normalizeStoredRoomState,createResetRoomState,isSharedRoomStore,backupRoomDataBeforeReset,confirmConversationCleanup,alert}=d;'+
+    'const console={error:()=>{}};let roomFilesReady=true,roomFileIndex={keys:Object.keys(d.getServerRoomStore())},cleanInProgress=false,lifecycleEnabled=true,generationInFlight=false,groupStartPending=false,roomSaveQueue=Promise.resolve(),roomStateCharKey="Remus",homeVisible=true;'+
+    'let roomState=getServerRoomStore().Remus;'+src+'return runBulkConversationCleanup;'
+  )(deps);
+  return {run,states,writes,backups,alerts};
+}
+test('all-conversation reset preserves extension scope and makes backup first',async()=>{
+  const check=bulkCleanupHarness();
+  await check.run('all');
+  assert.equal(check.backups.length,1);
+  assert.equal(check.backups[0].scope,'all');
+  assert.equal(check.backups[0].data.Remus.rooms[0].messages[0].content,'old');
+  assert.equal(check.writes.length,3);
+  assert.equal(check.states.Remus.rooms[0].id,'new-default');
+  assert.deepEqual(check.states.__konggomul_guest_ooc__.rooms,[]);
+  assert.deepEqual(check.states.__konggomul_group_talk__.rooms,[]);
+  assert.match(check.alerts.at(-1),/cleanupSuccess/);
+});
+test('all-conversation reset must not write any record if backup fails',async()=>{
+  const check=bulkCleanupHarness('backup-failure');
+  const before=copy(check.states);
+  await check.run('all');
+  assert.deepEqual(check.states,before);
+  assert.equal(check.writes.length,0);
+  assert.match(check.alerts.at(-1),/cleanupBackupFailed/);
+});
+test('partial reset errors preserve full original backup for manual recovery',async()=>{
+  const check=bulkCleanupHarness('partial');
+  await check.run('all');
+  assert.equal(check.writes.length,1);
+  assert.equal(check.backups.length,1);
+  assert.equal(Object.keys(check.backups[0].data).length,3);
+  assert.match(check.alerts.at(-1),/cleanupPartial/);
+});
