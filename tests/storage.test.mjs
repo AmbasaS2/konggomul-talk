@@ -240,3 +240,67 @@ test('partial reset errors preserve full original backup for manual recovery',as
   assert.equal(Object.keys(check.backups[0].data).length,3);
   assert.match(check.alerts.at(-1),/cleanupPartial/);
 });
+
+test('cleanup chooser uses three stacked native buttons and preserves action routing',async()=>{
+  const jsx=clip('async function openConversationDataCleanupMenu() {','\nasync function openStoredCharacterRoomResetPopup() {');
+  const css=read('style.css');
+  assert.match(css, /\.tua-cleanup-choices\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(css, /\.tua-cleanup-choices button\.tua-cleanup-choice\.menu_button/);
+  assert.doesNotMatch(jsx,/customButtons:/);
+  const outcomes=[
+    { index:0, route:'legacy' },
+    { index:1, route:'all' },
+    { index:2, route:'character' },
+  ];
+  for(const option of outcomes) {
+    const route=[];
+    const popups=[];
+    const dom={
+      createElement(tag) {
+        return {
+          tagName:tag,children:[],listeners:{},
+          className:'',textContent:'',type:'',
+          append(...kids){this.children.push(...kids);},
+          addEventListener(type,listener){this.listeners[type]=listener;},
+        };
+      },
+    };
+    class PopupStub {
+      constructor(content,kind,unused,options){
+        this.content=content;this.kind=kind;this.options=options;popups.push(this);
+      }
+      show(){return new Promise(resolve=>{this.resolve=resolve;});}
+      async complete(value){this.resolve(value);}
+    }
+    const handler=new Function('d',
+      'const {document,Popup,POPUP_TYPE,POPUP_RESULT,uiText,alert,cleanupLegacySettingsData,runBulkConversationCleanup,openStoredCharacterRoomResetPopup}=d;'+
+      'const console={error:()=>{}};let roomFilesReady=true,roomFileIndex={},generationInFlight=false,groupStartPending=false;'+jsx+
+      ';return openConversationDataCleanupMenu;'
+    )({
+      document:dom,Popup:PopupStub,POPUP_TYPE:{TEXT:'text'},
+      POPUP_RESULT:{CANCELLED:null,CUSTOM1:1001,CUSTOM2:1002,CUSTOM3:1003},
+      uiText:key=>key,alert:value=>{throw Error(String(value));},
+      cleanupLegacySettingsData:async()=>route.push('legacy'),
+      runBulkConversationCleanup:async(scope)=>route.push(scope),
+      openStoredCharacterRoomResetPopup:async()=>route.push('character'),
+    });
+    const pending=handler();
+    assert.equal(popups.length,1);
+    const popup=popups[0];
+    assert.equal(popup.options.cancelButton,'dialog.cancel');
+    assert.equal(popup.options.okButton,false);
+    assert.equal(popup.options.allowVerticalScrolling,true);
+    const choices=popup.content.children.find(x=>x.className==='tua-cleanup-choices');
+    assert.ok(choices);
+    assert.equal(choices.children.length,3);
+    for(const button of choices.children){
+      assert.equal(button.tagName,'button');
+      assert.equal(button.type,'button');
+      assert.equal(button.className,'menu_button tua-cleanup-choice');
+      assert.equal(button.children.length,2);
+    }
+    choices.children[option.index].listeners.click();
+    await pending;
+    assert.deepEqual(route,[option.route]);
+  }
+});
