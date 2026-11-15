@@ -145,6 +145,8 @@
   "konggomul.dialog.cleanupAllHint": "새 파일 저장소의 모든 콩톡·게스트톡·그룹톡 기록을 초기화합니다. settings.json의 이전 데이터는 첫 번째 버튼으로 별도로 정리해 주세요.",
   "konggomul.dialog.cleanupCharacter": "캐릭터별 대화 초기화",
   "konggomul.dialog.cleanupCharacterHint": "메인 RP 캐릭터 한 명을 선택하여 해당 일반 콩톡 대화방만 초기화합니다.",
+  "konggomul.dialog.storageRecoveryMode": "서버 대화 파일 저장에 문제가 발생해 기존 settings.json 저장 방식으로 전환했습니다. 복구용 대화 기록은 유지되며, 저장 문제를 해결하기 전에는 대화 데이터를 초기화하지 마세요.",
+  "konggomul.dialog.storageWriteFailed": "별도 대화 파일을 저장하지 못했습니다. 기록 보호를 위해 현재 대화 내용을 settings.json에 복구용으로 보관하도록 요청했습니다. 확장 데이터를 초기화하지 말고 오류 로그와 백업을 확인해 주세요.",
   "konggomul.dialog.cleanupUnavailable": "서버 파일 저장 준비가 완료되지 않아 데이터 보호를 위해 초기화를 진행할 수 없습니다.",
   "konggomul.dialog.cleanupBusy": "진행 중인 AI 답변이 끝난 뒤 초기화해 주세요.",
   "konggomul.dialog.cleanupBackupNote": "삭제 전에 복구 백업을 서버에 보관하며, 백업 파일은 자동으로 삭제되지 않습니다.",
