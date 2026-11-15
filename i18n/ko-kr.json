@@ -142,7 +142,7 @@
   "konggomul.dialog.cleanupBefore": "261115 이전 데이터 초기화",
   "konggomul.dialog.cleanupBeforeHint": "11월 15일 업데이트 이전 저장 경로(settings.json)에 남아 있는 이전 콩톡 기록만 정리합니다. 메시지 작성 날짜와 관계없으며 새 저장 파일은 삭제하지 않습니다.",
   "konggomul.dialog.cleanupAll": "전체 데이터 초기화",
-  "konggomul.dialog.cleanupAllHint": "새 파일에 저장된 콩톡·게스트톡·그룹톡 대화 기록을 모두 초기화합니다. 실리태번 일반 채팅과 확장 설정은 유지됩니다.",
+  "konggomul.dialog.cleanupAllHint": "새 파일에 저장된 콩톡·게스트톡·그룹톡 대화 기록을 모두 초기화합니다.",
   "konggomul.dialog.cleanupCharacter": "캐릭터별 대화 초기화",
   "konggomul.dialog.cleanupCharacterHint": "메인 RP 캐릭터 한 명을 선택하여 해당 일반 콩톡 대화방만 초기화합니다.",
   "konggomul.dialog.storageRecoveryMode": "서버 대화 파일 저장에 문제가 발생해 기존 settings.json 저장 방식으로 전환했습니다. 복구용 대화 기록은 유지되며, 저장 문제를 해결하기 전에는 대화 데이터를 초기화하지 마세요.",

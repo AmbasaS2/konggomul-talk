@@ -1,4 +1,5 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
+import { saveSettings as saveSillyTavernSettings } from '../../../../script.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
 import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, backupLegacyRooms, readLegacyRoomBackup, backupRoomDataBeforeReset } from './room-storage.js';
 import { countRoomData } from './room-reset.js';
@@ -4433,7 +4434,6 @@ async function cleanupLegacySettingsData() {
 
     // The original verified backup stays on disk. We do not remove it or any
     // file-backed chat, and do not claim a successful cleanup without read-back.
-    const priorMeta = settings.roomFileStorage;
     settings.characterRooms = {};
     settings.roomFileStorage = {
       ...settings.roomFileStorage,
@@ -4441,13 +4441,10 @@ async function cleanupLegacySettingsData() {
       cleanupBackup: index.legacyBackup,
     };
     try {
+      // SillyTavern's debounced save has no flush(). Save immediately through
+      // the official settings writer, then verify what actually reached disk.
+      await saveSillyTavernSettings();
       const context = ctx();
-      const save = context?.saveSettingsDebounced;
-      if (typeof save !== 'function' || typeof save.flush !== 'function') {
-        throw new Error('SillyTavern settings save flush is unavailable');
-      }
-      save();
-      await save.flush();
       const response = await fetch('/api/settings/get', {
         method: 'POST',
         headers: context.getRequestHeaders(),
@@ -4467,12 +4464,10 @@ async function cleanupLegacySettingsData() {
       console.info('[Konggomul] verified automatic removal of old settings conversation copies');
       return true;
     } catch (error) {
-      // If save/readback cannot be confirmed, keep the original legacy copy
-      // accessible in memory. All separate conversation files remain intact.
-      settings.characterRooms = legacy;
-      settings.roomFileStorage = priorMeta;
-      saveSettings();
-      console.warn('[Konggomul] automatic legacy cleanup was not verified; old copies retained', error);
+      // Keep the redundant in-memory copies cleared. If disk persistence did
+      // not finish, the old settings file remains available for a later retry.
+      // Verified conversation files and the original backup are untouched.
+      console.warn('[Konggomul] automatic legacy cleanup not verified; retry on next startup', error);
       return false;
     }
   })();
