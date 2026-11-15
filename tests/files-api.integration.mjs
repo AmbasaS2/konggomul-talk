@@ -9,6 +9,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const extensionRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sillyTavernRoot = path.resolve(extensionRoot, 'sillytavern');
 const { default: express } = await import(pathToFileURL(path.join(sillyTavernRoot, 'node_modules/express/index.js')));
+// SillyTavern's files router imports modules that read config at import time.
+const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'konggomul-st-config-'));
+const configFile = path.join(configDir, 'config.yaml');
+fs.writeFileSync(configFile, '{}\n');
+const { setConfigFilePath } = await import(pathToFileURL(path.join(sillyTavernRoot, 'src/util.js')));
+setConfigFilePath(configFile);
+process.once('exit', () => fs.rmSync(configDir, { recursive:true, force:true }));
 const { router: officialFilesRouter } = await import(pathToFileURL(path.join(sillyTavernRoot, 'src/endpoints/files.js')));
 const storageSource = fs.readFileSync(path.join(extensionRoot,'room-storage.js'),'utf8');
 const storage = await import('data:text/javascript;base64,'+Buffer.from(storageSource).toString('base64'));
