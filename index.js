@@ -994,6 +994,15 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
       index = await writeRoomIndex([...index.keys, ...missing], backup, ctx());
     }
   }
+  // Old clients may still save to settings.json after the migration. Never
+  // silently ignore newly written legacy messages for an existing owner.
+  if (completedMigration && Object.keys(legacy).length) {
+    if (!index.legacyBackup) throw new Error('Missing original room migration backup');
+    const original = await readLegacyRoomBackup(index.legacyBackup, ctx());
+    if (!roomStatesEqual(legacy, original)) {
+      throw new Error('Legacy settings changed after room-file migration. Nothing was overwritten; reconcile the other device first.');
+    }
+  }
   const cache = {};
   const revisions = {};
   for (const key of index.keys) {
@@ -6573,6 +6582,13 @@ export async function onDisable() {
   cancelPendingInitialization();
   cleanupRuntimeState();
   if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
+  await roomSaveQueue;
+  // A re-enable must reread server snapshots, not retain potentially stale
+  // revisions from before another device wrote data.
+  roomFilesReady = false;
+  roomFileStoreCache = null;
+  roomFileIndex = null;
+  roomFileRevisions = {};
   initialized = false;
 }
 
@@ -6587,6 +6603,10 @@ export async function onClean() {
   try {
     if (generationInFlight) await cancelCurrentGeneration({ persist: false, render: false, announce: false });
     await roomSaveQueue.catch(() => undefined);
+    roomFilesReady = false;
+    roomFileStoreCache = null;
+    roomFileIndex = null;
+    roomFileRevisions = {};
     const context = ctx();
     if (context?.extensionSettings) delete context.extensionSettings[MODULE_NAME];
     context?.saveSettingsDebounced?.();
