@@ -98,7 +98,7 @@ Right-click or long-press a message to open its menu.
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
-## 👥 Group Talk — complete speaking turns (5.5.1)
+## 👥 Group Talk — complete speaking turns (5.5.2)
 
 Create a Group Talk room from the mode picker, name it, and search/select at least two character cards. The current RP character is optional. Participants can be added or removed later. Recent RP, active lorebook, and accessible extension memory are independent reference choices; the same selective collectors as Kongtalk are used.
 
@@ -173,7 +173,15 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 | **Current RP character** | Export saves the current character's rooms, messages, modes, answer variants, pinned states and voice note. Import replaces this character's saved conversation data. Reset removes this character's rooms and messages, recreating a default room while preserving the voice note and extension settings. |
 | **All Guest Talk** | Export, import and reset work on the global Guest Talk conversation store only. Backups preserve guest character identifiers, messages, answer variants, voice notes and recent guest choices. |
 
-Normal rooms remain stored per main character in SillyTavern's extension settings; Guest Talk rooms live in a separate global store and stay accessible when the active RP changes. Guest Talk always reads the currently open RP, not a permanently pinned old chat. Phone and desktop connecting as the same user to the same server can access the same saved data. Browser-local copies from older versions are no longer read or merged.
+### Separate server-file conversation storage (5.5.2)
+
+From 5.5.2, Konggomul Talk stores ordinary rooms in one server-side JSON file per character and saves Guest Talk and Group Talk in their own shared JSON files. Files are in `data/<user-handle>/user/files/konggomul-room-*.json`. The original settings.json conversation copies remain until the user explicitly cleans the pre-migration storage; after cleanup only file metadata and preferences remain in settings. The same user on the same SillyTavern server can still see the same rooms across phone and desktop.
+
+The first migration uploads and reads back a full legacy backup (`konggomul-legacy-*.json`), then verifies each room file. The original settings.json conversation records are not deleted automatically: the legacy cleanup button must be chosen explicitly. If any file is missing, corrupt, or conflicts with legacy data, migration stops rather than deleting or replacing conversations. On subsequent save errors, it returns to settings storage to preserve the current in-memory records.
+
+Extension Settings → **Conversation data cleanup** now opens three actions: **Reset data before 261115** (clears only the old settings.json conversation copies from before the storage migration, regardless of message dates; new file-backed conversations are untouched), **Reset all conversation data** (all ordinary, guest and group conversation histories), and **Reset by character** (one ordinary Kongtalk character store only). Each destructive action requires another confirmation and creates a verified `konggomul-reset-*.json` recovery backup first. Backups are retained even after a full reset; theme, profile, voice notes and main SillyTavern chats are not reset. These three options are available from 5.5.2.
+
+To roll back to 5.5.1, restore the original settings backup as well: switching code alone cannot read newer file-backed conversations. Keep backups of both `settings.json` and `user/files`. Avoid simultaneously using an older Konggomul version on another device; if legacy data changes unexpectedly, migration stops to protect records. Guest Talk still references the currently open RP for context.
 
 The panel position and size, theme, character voice note, coworker work note, reply settings, and context settings are also retained. Quoted-message references and Guest Talk persona history are included in room backups. No automatic retrieval of old RP messages or spontaneous first messages was added.
 
@@ -279,7 +287,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
-## 👥 그룹톡 — 발언 단위 대화 (5.5.1)
+## 👥 그룹톡 — 발언 단위 대화 (5.5.2)
 
 모드 선택에서 그룹톡을 만들고, 방 이름과 참여 캐릭터 2명 이상을 고릅니다. 게스트톡처럼 캐시트를 검색할 수 있으며 현재 RP 캐릭터는 자유롭게 포함하거나 제외할 수 있습니다. 참여자는 나중에도 추가·제외할 수 있습니다. 최근 RP·로어북·확장 데이터는 각각 선택하며 기존 콩톡의 선택적 수집 방식을 사용합니다.
 
@@ -354,7 +362,15 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **현재 RP 캐릭터** | 내보내기는 현재 캐릭터의 대화방, 메시지, 모드, 답변 버전, 고정 상태와 말투 메모를 저장합니다. 가져오기는 해당 캐릭터의 데이터를 백업 내용으로 교체하고, 초기화는 대화 기록을 지우고 기본 방을 다시 만들되 말투 메모와 확장 설정을 유지합니다. |
 | **게스트톡 전체** | 게스트톡 공통 저장 영역만 별도로 내보내기·가져오기·초기화합니다. 백업에는 캐릭터 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록이 포함됩니다. |
 
-일반 대화방은 현재 RP 캐릭터별로 저장되고 게스트톡 방은 별도 공통 저장 영역에 저장됩니다. 게스트 방은 메인 RP가 바뀌어도 접근할 수 있으며, 매번 현재 열려 있는 RP를 참고합니다(과거 RP 고정 기능은 아직 제공하지 않습니다). 같은 서버·사용자로 접속하면 폰과 컴퓨터에서 같은 내역을 사용합니다. 이전 버전의 브라우저 로컬 사본은 읽거나 병합하지 않습니다.
+### 대화 기록 별도 파일 저장 (5.5.2)
+
+5.5.2부터 일반 콩톡은 캐릭터별, 게스트톡과 그룹톡은 각 공통 저장 영역별로 대화 기록을 서버 JSON 파일에 저장합니다. 파일 위치는 `data/<사용자>/user/files/konggomul-room-*.json`이며, 기존 `settings.json`의 대화 기록은 사용자가 구 저장 데이터 초기화를 선택할 때까지 유지됩니다. 정리 후에는 파일 목록과 설정만 남습니다. 같은 서버·계정으로 접속하는 PC와 휴대폰의 기록 공유는 유지하도록 설계했습니다.
+
+첫 이전 시 기존 기록 전체를 `konggomul-legacy-*.json`으로 백업하고 새 파일을 다시 읽어 검증합니다. 기존 `settings.json`의 대화 내용은 자동으로 삭제하지 않고, 사용자가 구 저장 데이터 정리를 선택했을 때만 제거합니다. 누락·충돌·오류가 있으면 이전을 중단하고 기존 기록을 보존합니다. 이후 파일 저장에 실패하면 메모리에 있는 기록을 설정 파일에 다시 저장하도록 복구합니다.
+
+확장 관리 → **대화 데이터 정리**를 누르면 **261115 이전 데이터 초기화**(11월 15일 저장 경로 변경 이전 `settings.json`의 옛 콩톡 데이터만 정리하며 대화 날짜는 무관하고 새 파일 기록은 보존), **전체 데이터 초기화**(일반 콩톡·게스트톡·그룹톡 전체 대화 기록), **캐릭터별 대화 초기화**(선택한 메인 RP 캐릭터 한 명의 일반 콩톡 기록)의 세 메뉴가 열립니다. 삭제 전 확인 창과 `konggomul-reset-*.json` 복구 백업을 거치며 백업은 자동 삭제하지 않습니다. 테마·연결·말투 메모 설정과 실리태번의 일반 채팅은 보존합니다. 세 가지 초기화 기능은 5.5.2부터 사용할 수 있습니다.
+
+5.5.1로 되돌릴 때는 기존 설정 백업도 함께 복원해야 합니다. 구버전 코드는 새 대화 파일을 직접 읽을 수 없습니다. `settings.json`과 `user/files`의 백업을 유지해 주세요. 다른 기기에서 구버전 콩톡을 동시에 사용하지 않는 것이 안전하며, 이전 데이터가 달라지면 기록 보호를 위해 전환을 중단합니다. 게스트톡은 계속 현재 열려 있는 RP를 참고합니다.
 
 패널 위치와 크기, 테마, 캐릭터 말투 메모, 답변 설정과 반영 범위 설정도 유지됩니다. 이전 직장 동료 업무 메모 데이터는 삭제하지 않습니다. 인용 답장 정보와 게스트톡 페르소나 전환 기록은 백업에 포함됩니다. 오래된 RP 자동 검색이나 캐릭터 자동 선톡 기능은 추가하지 않았습니다.
 
