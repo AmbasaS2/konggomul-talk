@@ -1,6 +1,7 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
-import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, backupLegacyRooms } from './room-storage.js';
+import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, backupLegacyRooms, backupRoomDataBeforeReset } from './room-storage.js';
+import { countRoomData, stripBefore261115 } from './room-reset.js';
 
 /*
  * 🐕 콩고물 톡 v5.5.1
@@ -4313,6 +4314,161 @@ async function resetAllRoomsForCurrentCharacter() {
   await resetRoomsForCharacterKey(getCharKey());
 }
 
+async function confirmConversationCleanup(title, summary) {
+  const content = document.createElement('div');
+  const strong = document.createElement('strong');
+  strong.textContent = title;
+  const description = document.createElement('p');
+  description.textContent = summary;
+  const warning = document.createElement('p');
+  warning.textContent = uiText('dialog.resetDeviceWarning') + ' ' + uiText('dialog.cleanupBackupNote');
+  content.append(strong, description, warning);
+  const popup = new Popup(content, POPUP_TYPE.CONFIRM, null, {
+    okButton: uiText('dialog.cleanupConfirm'),
+    cancelButton: uiText('dialog.cancel'),
+    leftAlign: true,
+  });
+  return await popup.show() === POPUP_RESULT.AFFIRMATIVE;
+}
+
+function emptySharedRoomState(oldState, now) {
+  return normalizeStoredRoomState({
+    rooms: [],
+    voiceNote: typeof oldState?.voiceNote === 'string' ? oldState.voiceNote : '',
+    resetAt: now,
+    updatedAt: now,
+    deletedRooms: {},
+    deletedMessages: {},
+  });
+}
+
+async function runBulkConversationCleanup(scope) {
+  if (!roomFilesReady || !roomFileIndex || cleanInProgress || !lifecycleEnabled) {
+    alert(uiText('dialog.cleanupUnavailable'));
+    return;
+  }
+  if (generationInFlight || groupStartPending) {
+    alert(uiText('dialog.cleanupBusy'));
+    return;
+  }
+  // Never remove file-backed history before all pending writes complete.
+  await roomSaveQueue;
+  const store = getServerRoomStore();
+  const keys = Object.keys(store);
+  if (!keys.length) {
+    alert(uiText('dialog.noResetData'));
+    return;
+  }
+  const beforeDate = scope === 'before-261115';
+  if (!beforeDate && scope !== 'all') throw new Error('Unknown conversation cleanup scope');
+  const changes = [];
+  const backup = {};
+  let removedMessages = 0;
+  let removedRooms = 0;
+  const now = Date.now();
+  for (const key of keys) {
+    const original = roomStateCharKey === key ? roomState : store[key];
+    const counts = countRoomData(original);
+    let proposed;
+    if (beforeDate) {
+      const filtered = stripBefore261115(original);
+      if (!filtered.removedMessages && !filtered.removedRooms) continue;
+      removedMessages += filtered.removedMessages;
+      removedRooms += filtered.removedRooms;
+      proposed = normalizeStoredRoomState({
+        ...filtered.data, updatedAt: now,
+        // Keep prior reset markers and voice notes intact.
+      });
+    } else {
+      removedMessages += counts.messages;
+      removedRooms += counts.rooms;
+      proposed = isSharedRoomStore(key)
+        ? emptySharedRoomState(original, now)
+        : createResetRoomState(original, now);
+    }
+    changes.push({ key, data: proposed });
+    backup[key] = JSON.parse(JSON.stringify(original));
+  }
+  if (!changes.length || (beforeDate && !removedMessages && !removedRooms)) {
+    alert(uiText('dialog.cleanupNothingBefore'));
+    return;
+  }
+  const title = uiText(beforeDate ? 'dialog.cleanupBefore' : 'dialog.cleanupAll');
+  if (!await confirmConversationCleanup(title,
+    uiText('dialog.cleanupSummary', changes.length, removedRooms, removedMessages))) return;
+  let backupPath;
+  try {
+    // The backup itself is read back and verified before the first destructive write.
+    backupPath = await backupRoomDataBeforeReset(backup, scope, ctx());
+  } catch (error) {
+    console.error('[Konggomul] reset backup failed, nothing was removed', error);
+    alert(uiText('dialog.cleanupBackupFailed', String(error?.message || error)));
+    return;
+  }
+  let completed = 0;
+  try {
+    for (const { key, data } of changes) {
+      await persistRoomSnapshot(key, data);
+      completed++;
+    }
+    // Remove stale last-room pointers if its conversation was cleaned up.
+    const saved = getSettings().lastActiveRoom;
+    const state = saved && getServerRoomStore()[saved.ownerKey];
+    if (saved && !state?.rooms?.some(room => room.id === saved.roomId)) {
+      getSettings().lastActiveRoom = null;
+      writeLastRoomMirror(null);
+      saveSettings();
+    }
+    if (!getActiveRoom()) showHome();
+    else {
+      renderAll();
+      if (homeVisible) renderHome();
+    }
+    alert(uiText('dialog.cleanupSuccess', changes.length, backupPath));
+  } catch (error) {
+    console.error('[Konggomul] bulk cleanup failed', { completed, total: changes.length, backupPath, error });
+    // Some stores may already be reset. The backup must remain intact for recovery.
+    alert(uiText('dialog.cleanupPartial', completed, changes.length, backupPath, String(error?.message || error)));
+  }
+}
+
+async function openConversationDataCleanupMenu() {
+  if (!roomFilesReady || !roomFileIndex) {
+    alert(uiText('dialog.cleanupUnavailable'));
+    return;
+  }
+  if (generationInFlight || groupStartPending) {
+    alert(uiText('dialog.cleanupBusy'));
+    return;
+  }
+  const content = document.createElement('div');
+  const heading = document.createElement('strong');
+  heading.textContent = uiText('dialog.cleanupMenuTitle');
+  const detail = document.createElement('p');
+  detail.textContent = uiText('dialog.cleanupMenuExplanation');
+  content.append(heading, detail);
+  const popup = new Popup(content, POPUP_TYPE.TEXT, null, {
+    okButton: false,
+    cancelButton: uiText('dialog.cancel'),
+    leftAlign: true,
+    defaultResult: POPUP_RESULT.CANCELLED,
+    customButtons: [
+      { text: uiText('dialog.cleanupBefore'), tooltip: uiText('dialog.cleanupBeforeHint'), result: POPUP_RESULT.CUSTOM1 },
+      { text: uiText('dialog.cleanupAll'), tooltip: uiText('dialog.cleanupAllHint'), result: POPUP_RESULT.CUSTOM2 },
+      { text: uiText('dialog.cleanupCharacter'), tooltip: uiText('dialog.cleanupCharacterHint'), result: POPUP_RESULT.CUSTOM3 },
+    ],
+  });
+  const result = await popup.show();
+  try {
+    if (result === POPUP_RESULT.CUSTOM1) await runBulkConversationCleanup('before-261115');
+    else if (result === POPUP_RESULT.CUSTOM2) await runBulkConversationCleanup('all');
+    else if (result === POPUP_RESULT.CUSTOM3) await openStoredCharacterRoomResetPopup();
+  } catch (error) {
+    console.error('[Konggomul] conversation cleanup failed', error);
+    alert(uiText('dialog.cleanupFailure', String(error?.message || error)));
+  }
+}
+
 async function openStoredCharacterRoomResetPopup() {
   const entries = getStoredCharacterRoomEntries();
   if (!entries.length) {
@@ -4355,7 +4511,21 @@ async function openStoredCharacterRoomResetPopup() {
     alert(uiText('dialog.resetMissing'));
     return;
   }
-  await resetRoomsForCharacterKey(selectedKey);
+  if (!roomFilesReady || !roomFileIndex || generationInFlight || groupStartPending) {
+    alert(uiText('dialog.cleanupUnavailable'));
+    return;
+  }
+  try {
+    await roomSaveQueue;
+    const source = roomStateCharKey === selectedKey ? roomState : getServerRoomStore()[selectedKey];
+    const path = await backupRoomDataBeforeReset({ [selectedKey]: JSON.parse(JSON.stringify(source)) }, 'character', ctx());
+    await resetRoomsForCharacterKey(selectedKey);
+    if (homeVisible) renderHome();
+    alert(uiText('dialog.cleanupSuccess', 1, path));
+  } catch (error) {
+    console.error('[Konggomul] character data reset failed', error);
+    alert(uiText('dialog.cleanupFailure', String(error?.message || error)));
+  }
 }
 
 function renameRoomById(id) {
@@ -5319,7 +5489,7 @@ function renderSettings() {
   hydrateGlobalSettingsUI({ allowCorrection: false });
   refreshProfiles({ silent: true, persist: false });
   $('#tua-setting-profile').on('change input', readGlobalSettingsUI);
-  $('#tua-reset-character-rooms').on('click', openStoredCharacterRoomResetPopup);
+  $('#tua-reset-character-rooms').on('click', openConversationDataCleanupMenu);
   $('#tua-show-debug').on('click', toggleKonggomulDebugDump);
   $('#tua-copy-debug').on('click', copyKonggomulDebugDump);
   $('#tua-clear-debug').on('click', clearKonggomulDebugDump);
