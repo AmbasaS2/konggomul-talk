@@ -173,7 +173,13 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 | **Current RP character** | Export saves the current character's rooms, messages, modes, answer variants, pinned states and voice note. Import replaces this character's saved conversation data. Reset removes this character's rooms and messages, recreating a default room while preserving the voice note and extension settings. |
 | **All Guest Talk** | Export, import and reset work on the global Guest Talk conversation store only. Backups preserve guest character identifiers, messages, answer variants, voice notes and recent guest choices. |
 
-Normal rooms remain stored per main character in SillyTavern's extension settings; Guest Talk rooms live in a separate global store and stay accessible when the active RP changes. Guest Talk always reads the currently open RP, not a permanently pinned old chat. Phone and desktop connecting as the same user to the same server can access the same saved data. Browser-local copies from older versions are no longer read or merged.
+### Experimental server-file conversation storage (testing branch only)
+
+This branch stores ordinary Kongtalk rooms in one server-side JSON file per character and saves Guest Talk and Group Talk in their own shared JSON files. Files are in `data/<user-handle>/user/files/konggomul-room-*.json`; only lightweight file-index metadata and preferences remain in `settings.json`. The same user on the same SillyTavern server can still see the same rooms across phone and desktop.
+
+The first migration uploads and reads back a full legacy backup (`konggomul-legacy-*.json`), then verifies each individual room file before excluding conversation history from settings saves. If any file is missing, corrupt, or conflicts with legacy data, migration stops rather than deleting or replacing conversations. On subsequent save errors, it returns to settings storage to preserve the current in-memory records.
+
+**Do not deploy this experimental branch as a routine update yet.** A real-server restart, phone/desktop, file permission, backup and rollback check is still required. Downgrading to 5.5.1 alone will not make a file-backed history readable: restore the original settings backup first. Keep backups of both `settings.json` and the `user/files` directory. Guest Talk continues to use the currently open RP for context.
 
 The panel position and size, theme, character voice note, coworker work note, reply settings, and context settings are also retained. Quoted-message references and Guest Talk persona history are included in room backups. No automatic retrieval of old RP messages or spontaneous first messages was added.
 
@@ -354,7 +360,13 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **현재 RP 캐릭터** | 내보내기는 현재 캐릭터의 대화방, 메시지, 모드, 답변 버전, 고정 상태와 말투 메모를 저장합니다. 가져오기는 해당 캐릭터의 데이터를 백업 내용으로 교체하고, 초기화는 대화 기록을 지우고 기본 방을 다시 만들되 말투 메모와 확장 설정을 유지합니다. |
 | **게스트톡 전체** | 게스트톡 공통 저장 영역만 별도로 내보내기·가져오기·초기화합니다. 백업에는 캐릭터 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록이 포함됩니다. |
 
-일반 대화방은 현재 RP 캐릭터별로 저장되고 게스트톡 방은 별도 공통 저장 영역에 저장됩니다. 게스트 방은 메인 RP가 바뀌어도 접근할 수 있으며, 매번 현재 열려 있는 RP를 참고합니다(과거 RP 고정 기능은 아직 제공하지 않습니다). 같은 서버·사용자로 접속하면 폰과 컴퓨터에서 같은 내역을 사용합니다. 이전 버전의 브라우저 로컬 사본은 읽거나 병합하지 않습니다.
+### 서버 파일 저장 시험판 안내 (테스트 브랜치 전용)
+
+이 브랜치는 일반 콩톡은 캐릭터별, 게스트톡과 그룹톡은 각 공통 저장 영역별로 대화 기록을 서버 JSON 파일에 저장합니다. 파일 위치는 `data/<사용자>/user/files/konggomul-room-*.json`이며 `settings.json`에는 가벼운 파일 목록과 설정만 남습니다. 같은 서버·계정으로 접속하는 PC와 휴대폰의 기록 공유는 유지하도록 설계했습니다.
+
+첫 이전 시 기존 저장 기록 전체를 `konggomul-legacy-*.json`으로 백업하고, 새 파일을 다시 읽어 모든 기록을 검증한 뒤에만 설정 파일에서 대화 내용을 제외합니다. 누락·충돌·오류가 있으면 이전을 중단하고 기존 기록을 보존합니다. 이후 파일 저장에 실패하면 메모리에 있는 기록을 설정 파일에 다시 저장하도록 복구합니다.
+
+**아직 정식 배포용이 아닌 테스트 브랜치입니다.** 실제 서버 재시작, PC·모바일 공유, 파일 권한, 백업·복구 시험이 필요합니다. 5.5.1 코드로만 되돌리면 분리된 대화 파일을 읽을 수 없으므로 이전 설정 백업도 함께 복원해야 합니다. `settings.json`과 `user/files` 폴더를 모두 백업해 주세요. 게스트톡은 여전히 현재 열려 있는 RP를 참고합니다.
 
 패널 위치와 크기, 테마, 캐릭터 말투 메모, 답변 설정과 반영 범위 설정도 유지됩니다. 이전 직장 동료 업무 메모 데이터는 삭제하지 않습니다. 인용 답장 정보와 게스트톡 페르소나 전환 기록은 백업에 포함됩니다. 오래된 RP 자동 검색이나 캐릭터 자동 선톡 기능은 추가하지 않았습니다.
 
