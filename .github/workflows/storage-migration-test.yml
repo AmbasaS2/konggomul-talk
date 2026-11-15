@@ -21,3 +21,25 @@ jobs:
           node-version: '22'
       - name: Exercise migration and recovery scenarios
         run: node --test tests/storage.test.mjs
+
+  official-files-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out Konggomul extension
+        uses: actions/checkout@v4
+      - name: Check out isolated SillyTavern release
+        uses: actions/checkout@v4
+        with:
+          repository: SillyTavern/SillyTavern
+          ref: release
+          path: sillytavern
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install SillyTavern dependencies
+        working-directory: sillytavern
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify actual SillyTavern file endpoints
+        run: node --test tests/files-api.integration.mjs
