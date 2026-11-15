@@ -4290,6 +4290,23 @@ body.tua-panel-resizing-body {
   font-size: var(--tua-font-size);
   box-sizing: border-box;
 }
+/* The three built-in color themes must not inherit the main SillyTavern input tint.
+   Simple Mac and Custom keep their existing independent appearance. */
+#tua-panel[data-tua-theme="konggomul"] #tua-home-search,
+#tua-panel[data-tua-theme="chocoStrawberry"] #tua-home-search,
+#tua-panel[data-tua-theme="melonSoda"] #tua-home-search {
+  background: var(--tua-input-bg) !important;
+  color: var(--tua-text) !important;
+  border: 1px solid var(--tua-line) !important;
+  box-shadow: none !important;
+  caret-color: var(--tua-accent-dark) !important;
+}
+#tua-panel[data-tua-theme="konggomul"] #tua-home-search::placeholder,
+#tua-panel[data-tua-theme="chocoStrawberry"] #tua-home-search::placeholder,
+#tua-panel[data-tua-theme="melonSoda"] #tua-home-search::placeholder {
+  color: var(--tua-muted) !important;
+  opacity: 0.75 !important;
+}
 #tua-panel #tua-home-search::-webkit-search-cancel-button {
   -webkit-appearance: none !important;
   appearance: none !important;
