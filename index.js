@@ -4541,22 +4541,39 @@ async function openConversationDataCleanupMenu() {
     return;
   }
   const content = document.createElement('div');
+  content.className = 'tua-cleanup-menu';
   const heading = document.createElement('strong');
   heading.textContent = uiText('dialog.cleanupMenuTitle');
   const detail = document.createElement('p');
   detail.textContent = uiText('dialog.cleanupMenuExplanation');
-  content.append(heading, detail);
+  const choices = document.createElement('div');
+  choices.className = 'tua-cleanup-choices';
   const popup = new Popup(content, POPUP_TYPE.TEXT, null, {
     okButton: false,
     cancelButton: uiText('dialog.cancel'),
     leftAlign: true,
     defaultResult: POPUP_RESULT.CANCELLED,
-    customButtons: [
-      { text: uiText('dialog.cleanupBefore'), tooltip: uiText('dialog.cleanupBeforeHint'), result: POPUP_RESULT.CUSTOM1 },
-      { text: uiText('dialog.cleanupAll'), tooltip: uiText('dialog.cleanupAllHint'), result: POPUP_RESULT.CUSTOM2 },
-      { text: uiText('dialog.cleanupCharacter'), tooltip: uiText('dialog.cleanupCharacterHint'), result: POPUP_RESULT.CUSTOM3 },
-    ],
+    allowVerticalScrolling: true,
   });
+  for (const [titleKey, hintKey, result] of [
+    ['dialog.cleanupBefore', 'dialog.cleanupBeforeHint', POPUP_RESULT.CUSTOM1],
+    ['dialog.cleanupAll', 'dialog.cleanupAllHint', POPUP_RESULT.CUSTOM2],
+    ['dialog.cleanupCharacter', 'dialog.cleanupCharacterHint', POPUP_RESULT.CUSTOM3],
+  ]) {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.className = 'menu_button tua-cleanup-choice';
+    const title = document.createElement('span');
+    title.className = 'tua-cleanup-choice-title';
+    title.textContent = uiText(titleKey);
+    const hint = document.createElement('span');
+    hint.className = 'tua-cleanup-choice-hint';
+    hint.textContent = uiText(hintKey);
+    option.append(title, hint);
+    option.addEventListener('click', () => { void popup.complete(result); });
+    choices.append(option);
+  }
+  content.append(heading, detail, choices);
   const result = await popup.show();
   try {
     if (result === POPUP_RESULT.CUSTOM1) await cleanupLegacySettingsData();
