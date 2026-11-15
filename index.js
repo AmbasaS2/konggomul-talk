@@ -4,14 +4,14 @@ import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, bac
 import { countRoomData } from './room-reset.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.3
+ * 🐕 콩고물 톡 v5.5.4
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.3';
+const EXTENSION_VERSION = '5.5.4';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -245,7 +245,8 @@ const UI_ENGLISH = Object.freeze({
   "dialog.cleanupConfirm": "Back up and reset",
   "dialog.cleanupSummary": "Data stores: {0}. Rooms affected: {1}. Messages affected: {2}. Continue?",
   "dialog.cleanupLegacyBlocked": "Original settings data differs from the migration backup or the new storage files could not be verified. No data was deleted; check for other devices using the old version.",
-  "dialog.cleanupLegacySuccess": "Queued settings cleanup of {0} old data store(s). New conversation files remain unchanged. Recovery backup: {1}",
+  "dialog.cleanupLegacySuccess": "Verified removal of old Konggomul room data from settings.json ({0} owner stores). New conversation files were left unchanged. Recovery backup: {1}",
+  "dialog.cleanupLegacyVerifyFailed": "Could not verify old-data removal in the saved settings.json. The legacy data was restored in memory to prevent loss. New conversation files were not changed. Error: {0}",
   "dialog.cleanupNothingBefore": "No original settings.json conversation data remains to clean up.",
   "dialog.cleanupBackupFailed": "Backup verification failed, so nothing was reset: {0}",
   "dialog.cleanupSuccess": "Reset completed for {0} data store(s). Recovery backup: {1}",
@@ -4454,14 +4455,50 @@ async function cleanupLegacySettingsData() {
     return;
   }
   // No file-backed histories, the index, or recovery snapshots are changed.
+  // Commit settings through SillyTavern and read back the actual on-disk file;
+  // the in-memory map alone is not evidence that cleanup was saved.
+  const previousFileMetadata = settings.roomFileStorage;
   settings.characterRooms = {};
   settings.roomFileStorage = {
     ...settings.roomFileStorage,
     legacyPendingCleanup: false,
     cleanupBackup: backup,
   };
-  // SillyTavern saves settings on a debounce; this queues, not confirms, save.
-  saveSettings();
+  try {
+    const context = ctx();
+    const debounced = context?.saveSettingsDebounced;
+    if (typeof debounced !== 'function' || typeof debounced.flush !== 'function') {
+      throw new Error('SillyTavern settings save flush is unavailable');
+    }
+    debounced();
+    await debounced.flush();
+    const response = await fetch('/api/settings/get', {
+      method: 'POST',
+      headers: context.getRequestHeaders(),
+      body: '{}',
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error('Settings read-back failed (HTTP ' + response.status + ')');
+    const result = await response.json();
+    const savedSettings = JSON.parse(result.settings);
+    const stored = savedSettings?.extension_settings?.[MODULE_NAME];
+    if (!stored?.characterRooms || typeof stored.characterRooms !== 'object' ||
+        Array.isArray(stored.characterRooms) || Object.keys(stored.characterRooms).length !== 0 ||
+        stored.roomFileStorage?.format !== 'server-files-v1' ||
+        stored.roomFileStorage?.legacyPendingCleanup !== false ||
+        stored.roomFileStorage?.cleanupBackup !== backup) {
+      throw new Error('Old room data is still present in the saved settings file');
+    }
+  } catch (error) {
+    // If either the save or read-back fails, keep the old copy in memory and
+    // schedule a settings save. Verified recovery backups are untouched.
+    settings.characterRooms = legacy;
+    settings.roomFileStorage = previousFileMetadata;
+    saveSettings();
+    console.error('[Konggomul] legacy cleanup not verified on disk', error);
+    alert(uiText('dialog.cleanupLegacyVerifyFailed', String(error?.message || error)));
+    return;
+  }
   alert(uiText('dialog.cleanupLegacySuccess', keys.length, backup));
 }
 
