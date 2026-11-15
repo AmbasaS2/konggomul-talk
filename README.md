@@ -179,6 +179,8 @@ This branch stores ordinary Kongtalk rooms in one server-side JSON file per char
 
 The first migration uploads and reads back a full legacy backup (`konggomul-legacy-*.json`), then verifies each individual room file before excluding conversation history from settings saves. If any file is missing, corrupt, or conflicts with legacy data, migration stops rather than deleting or replacing conversations. On subsequent save errors, it returns to settings storage to preserve the current in-memory records.
 
+Extension Settings → **Conversation data cleanup** now opens three actions: **Reset data before 261115** (messages dated before Nov 15, 2026 at 00:00 Korea time; newer/undated messages stay), **Reset all conversation data** (all ordinary, guest and group conversation histories), and **Reset by character** (one ordinary Kongtalk character store only). Each destructive action requires another confirmation and creates a verified `konggomul-reset-*.json` recovery backup first. Backups are retained even after a full reset; theme, profile, voice notes and main SillyTavern chats are not reset. For current settings-based 5.5.1 these new options do not exist.
+
 **Do not deploy this experimental branch as a routine update yet.** A real-server restart, phone/desktop, file permission, backup and rollback check is still required. Downgrading to 5.5.1 alone will not make a file-backed history readable: restore the original settings backup first. Keep backups of both `settings.json` and the `user/files` directory. Guest Talk continues to use the currently open RP for context.
 
 The panel position and size, theme, character voice note, coworker work note, reply settings, and context settings are also retained. Quoted-message references and Guest Talk persona history are included in room backups. No automatic retrieval of old RP messages or spontaneous first messages was added.
@@ -365,6 +367,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 이 브랜치는 일반 콩톡은 캐릭터별, 게스트톡과 그룹톡은 각 공통 저장 영역별로 대화 기록을 서버 JSON 파일에 저장합니다. 파일 위치는 `data/<사용자>/user/files/konggomul-room-*.json`이며 `settings.json`에는 가벼운 파일 목록과 설정만 남습니다. 같은 서버·계정으로 접속하는 PC와 휴대폰의 기록 공유는 유지하도록 설계했습니다.
 
 첫 이전 시 기존 저장 기록 전체를 `konggomul-legacy-*.json`으로 백업하고, 새 파일을 다시 읽어 모든 기록을 검증한 뒤에만 설정 파일에서 대화 내용을 제외합니다. 누락·충돌·오류가 있으면 이전을 중단하고 기존 기록을 보존합니다. 이후 파일 저장에 실패하면 메모리에 있는 기록을 설정 파일에 다시 저장하도록 복구합니다.
+
+확장 관리 → **대화 데이터 정리**를 누르면 **261115 이전 데이터 초기화**(2026년 11월 15일 0시 한국시간 이전 메시지만 삭제하고 이후·날짜 불명 기록 보존), **전체 데이터 초기화**(일반 콩톡·게스트톡·그룹톡 전체 대화 기록), **캐릭터별 대화 초기화**(선택한 메인 RP 캐릭터 한 명의 일반 콩톡 기록)의 세 메뉴가 열립니다. 삭제 전 확인 창과 `konggomul-reset-*.json` 복구 백업을 거치며 백업은 자동 삭제하지 않습니다. 테마·연결·말투 메모 설정과 실리태번의 일반 채팅은 보존합니다. 현재 설정 저장 방식인 정식 5.5.1에는 아직 이 메뉴가 적용되지 않습니다.
 
 **아직 정식 배포용이 아닌 테스트 브랜치입니다.** 실제 서버 재시작, PC·모바일 공유, 파일 권한, 백업·복구 시험이 필요합니다. 5.5.1 코드로만 되돌리면 분리된 대화 파일을 읽을 수 없으므로 이전 설정 백업도 함께 복원해야 합니다. `settings.json`과 `user/files` 폴더를 모두 백업해 주세요. 게스트톡은 여전히 현재 열려 있는 RP를 참고합니다.
 
