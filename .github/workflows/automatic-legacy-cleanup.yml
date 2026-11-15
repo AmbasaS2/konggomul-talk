@@ -1,0 +1,21 @@
+name: Konggomul automatic legacy cleanup regression
+on:
+  push:
+    branches:
+      - fix/automatic-legacy-storage-cleanup-20261115
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test guarded migration cleanup and two-choice UI
+        run: node --test tests/legacy-auto-cleanup.test.mjs
