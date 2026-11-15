@@ -77,8 +77,24 @@ function migration(settings,patch={}) {
   )(dep);
 }
 function cleanup(settings,fileIndex,patch={}) {
+  let persisted = {extension_settings:{title_undecided_assistant:copy(settings)}};
+  const pending = ()=>{};
+  pending.flush=async()=>{
+    if (!patch.simulateSettingsWriteFailure) {
+      persisted={extension_settings:{title_undecided_assistant:copy(settings)}};
+    }
+  };
+  const priorFetch=globalThis.fetch;
+  globalThis.fetch=async (url,opts)=>{
+    if (url==='/api/settings/get') {
+      return jsonResponse({settings:JSON.stringify(persisted)});
+    }
+    return priorFetch(url,opts);
+  };
   const dep={
-    getSettings:()=>settings,ctx:context,saveSettings:()=>{},
+    getSettings:()=>settings,
+    ctx:()=>({...context(),saveSettingsDebounced:pending}),
+    saveSettings:()=>{},
     readRoomIndex:storage.readRoomIndex,readLegacyRoomBackup:storage.readLegacyRoomBackup,
     readRoomSnapshot:storage.readRoomSnapshot,
     roomStatesEqual:(a,b)=>JSON.stringify(a)===JSON.stringify(b),
@@ -88,7 +104,7 @@ function cleanup(settings,fileIndex,patch={}) {
   };
   return new Function('d',
     'const {getSettings,ctx,saveSettings,readRoomIndex,readLegacyRoomBackup,readRoomSnapshot,roomStatesEqual,countRoomData,confirmConversationCleanup,backupLegacyRooms,alert,uiText}=d;'+
-    'const console={error:()=>{}};'+
+    'const console={error:()=>{}},MODULE_NAME="title_undecided_assistant";'+
     'let roomFilesReady=true,roomFileIndex=d.fileIndex,cleanInProgress=false,lifecycleEnabled=true,generationInFlight=false,groupStartPending=false,roomSaveQueue=Promise.resolve();'+
     legacy+'return cleanupLegacySettingsData;'
   )(dep);
@@ -140,6 +156,23 @@ test('old client additions block migration and legacy cleanup',async()=>{
   await cleanup(settings,first.state().roomFileIndex,{alert:x=>alerts.push(x)})();
   assert.match(alerts.at(-1),/cleanupLegacyBlocked/);
   assert.equal(settings.characterRooms.Remus.rooms[0].messages.length,2);
+});
+test('failed settings save never reports legacy cleanup as completed',async()=>{
+  server();
+  const settings={characterRooms:original()};
+  const first=migration(settings);
+  await first.init();
+  const expected=copy(settings.characterRooms);
+  const alerts=[];
+  await cleanup(settings,first.state().roomFileIndex,{
+    simulateSettingsWriteFailure:true,
+    alert:x=>alerts.push(x),
+  })();
+  assert.deepEqual(settings.characterRooms,expected);
+  assert.equal(settings.roomFileStorage.legacyPendingCleanup,true);
+  assert.match(alerts.at(-1),/cleanupLegacyVerifyFailed/);
+  assert.doesNotMatch(alerts.at(-1),/cleanupLegacySuccess/);
+  assert.equal((await storage.readRoomSnapshot('Remus',context())).data.rooms[0].messages[0].content,'old');
 });
 test('migration upload failures do not erase original settings',async()=>{
   const disk=server();
