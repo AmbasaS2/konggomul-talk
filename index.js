@@ -1,5 +1,6 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
+import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, backupLegacyRooms } from './room-storage.js';
 
 /*
  * 🐕 콩고물 톡 v5.5.1
@@ -484,6 +485,14 @@ let eventHandlersBound = false;
 let chatChangedHandler = null;
 let characterEditedHandler = null;
 let roomSaveQueue = Promise.resolve();
+// The in-memory room map remains synchronous for existing UI functions. Once
+// validated, it becomes a non-enumerable settings property so the full chat
+// history is no longer serialized into SillyTavern's settings.json.
+let roomFileStoreCache = null;
+let roomFileRevisions = {};
+let roomFileIndex = null;
+let roomFilesReady = false;
+
 let roomStateCharKey = null;
 let roomLoadSequence = 0;
 let generationInFlight = false;
@@ -909,8 +918,83 @@ function getStoredCharacterRoomEntries() {
 
 function getServerRoomStore() {
   const settings = getSettings();
+  if (roomFilesReady && roomFileStoreCache) return roomFileStoreCache;
   if (!settings.characterRooms || typeof settings.characterRooms !== 'object' || Array.isArray(settings.characterRooms)) settings.characterRooms = {};
   return settings.characterRooms;
+}
+
+function roomStatesEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function requireRoomFileCache(settings, store) {
+  roomFileStoreCache = store;
+  Object.defineProperty(settings, 'characterRooms', {
+    value: roomFileStoreCache,
+    writable: true,
+    configurable: true,
+    enumerable: false,
+  });
+}
+
+async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
+  if (roomFilesReady) return true;
+  const settings = getSettings();
+  const legacy = settings.characterRooms || {};
+  // An interrupted migration must not delete even one message from settings.
+  let index = await readRoomIndex(ctx());
+  if (!index) {
+    const keys = Object.keys(legacy);
+    const backup = keys.length ? await backupLegacyRooms(legacy, ctx()) : '';
+    for (const key of keys) {
+      const prior = await readRoomSnapshot(key, ctx());
+      if (prior && !roomStatesEqual(prior.data, legacy[key])) {
+        throw new Error('Room file conflicts with legacy settings; migration stopped: ' + key);
+      }
+      if (!prior) await writeRoomSnapshot(key, legacy[key], 0, ctx());
+    }
+    index = await writeRoomIndex(keys, backup, ctx());
+  } else {
+    // A legacy client might have added new character data after the index was
+    // created. Preserve it and register it, rather than silently dropping it.
+    const missing = Object.keys(legacy).filter(key => !index.keys.includes(key));
+    if (missing.length) {
+      const backup = await backupLegacyRooms(legacy, ctx());
+      for (const key of missing) {
+        const prior = await readRoomSnapshot(key, ctx());
+        if (prior && !roomStatesEqual(prior.data, legacy[key])) {
+          throw new Error('Room file conflicts with later legacy settings; migration stopped: ' + key);
+        }
+        if (!prior) await writeRoomSnapshot(key, legacy[key], 0, ctx());
+      }
+      index = await writeRoomIndex([...index.keys, ...missing], backup, ctx());
+    }
+  }
+  const cache = {};
+  const revisions = {};
+  for (const key of index.keys) {
+    const stored = await readRoomSnapshot(key, ctx());
+    if (!stored) throw new Error('Missing Konggomul room file: ' + key);
+    if (Object.hasOwn(legacy, key) && !roomStatesEqual(legacy[key], stored.data)) {
+      throw new Error('Legacy settings and stored room file differ. Migration stopped: ' + key);
+    }
+    cache[key] = stored.data;
+    revisions[key] = stored.revision;
+  }
+  if (cleanInProgress || epoch !== lifecycleEpoch || !lifecycleEnabled) return false;
+  requireRoomFileCache(settings, cache);
+  roomFileRevisions = revisions;
+  roomFileIndex = index;
+  roomFilesReady = true;
+  settings.roomFileStorage = {
+    format: 'server-files-v1',
+    legacyBackup: index.legacyBackup,
+    keys: [...index.keys],
+  };
+  // Only after every upload and read-back succeeds does settings.json stop
+  // containing full conversation records. The verified legacy backup remains.
+  saveSettings();
+  return true;
 }
 
 function getMessageUpdatedAt(msg) {
@@ -1287,8 +1371,38 @@ async function persistRoomSnapshot(charKey, data, saveEpoch = persistenceEpoch) 
 
   const persist = async () => {
     if (cleanInProgress || saveEpoch !== persistenceEpoch) return snapshot;
-    getServerRoomStore()[charKey] = JSON.parse(JSON.stringify(snapshot));
-    saveSettings();
+    if (roomFilesReady && roomFileStoreCache) {
+      try {
+        const revision = await writeRoomSnapshot(charKey, snapshot, roomFileRevisions[charKey] || 0, ctx());
+        roomFileRevisions[charKey] = revision;
+        roomFileStoreCache[charKey] = JSON.parse(JSON.stringify(snapshot));
+        if (!roomFileIndex?.keys.includes(charKey)) {
+          const diskIndex = await readRoomIndex(ctx());
+          if (!diskIndex) throw new Error('Room storage index was deleted');
+          roomFileIndex = await writeRoomIndex([...diskIndex.keys, charKey], diskIndex.legacyBackup, ctx());
+          const settings = getSettings();
+          settings.roomFileStorage = { format: 'server-files-v1', legacyBackup: roomFileIndex.legacyBackup, keys: [...roomFileIndex.keys] };
+          saveSettings();
+        }
+      } catch (error) {
+        // Emergency recovery: if the file write fails, keep all in-memory
+        // histories serialized in settings rather than risk losing new replies.
+        const settings = getSettings();
+        roomFileStoreCache[charKey] = JSON.parse(JSON.stringify(snapshot));
+        Object.defineProperty(settings, 'characterRooms', {
+          value: roomFileStoreCache, enumerable: true, writable: true, configurable: true,
+        });
+        settings.roomFileStorage = { format: 'legacy-recovery', legacyBackup: roomFileIndex?.legacyBackup || '' };
+        roomFilesReady = false;
+        saveSettings();
+        console.error('[Konggomul] server-file save failed; kept room data in settings for recovery', error);
+        alert('Konggomul Talk could not save room files. Room data was kept in settings as a recovery fallback. Do not clear extension data. Check the console before reloading.');
+        throw error;
+      }
+    } else {
+      getServerRoomStore()[charKey] = JSON.parse(JSON.stringify(snapshot));
+      saveSettings();
+    }
     if (!cleanInProgress && saveEpoch === persistenceEpoch && roomStateCharKey === charKey && (isSharedRoomStore(charKey) || getCharKey() === charKey)) {
       roomState = snapshot;
       if (!activeRoomId || !roomState.rooms.some(room => room.id === activeRoomId)) {
@@ -6141,6 +6255,8 @@ async function init() {
     if (!ensureLauncher()) return false;
     applyVisualSettings();
     homeVisible = true;
+    const filesLoaded = await initializeRoomFileStorage(runEpoch);
+    if (!filesLoaded) return false;
     const loaded = await loadRooms({ expectedLifecycleEpoch: runEpoch });
     if (!loaded || !lifecycleEnabled || cleanInProgress || runEpoch !== lifecycleEpoch) return false;
     bindRuntimeEvents();
