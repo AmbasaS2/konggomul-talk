@@ -1,7 +1,7 @@
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../../popup.js';
 import { saveSettings as saveSillyTavernSettings } from '../../../../script.js';
 import { GROUP_MEMORY_DEFAULT, GROUP_OUTPUT_DEFAULT, groupRoomFields, getGroupHistory, extractGroupResponse, parseGroupCompletion } from './group-talk.js';
-import { readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, backupLegacyRooms, readLegacyRoomBackup } from './room-storage.js';
+import { ROOM_INDEX_FORMAT, readRoomIndex, writeRoomIndex, readRoomSnapshot, writeRoomSnapshot, deleteRoomSnapshot, deleteRoomIndex, backupLegacyRooms, readLegacyRoomBackup } from './room-storage.js';
 import { countRoomData } from './room-reset.js';
 
 /*
@@ -455,6 +455,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   roomActionsCollapsed: true,
   fixedScrollbar: true,
   characterRooms: {},
+  roomVoiceNotes: {},
   guestRecentCharacters: [],
   guestVoiceNotes: {},
   lastActiveRoom: null,
@@ -710,6 +711,7 @@ function getSettings() {
     if (!Object.hasOwn(settings[MODULE_NAME], k)) settings[MODULE_NAME][k] = v;
   }
   if (!settings[MODULE_NAME].characterRooms || typeof settings[MODULE_NAME].characterRooms !== 'object' || Array.isArray(settings[MODULE_NAME].characterRooms)) settings[MODULE_NAME].characterRooms = {};
+  if (!settings[MODULE_NAME].roomVoiceNotes || typeof settings[MODULE_NAME].roomVoiceNotes !== 'object' || Array.isArray(settings[MODULE_NAME].roomVoiceNotes)) settings[MODULE_NAME].roomVoiceNotes = {};
   const migratedGroup = migrateGlobalGroupSettings(settings[MODULE_NAME]);
   if (!settings[MODULE_NAME].profileSettingsV407Migrated) {
     if (settings[MODULE_NAME].profileMode !== 'profile') settings[MODULE_NAME].selectedProfile = '';
@@ -875,6 +877,15 @@ function getCharKey(character = getCurrentCharacter()) {
   return String(raw).replace(/[^a-zA-Z0-9가-힣_.-]/g, '_').slice(0, 120);
 }
 
+function getRoomOwnerLabel(ownerKey) {
+  if (ownerKey === GUEST_ROOM_STORE_KEY) return 'Guest Talk';
+  if (ownerKey === GROUP_ROOM_STORE_KEY) return 'Group Talk';
+  const characters = ctx()?.characters;
+  const entries = Array.isArray(characters) ? characters : Object.values(characters || {});
+  const character = entries.find(item => item && getCharKey(item) === ownerKey);
+  return character ? getCharName(character) : String(ownerKey).replace(/\.[^.]+$/, '');
+}
+
 function getKongtalkCharacterAvatarUrl(character) {
   const filename = String(character?.avatar || '').trim();
   if (!filename || filename === 'none') return '';
@@ -961,7 +972,7 @@ function requireRoomFileCache(settings, store) {
 async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
   if (roomFilesReady) return true;
   const settings = getSettings();
-  const legacy = settings.characterRooms || {};
+  let legacy = settings.characterRooms || {};
   if (settings.roomFileStorage?.format === 'legacy-recovery') {
     // A failed upload already restored every in-memory owner snapshot to the
     // original settings field. Reopening in file mode would reject the newer
@@ -982,22 +993,35 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
   const completedMigration = settings.roomFileStorage?.format === 'server-files-v1';
   // An interrupted migration must not delete even one message from settings.
   let index = await readRoomIndex(ctx());
+  if (index?.pendingDeletes?.length) {
+    // An interrupted user-confirmed reset is finished before any conversation
+    // is loaded. The index explicitly lists only the affected owner keys.
+    index = await finalizePendingRoomDeletions(index);
+    legacy = settings.characterRooms || {};
+  }
   if (!index) {
-    // Once settings records a completed migration, a missing server index
-    // is a recovery problem, not permission to initialize an empty database.
-    if (settings.roomFileStorage?.format === 'server-files-v1') {
+    // After a verified full reset, no index is expected until the next real save.
+    if (completedMigration && settings.roomFileStorage?.cleared !== true) {
       throw new Error('Room storage index is missing after a completed migration; data was not reset');
     }
     const keys = Object.keys(legacy);
-    const backup = keys.length ? await backupLegacyRooms(legacy, ctx()) : '';
-    for (const key of keys) {
-      const prior = await readRoomSnapshot(key, ctx());
-      if (prior && !roomStatesEqual(prior.data, legacy[key])) {
-        throw new Error('Room file conflicts with legacy settings; migration stopped: ' + key);
-      }
-      if (!prior) await writeRoomSnapshot(key, legacy[key], 0, ctx());
+    if (completedMigration && keys.length) {
+      throw new Error('Old settings still contain room data after a completed reset');
     }
-    index = await writeRoomIndex(keys, backup, ctx());
+    if (!keys.length) {
+      index = { format: ROOM_INDEX_FORMAT, keys: [], pendingDeletes: [], labels: {}, legacyBackup: '' };
+    } else {
+      const backup = await backupLegacyRooms(legacy, ctx());
+      for (const key of keys) {
+        const prior = await readRoomSnapshot(key, ctx());
+        if (prior && !roomStatesEqual(prior.data, legacy[key])) {
+          throw new Error('Room file conflicts with legacy settings; migration stopped: ' + key);
+        }
+        if (!prior) await writeRoomSnapshot(key, legacy[key], 0, ctx(), getRoomOwnerLabel(key));
+      }
+      index = await writeRoomIndex(keys, backup, ctx(), [],
+        Object.fromEntries(keys.map(key => [key, getRoomOwnerLabel(key)])));
+    }
   } else {
     // A legacy client might have added new character data after the index was
     // created. Preserve it and register it, rather than silently dropping it.
@@ -1012,7 +1036,8 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
         }
         if (!prior) await writeRoomSnapshot(key, legacy[key], 0, ctx());
       }
-      index = await writeRoomIndex([...index.keys, ...missing], backup, ctx());
+      index = await writeRoomIndex([...index.keys, ...missing], backup, ctx(), [],
+        { ...index.labels, ...Object.fromEntries(missing.map(key => [key, getRoomOwnerLabel(key)])) });
     }
   }
   // Old clients may still save to settings.json after the migration. Never
@@ -1027,6 +1052,7 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
   const cache = {};
   const revisions = {};
   for (const key of index.keys) {
+    // Leave older hash-only filenames untouched. The reader supports both.
     const stored = await readRoomSnapshot(key, ctx());
     if (!stored) throw new Error('Missing Konggomul room file: ' + key);
     if (!completedMigration && Object.hasOwn(legacy, key) && !roomStatesEqual(legacy[key], stored.data)) {
@@ -1045,6 +1071,7 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
     legacyBackup: index.legacyBackup,
     keys: [...index.keys],
     legacyPendingCleanup: Object.keys(legacy).length > 0,
+    cleared: index.keys.length === 0,
   };
   // File snapshots are authoritative. Keep the old settings copy intact until
   // its verified backup exists and SillyTavern confirms the settings rewrite.
@@ -1428,15 +1455,24 @@ async function persistRoomSnapshot(charKey, data, saveEpoch = persistenceEpoch) 
     if (cleanInProgress || saveEpoch !== persistenceEpoch) return snapshot;
     if (roomFilesReady && roomFileStoreCache) {
       try {
-        const revision = await writeRoomSnapshot(charKey, snapshot, roomFileRevisions[charKey] || 0, ctx());
+        const revision = await writeRoomSnapshot(charKey, snapshot, roomFileRevisions[charKey] || 0, ctx(), getRoomOwnerLabel(charKey));
         roomFileRevisions[charKey] = revision;
         roomFileStoreCache[charKey] = JSON.parse(JSON.stringify(snapshot));
-        if (!roomFileIndex?.keys.includes(charKey)) {
+        const label = getRoomOwnerLabel(charKey);
+        if (!roomFileIndex?.keys.includes(charKey) || roomFileIndex.labels?.[charKey] !== label) {
           const diskIndex = await readRoomIndex(ctx());
-          if (!diskIndex) throw new Error('Room storage index was deleted');
-          roomFileIndex = await writeRoomIndex([...diskIndex.keys, charKey], diskIndex.legacyBackup, ctx());
+          if (!diskIndex && (!getSettings().roomFileStorage?.cleared || roomFileIndex.keys.length)) {
+            throw new Error('Room storage index was unexpectedly deleted');
+          }
+          if (diskIndex?.pendingDeletes?.length) throw new Error('A room deletion is still pending');
+          roomFileIndex = await writeRoomIndex([...(diskIndex?.keys || []), charKey],
+            diskIndex?.legacyBackup || '', ctx(), [],
+            { ...(diskIndex?.labels || {}), [charKey]: label });
           const settings = getSettings();
-          settings.roomFileStorage = { format: 'server-files-v1', legacyBackup: roomFileIndex.legacyBackup, keys: [...roomFileIndex.keys] };
+          settings.roomFileStorage = {
+            format: 'server-files-v1', legacyBackup: roomFileIndex.legacyBackup,
+            keys: [...roomFileIndex.keys], cleared: false, legacyPendingCleanup: false,
+          };
           saveSettings();
         }
       } catch (error) {
@@ -1487,10 +1523,12 @@ async function loadRooms({ expectedLifecycleEpoch = lifecycleEpoch, storageKey =
   const previousRoomId = roomStateCharKey === charKey ? activeRoomId : null;
   roomState = normalizeStoredRoomState(serverData);
   roomStateCharKey = charKey;
-  let shouldPersist = roomStateFingerprint(roomState) !== roomStateFingerprint(serverData);
+  if (!serverData) roomState.voiceNote = String(getSettings().roomVoiceNotes[charKey] || '');
+  let shouldPersist = !!serverData && roomStateFingerprint(roomState) !== roomStateFingerprint(serverData);
   if (!roomState.rooms.length && !isGuestStore) {
     resetToDefaultKongtalkRoom('load-no-rooms');
-    shouldPersist = true;
+    // A default empty room is UI state, not a file to leave behind on disk.
+    shouldPersist = false;
   } else {
     const beforeNormalize = roomStateFingerprint(roomState);
     roomState.rooms.forEach(room => {
@@ -1616,20 +1654,37 @@ function deleteRoom(id) {
     alert(uiText('dialog.deleteBusy'));
     return false;
   }
-  const deletedAt = Date.now();
-  if (!roomState.deletedRooms || typeof roomState.deletedRooms !== 'object' || Array.isArray(roomState.deletedRooms)) roomState.deletedRooms = {};
-  if (id) roomState.deletedRooms[String(id)] = deletedAt;
-  roomState.rooms = roomState.rooms.filter(r => r.id !== id);
-  clearLastActiveRoomIfDeleted(roomStateCharKey, String(id || ''));
-  if (!roomState.rooms.length && isSharedRoomStore(roomStateCharKey)) {
-    activeRoomId = null;
-    roomState.updatedAt = deletedAt;
-    void saveRooms().then(async () => {
-      if (await loadRooms({ storageKey: getCharKey() })) rememberLastActiveRoom();
-    }).catch(error => console.error('[Konggomul] return to main rooms failed', error));
+  const existing = Array.isArray(roomState?.rooms) ? roomState.rooms : [];
+  if (!existing.some(room => room.id === id)) return false;
+  if (existing.length === 1) {
+    const ownerKey = roomStateCharKey;
+    if (roomFilesReady && roomFileIndex?.keys.includes(ownerKey)) {
+      // Preserve the visible room until the physical deletion has succeeded.
+      void deleteStoredRoomOwners([ownerKey]).catch(error => {
+        console.error('[Konggomul] last room deletion failed', error);
+        alert(uiText('dialog.cleanupFailure', String(error?.message || error)));
+      });
+    } else if (isSharedRoomStore(ownerKey)) {
+      roomState.rooms = [];
+      activeRoomId = null;
+      clearLastActiveRoomIfDeleted(ownerKey, String(id || ''));
+      void loadRooms({ storageKey: getCharKey() })
+        .then(() => { homeVisible = true; renderAll(); })
+        .catch(error => console.error('[Konggomul] return to main rooms failed', error));
+    } else {
+      roomState.rooms = [];
+      clearLastActiveRoomIfDeleted(ownerKey, String(id || ''));
+      resetToDefaultKongtalkRoom('delete-empty-room');
+      homeVisible = true;
+      renderAll();
+    }
     return true;
   }
-  if (!roomState.rooms.length) createRoom(false, 'kongtalk', true);
+  const deletedAt = Date.now();
+  if (!roomState.deletedRooms || typeof roomState.deletedRooms !== 'object' || Array.isArray(roomState.deletedRooms)) roomState.deletedRooms = {};
+  roomState.deletedRooms[String(id)] = deletedAt;
+  roomState.rooms = existing.filter(room => room.id !== id);
+  clearLastActiveRoomIfDeleted(roomStateCharKey, String(id || ''));
   if (!activeRoomId || activeRoomId === id || !roomState.rooms.some(room => room.id === activeRoomId)) {
     activeRoomId = roomState.rooms[0].id;
   }
@@ -1901,9 +1956,10 @@ function getVoiceNote() {
   if (getRoomMode(room) === 'guestOoc' && room?.guestCharacterKey) {
     const settings = getSettings();
     const fromGuest = settings.guestVoiceNotes[room.guestCharacterKey];
-    return String(typeof fromGuest === 'string' ? fromGuest : (getServerRoomStore()[room.guestCharacterKey]?.voiceNote || ''));
+    return String(typeof fromGuest === 'string' ? fromGuest :
+      (getServerRoomStore()[room.guestCharacterKey]?.voiceNote || settings.roomVoiceNotes[room.guestCharacterKey] || ''));
   }
-  return String(roomState?.voiceNote || '');
+  return String(roomState?.voiceNote || getSettings().roomVoiceNotes[roomStateCharKey || getCharKey()] || '');
 }
 
 function setVoiceNote(text) {
@@ -1915,6 +1971,8 @@ function setVoiceNote(text) {
   }
   if (!roomState) roomState = { rooms: [] };
   roomState.voiceNote = String(text || '');
+  getSettings().roomVoiceNotes[roomStateCharKey || getCharKey()] = roomState.voiceNote;
+  saveSettings();
   saveRooms();
 }
 
@@ -4231,19 +4289,133 @@ function importGuestRooms(event) {
   reader.readAsText(file);
 }
 
+
+// Only files belonging to explicitly selected owner keys are removed. A
+// pending-deletion list in the index makes an interrupted reset resumable.
+async function saveVerifiedRoomResetSettings(index) {
+  const settings = getSettings();
+  for (const key of index.pendingDeletes || []) {
+    const stored = await readRoomSnapshot(key, ctx());
+    if (typeof stored?.data?.voiceNote === 'string' && stored.data.voiceNote) {
+      settings.roomVoiceNotes[key] = stored.data.voiceNote;
+    }
+  }
+  settings.characterRooms = {};
+  if ((index.pendingDeletes || []).includes(settings.lastActiveRoom?.ownerKey)) {
+    settings.lastActiveRoom = null;
+    writeLastRoomMirror(null);
+  }
+  settings.roomFileStorage = {
+    format: 'server-files-v1',
+    legacyBackup: index.keys.length ? index.legacyBackup : '',
+    keys: [...index.keys],
+    legacyPendingCleanup: false,
+    cleared: index.keys.length === 0,
+  };
+  await saveSillyTavernSettings();
+  const response = await fetch('/api/settings/get', {
+    method: 'POST', headers: ctx().getRequestHeaders(), body: '{}', cache: 'no-store',
+  });
+  if (!response.ok) throw new Error('Could not verify reset settings (' + response.status + ')');
+  const saved = await response.json();
+  const persisted = JSON.parse(saved.settings)?.extension_settings?.[MODULE_NAME];
+  if (!persisted || persisted.roomFileStorage?.format !== 'server-files-v1' ||
+      persisted.roomFileStorage?.cleared !== (index.keys.length === 0) ||
+      JSON.stringify(persisted.roomFileStorage?.keys) !== JSON.stringify(index.keys) ||
+      !persisted.characterRooms || Object.keys(persisted.characterRooms).length !== 0) {
+    throw new Error('Reset metadata was not saved to settings.json');
+  }
+  for (const key of index.pendingDeletes || []) {
+    if (settings.roomVoiceNotes[key] && persisted.roomVoiceNotes?.[key] !== settings.roomVoiceNotes[key]) {
+      throw new Error('Character voice note was not preserved in settings.json: ' + key);
+    }
+  }
+}
+
+async function finalizePendingRoomDeletions(index) {
+  if (!index?.pendingDeletes?.length) return index;
+  // Persist the reset state and preserved notes before physically deleting
+  // snapshots, so a reload cannot interpret them as old active conversations.
+  await saveVerifiedRoomResetSettings(index);
+  for (const key of index.pendingDeletes) await deleteRoomSnapshot(key, ctx());
+  if (!index.keys.length) {
+    await deleteRoomIndex(ctx());
+    return null; // No index file remains after a full reset.
+  }
+  return writeRoomIndex(index.keys, index.legacyBackup, ctx(), [],
+    index.labels);
+}
+
+async function deleteStoredRoomOwners(ownerKeys) {
+  if (!roomFilesReady || !roomFileIndex || cleanInProgress || !lifecycleEnabled) {
+    throw new Error(uiText('dialog.cleanupUnavailable'));
+  }
+  if (generationInFlight || groupStartPending) throw new Error(uiText('dialog.cleanupBusy'));
+  await roomSaveQueue;
+  const index = await readRoomIndex(ctx());
+  if (!index) {
+    if (!roomFileIndex.keys.length && getSettings().roomFileStorage?.cleared) return 0;
+    throw new Error('Room storage index is unavailable; no files were deleted');
+  }
+  if (index.pendingDeletes?.length) throw new Error('An earlier deletion is pending; reload SillyTavern');
+  if (JSON.stringify([...index.keys].sort()) !== JSON.stringify([...roomFileIndex.keys].sort())) {
+    throw new Error('The room file index changed on another device; reload before resetting conversations');
+  }
+  const targets = [...new Set(ownerKeys)].filter(key => index.keys.includes(key));
+  if (!targets.length) return 0;
+  for (const key of targets) {
+    const stored = await readRoomSnapshot(key, ctx());
+    if (!stored || stored.revision !== roomFileRevisions[key]) {
+      throw new Error('Room changed on another device; nothing was deleted: ' + key);
+    }
+  }
+
+  cleanInProgress = true;
+  persistenceEpoch += 1;
+  let ledgerWritten = false;
+  let completed = false;
+  try {
+    const remaining = index.keys.filter(key => !targets.includes(key));
+    const pending = await writeRoomIndex(remaining, index.legacyBackup, ctx(), targets, index.labels);
+    ledgerWritten = true;
+    const finalIndex = await finalizePendingRoomDeletions(pending);
+    roomFileIndex = finalIndex || { format: ROOM_INDEX_FORMAT, keys: [], pendingDeletes: [], labels: {}, legacyBackup: '' };
+    for (const key of targets) {
+      delete roomFileStoreCache[key];
+      delete roomFileRevisions[key];
+    }
+    if (targets.includes(roomStateCharKey)) {
+      const mainKey = getCharKey();
+      roomStateCharKey = mainKey;
+      roomState = normalizeStoredRoomState(roomFileStoreCache[mainKey] || { rooms: [] });
+      if (!roomState.rooms.length) {
+        roomState.voiceNote = String(getSettings().roomVoiceNotes[mainKey] || '');
+        resetToDefaultKongtalkRoom('room-file-reset');
+      }
+      activeRoomId = getMostRecentRoomId(roomState);
+    }
+    homeVisible = true;
+    renderAll();
+    completed = true;
+    return targets.length;
+  } catch (error) {
+    if (ledgerWritten) {
+      roomFilesReady = false;
+      console.error('[Konggomul] reset is pending; reload to finish file deletion', error);
+    }
+    throw error;
+  } finally {
+    // If the delete ledger was committed but deletion failed, block new writes
+    // until a reload resumes the recorded deletion. No backup is created.
+    if (!ledgerWritten || completed) cleanInProgress = false;
+  }
+}
+
 async function resetGuestRooms() {
   if (!confirm(uiText('dialog.deleteGuestConfirm'))) return;
   if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
-  const empty = normalizeStoredRoomState({ rooms: [], resetAt: Date.now(), updatedAt: Date.now() });
-  if (roomStateCharKey === GUEST_ROOM_STORE_KEY) {
-    roomState = empty;
-    activeRoomId = null;
-    await saveRooms();
-    await loadRooms({ storageKey: getCharKey() });
-  } else {
-    await persistRoomSnapshot(GUEST_ROOM_STORE_KEY, empty);
-  }
-  renderAll();
+  try { await deleteStoredRoomOwners([GUEST_ROOM_STORE_KEY]); }
+  catch (error) { console.error('[Konggomul] guest reset failed', error); alert(uiText('dialog.cleanupFailure', String(error?.message || error))); }
 }
 
 
@@ -4298,12 +4470,8 @@ function importGroupRooms(event) {
 async function resetGroupRooms() {
   if (!confirm(uiText('group.resetConfirm'))) return;
   if (generationInFlight) await cancelCurrentGeneration({ persist: true, render: false, announce: false });
-  const empty = normalizeStoredRoomState({ rooms: [], resetAt: Date.now(), updatedAt: Date.now() });
-  if (roomStateCharKey === GROUP_ROOM_STORE_KEY) {
-    roomState = empty; activeRoomId = null;
-    await saveRooms(); await loadRooms({ storageKey: getCharKey() });
-  } else await persistRoomSnapshot(GROUP_ROOM_STORE_KEY, empty);
-  renderAll();
+  try { await deleteStoredRoomOwners([GROUP_ROOM_STORE_KEY]); }
+  catch (error) { console.error('[Konggomul] group reset failed', error); alert(uiText('dialog.cleanupFailure', String(error?.message || error))); }
 }
 
 function createResetRoomState(sourceState, resetAt = Date.now()) {
@@ -4330,32 +4498,12 @@ function createResetRoomState(sourceState, resetAt = Date.now()) {
 }
 
 async function resetRoomsForCharacterKey(charKey) {
-  const store = getServerRoomStore();
-  if (!Object.hasOwn(store, charKey)) return false;
-
-  const stateIsLoaded = roomStateCharKey === charKey;
   if (generationInFlight && activeGenerationTask?.requestCharKey === charKey) {
-    await cancelCurrentGeneration({ persist: false, render: false, announce: false });
+    await cancelCurrentGeneration({ persist: true, render: false, announce: false });
   }
-  if (stateIsLoaded) await roomSaveQueue.catch(() => undefined);
-
-  const sourceState = stateIsLoaded ? roomState : store[charKey];
-  const nextState = createResetRoomState(sourceState);
-  if (stateIsLoaded) {
-    roomState = nextState;
-    activeRoomId = nextState.rooms[0]?.id || null;
-  }
-  await persistRoomSnapshot(charKey, nextState);
-
-  if (getCharKey() === charKey) {
-    if (roomStateCharKey !== charKey) await loadRooms({ expectedLifecycleEpoch: lifecycleEpoch });
-    else {
-      renderAll();
-      scrollMessagesToBottom();
-    }
-  }
-  setStatus('선택한 캐릭터의 대화를 초기화했습니다.');
-  return true;
+  const removed = await deleteStoredRoomOwners([charKey]);
+  if (removed) setStatus('선택한 캐릭터의 대화를 초기화했습니다.');
+  return removed > 0;
 }
 
 async function resetAllRoomsForCurrentCharacter() {
@@ -4496,47 +4644,27 @@ async function runBulkConversationCleanup(scope) {
   }
   await roomSaveQueue;
   const store = getServerRoomStore();
-  const keys = Object.keys(store);
+  const keys = [...roomFileIndex.keys];
   if (!keys.length) {
     alert(uiText('dialog.noResetData'));
     return;
   }
-  const changes = [];
   let removedMessages = 0;
   let removedRooms = 0;
-  const now = Date.now();
   for (const key of keys) {
     const original = roomStateCharKey === key ? roomState : store[key];
     const counts = countRoomData(original);
     removedMessages += counts.messages;
     removedRooms += counts.rooms;
-    const proposed = isSharedRoomStore(key) ? emptySharedRoomState(original, now) : createResetRoomState(original, now);
-    changes.push({ key, data: proposed });
   }
   if (!await confirmConversationCleanup(uiText('dialog.cleanupAll'),
-    uiText('dialog.cleanupSummary', changes.length, removedRooms, removedMessages))) return;
-  let completed = 0;
+    uiText('dialog.cleanupSummary', keys.length, removedRooms, removedMessages))) return;
   try {
-    for (const { key, data } of changes) {
-      await persistRoomSnapshot(key, data);
-      completed++;
-    }
-    const saved = getSettings().lastActiveRoom;
-    const state = saved && getServerRoomStore()[saved.ownerKey];
-    if (saved && !state?.rooms?.some(room => room.id === saved.roomId)) {
-      getSettings().lastActiveRoom = null;
-      writeLastRoomMirror(null);
-      saveSettings();
-    }
-    if (!getActiveRoom()) showHome();
-    else {
-      renderAll();
-      if (homeVisible) renderHome();
-    }
-    alert(uiText('dialog.cleanupSuccess', changes.length));
+    const deleted = await deleteStoredRoomOwners(keys);
+    alert(uiText('dialog.cleanupSuccess', deleted));
   } catch (error) {
-    console.error('[Konggomul] bulk cleanup failed', { completed, total: changes.length, error });
-    alert(uiText('dialog.cleanupPartial', completed, changes.length, String(error?.message || error)));
+    console.error('[Konggomul] bulk cleanup failed', error);
+    alert(uiText('dialog.cleanupFailure', String(error?.message || error)));
   }
 }
 
@@ -5939,6 +6067,8 @@ function getVisibleRoomEntries() {
   const keys = [getCharKey(), GUEST_ROOM_STORE_KEY, GROUP_ROOM_STORE_KEY];
   const entries = [];
   for (const ownerKey of keys) {
+    // A freshly displayed default room is not a saved conversation.
+    if (roomFilesReady && roomFileIndex && !roomFileIndex.keys.includes(ownerKey)) continue;
     const saved = roomStateCharKey === ownerKey ? roomState : getServerRoomStore()[ownerKey];
     for (const room of getSortedRooms(saved || { rooms: [] })) entries.push({ room, ownerKey });
   }
