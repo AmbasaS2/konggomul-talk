@@ -6250,13 +6250,15 @@ async function init() {
   const run = (async () => {
     runtimeActive = true;
     getSettings();
+    // Keep launcher, panel, and room actions unavailable until migration is
+    // fully backed up and the separate store files are verified.
+    const filesLoaded = await initializeRoomFileStorage(runEpoch);
+    if (!filesLoaded) return false;
     renderSettings();
     ensurePanel();
     if (!ensureLauncher()) return false;
     applyVisualSettings();
     homeVisible = true;
-    const filesLoaded = await initializeRoomFileStorage(runEpoch);
-    if (!filesLoaded) return false;
     const loaded = await loadRooms({ expectedLifecycleEpoch: runEpoch });
     if (!loaded || !lifecycleEnabled || cleanInProgress || runEpoch !== lifecycleEpoch) return false;
     bindRuntimeEvents();
@@ -6277,8 +6279,16 @@ async function init() {
   }
 }
 
+let roomMigrationErrorShown = false;
+function reportRoomMigrationError(error) {
+  console.error('[Konggomul] server-file room storage initialization failed', error);
+  if (roomMigrationErrorShown) return;
+  roomMigrationErrorShown = true;
+  alert('Konggomul Talk could not verify the separate conversation files. The original settings data has not been deleted. Keep using 5.5.1 until storage is checked. See the browser console for details.');
+}
+
 function requestInit() {
-  void init().catch(error => console.error('[TUA] init failed', error));
+  void init().catch(reportRoomMigrationError);
 }
 
 jQuery(() => {
@@ -6290,7 +6300,7 @@ jQuery(() => {
       try {
         await init();
         if (homeVisible) renderHome();
-      } catch (error) { console.warn('[Konggomul] APP_READY home refresh failed', error); }
+      } catch (error) { reportRoomMigrationError(error); }
     };
     if (context.eventSource && context.event_types?.APP_READY) context.eventSource.on(context.event_types.APP_READY, appReadyInitHandler);
   } catch (e) { console.error('[TUA] init failed', e); }
