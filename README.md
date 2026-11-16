@@ -258,6 +258,12 @@ The character card, user/persona information, the current room's previous conver
 
 ## 🎨 Themes
 
+The comparison below uses the **current CSS colors** for the four built-in palettes: panel background, header, character bubble, and user bubble. This is an illustrated color reference, **not a live screenshot**. **Custom** has no fixed palette; it follows the active SillyTavern theme.
+
+<p align="center">
+  <a href="assets/readme/konggomul-theme-css-preview.png"><img src="assets/readme/konggomul-theme-css-preview.png" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="880" /></a>
+</p>
+
 | Theme | Style |
 |---|---|
 | **🐕 Konggomul** | A warm default messenger theme inspired by injeolmi, soybean powder, and milk tea. |
@@ -558,6 +564,12 @@ The panel position and size, theme, character voice note, coworker work note, re
 </details>
 
 ## 🎨 테마
+
+아래 이미지는 현재 CSS에 정의된 **기본 테마 네 가지의 실제 색상**(배경·상단바·캐릭터 말풍선·유저 말풍선)을 비교한 안내용 예시입니다. **실제 화면 캡처는 아닙니다.** **커스텀**은 고정 색상이 없으며 현재 SillyTavern 테마의 색을 따라갑니다.
+
+<p align="center">
+  <a href="assets/readme/konggomul-theme-css-preview.png"><img src="assets/readme/konggomul-theme-css-preview.png" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="880" /></a>
+</p>
 
 | 테마 | 특징 |
 |---|---|
