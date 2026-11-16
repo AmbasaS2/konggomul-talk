@@ -25,10 +25,27 @@ The character card, persona, and selected RP context can inform the conversation
 ## 📥 Installation and First Steps
 
 1. In SillyTavern, open **Extensions → Install extension** (sometimes under extension management).
-2. Paste \`https://github.com/AmbasaS2/konggomul-talk\`, install, and reload the page.
+2. Paste `https://github.com/AmbasaS2/konggomul-talk`, install, and reload the page.
 3. Open the **Konggomul Talk** panel from the extensions menu and create or select a room for the current character.
 4. Choose a conversation mode and start chatting. These conversations are stored separately from the main RP.
 
+
+## ✨ At a Glance
+
+- **A separate place to talk:** Chat with characters outside the active RP without adding Konggomul messages to the main story.
+- **Different rooms and modes:** Use Kongtalk, RP Assistant, Guest Talk, Parallel Universe AU, or Group Talk.
+- **Context when needed:** Select which RP messages, lorebooks, and accessible extension memories to reference.
+- **Personalization and history:** Change themes and reply settings; save and manage conversation data separately.
+
+## 🏠 Home: New Chats and Saved Rooms
+
+<p align="center">
+  <a href="assets/readme/konggomul-home-guide.png"><img src="assets/readme/konggomul-home-guide.png" alt="Illustrated Konggomul Talk home with New conversation, Conversations, search, and saved rooms / 홈 구성도" width="860" /></a>
+</p>
+
+*Illustrated from the current Home controls, not a screenshot of the live interface.*
+
+A fresh load opens the **Konggomul Talk home** rather than automatically selecting the last room. **New conversation** opens the existing mode picker; **Conversations** shows pinned rooms first, then rooms with the newest actual messages. Search matches room titles and group participant names. Selecting a room opens its exact saved owner and ID; a home button returns from chat to the list. Regular rooms shown on home belong only to the current RP character; existing Guest Talk and Group Talk rooms remain available across RP changes. No home room or duplicate chat data is created. The home and chat headers keep the same height within each theme. Only the eight header/room-toolbar function buttons use Font Awesome; theme mascot and send-button emojis stay unchanged.
 
 ## 🌍 Interface Language
 
@@ -54,6 +71,8 @@ If a selected dedicated API profile cannot be found, the extension reports an er
 Before resetting saved conversation data, close or refresh SillyTavern on other devices connected as the same user.
 
 ## 💬 Konggomul Talk Panel
+
+[🖼️ See the annotated chat panel / 채팅 패널 안내 이미지](assets/readme/konggomul-panel-guide.png) — annotated earlier-version screenshot; the current release also provides a Home button.
 
 Choose **Konggomul Talk** from the Extensions menu to open the panel.
 
@@ -88,6 +107,8 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 - Guest Talk remembers which RP persona and main RP character were last used. If the persona changes, it asks whether to **create a fresh Guest Talk room** or **continue the existing conversation**, preserving all past messages. Changing only the RP with the same persona does not trigger this choice.
 
 ## 🗂️ Conversation Modes
+
+[🖼️ Compare all conversation modes / 대화 모드 구성도](assets/readme/konggomul-modes-guide.png) — includes Group Talk, which is explained in its own section below.
 
 | Mode | Description |
 |---|---|
@@ -130,19 +151,22 @@ Create a Group Talk room from the mode picker, name it, and search/select at lea
 
 **One request, one shared answer length.** The default target is **1,000 tokens total**, shared naturally among the characters—not 1,000 tokens per character. Change it from 100 to 8,000 in Group Talk Advanced settings; the same value applies to all group rooms. Group Talk enforces a separate actual output cap (target plus a small JSON-formatting margin), including when using a dedicated connection profile. Ordinary Kongtalk and Guest Talk retain their previous request limits. Speakers join only when relevant; no roll call or equal airtime is required.
 
+<details>
+<summary>Speaking turns, memory, room settings, references, and validation details</summary>
+
 **One speaking turn, one bubble.** A character can develop a thought across sentences and paragraphs without being split at each sentence. Completed turns arrive sequentially. Speaker names in every Kongtalk mode include round character-card avatars, with one shared live-preview slider in Advanced settings (18–48 px, default 26). Reading position and existing text selection are preserved; when starting at the bottom, only the beginning of the first reply is revealed. Later arrivals never force the view downward. “Show all” reveals the remaining turns. A new user message during delivery cancels only the undisplayed turns and starts a new request.
 
 **Room memory uses messages, not a new token budget.** All Group Talk rooms share one memory-length setting, **80 earlier messages** by default (20–320 adjustable). Each room still reads only its own conversation. The latest user message is added once, separately. There is no Group Talk preflight gate based on the main RP context setting, no per-character API request, and no automatic summarization request.
 
 Settings are now divided into common, Personal Talk advanced, and Group Talk advanced sections, accessible from any room. Group Talk has one global setting shared by all group rooms (including preset inclusion, off by default); each group retains its own members, linked RP, reference snapshot, and history. Existing group settings are migrated from the last selected or most recent group without deleting legacy room data. Speaker avatars now appear in all Kongtalk modes, using the shared size slider.
 
-A fresh load opens the **Konggomul Talk home** rather than automatically selecting the last room. **New conversation** opens the existing mode picker; **Conversations** shows pinned rooms first, then rooms with the newest actual messages. Search matches room titles and group participant names. Selecting a room opens its exact saved owner and ID; a home button returns from chat to the list. Regular rooms shown on home belong only to the current RP character; existing Guest Talk and Group Talk rooms remain available across RP changes. No home room or duplicate chat data is created. The home and chat headers keep the same height within each theme. Only the eight header/room-toolbar function buttons use Font Awesome; theme mascot and send-button emojis stay unchanged.
-
 Group records, settings and participant identities are separate from regular Kongtalk and Guest Talk. Export/import/reset has its own “All Group Talk” scope. Empty send starts or continues the exchange; response regeneration is not offered. If the RP or persona changes, choose whether to retain the saved reference context, use the current RP/persona, or disconnect RP references. Keeping an inactive RP uses its last saved reference snapshot, not a live reread of that chat.
 
 The parser accepts only selected numbered speakers. USER is never a generated speaker. Character cards remain intact; initial card greetings are not replayed as group history. The old short-bubble and token-memory preview settings are replaced by shared Group Talk defaults without deleting saved conversations.
 
 Validation covered parser/history/request tests and Chromium desktop/mobile-width UI tests with simulated API responses, including scroll stability, interruption, reload, independent settings and a Guest Talk regression check. Live model behavior and the user's installed SillyTavern/iPhone environment still require validation.
+
+</details>
 
 ## 🎛️ Panel Settings
 
@@ -165,6 +189,11 @@ Use `⚙` in the panel header to adjust the current character and Konggomul Talk
 |---|---|
 | **Character voice note** | Records speech style and answer preferences for the current speaker. Guest Talk keeps these notes per invited guest without modifying the main RP character's note. |
 
+**Context and memory controls**
+
+<details>
+<summary>See preset, lorebook, memory, RP reference, and request-debug settings</summary>
+
 **Context settings**
 
 The character card, user/persona information, the current room's previous conversation, and the character voice note are included as core context. The following options can be adjusted as needed; their default values are enabled.
@@ -178,6 +207,8 @@ The character card, user/persona information, the current room's previous conver
 | **Kongtalk memory range** | Sets how many previous messages from the current room are used when generating a reply. |
 | **View last AI request context** | In Advanced settings, shows the exact prompt parts Konggomul Talk sent on the last request for this room, without another AI call. It is kept only in memory, not chat data; a connection profile/provider may add preset material later. |
 | **Target response tokens** | Sets the target capacity for Konggomul Talk responses. The selected sentence count and the current request still determine the actual length. |
+
+</details>
 
 ## 🎨 Themes
 
@@ -199,6 +230,13 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 | **Current RP character** | Export saves the current character's rooms, messages, modes, answer variants, pinned states and voice note. Import replaces this character's saved conversation data. Reset removes this character's rooms and messages, recreating a default room while preserving the voice note and extension settings. |
 | **All Guest Talk** | Export, import and reset work on the global Guest Talk conversation store only. Backups preserve guest character identifiers, messages, answer variants, voice notes and recent guest choices. |
 
+### Conversation files and recovery (5.5.5)
+
+Normal rooms are stored per character in server-side JSON files; Guest Talk and Group Talk use separate shared stores. Original migration backups are retained for recovery.
+
+<details>
+<summary>File paths, verified migration, data cleanup, rollback, and error-handling details</summary>
+
 ### Separate server-file conversation storage (5.5.5)
 
 From 5.5.2, Konggomul Talk stores ordinary rooms in one server-side JSON file per character and saves Guest Talk and Group Talk in their own shared JSON files. Files are in `data/<user-handle>/user/files/konggomul-room-*.json`; new files use the stable ASCII portion of a character/avatar key, or `guest-talk`/`group-talk`, plus a stable identifier. SillyTavern's file API rejects Hangul filenames; each snapshot and the room index retain the exact display character name, and snapshots include their save time. Existing hash-only room filenames are left unchanged, readable via the legacy path. Original conversation copies in settings.json are automatically removed only after the new files, original migration backup, and settings save/read-back are verified. On failure, the old copies remain so the cleanup can safely retry. The same user on the same SillyTavern server can still see the same rooms across phone and desktop.
@@ -213,6 +251,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 ---
 
+</details>
+
 # 🐕 콩고물 톡
 
 **콩고물 톡은 현재 캐릭터 또는 별도로 초대한 게스트 캐릭터와 RP 밖에서 채팅할 수 있는 SillyTavern 어시스턴트 확장입니다.**
@@ -223,10 +263,23 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 📥 설치 및 처음 사용하기
 
 1. SillyTavern의 **확장 프로그램 → 확장 설치** 메뉴를 엽니다. 버전에 따라 확장 관리 메뉴 안에 있을 수 있습니다.
-2. \`https://github.com/AmbasaS2/konggomul-talk\`을 붙여넣어 설치하고 새로고침합니다.
+2. `https://github.com/AmbasaS2/konggomul-talk`을 붙여넣어 설치하고 새로고침합니다.
 3. 확장 메뉴에서 **콩고물 톡** 패널을 열고 현재 캐릭터의 방을 만들거나 선택합니다.
 4. 대화 모드를 정해 채팅합니다. 이 대화들은 메인 RP와 별도로 저장됩니다.
 
+
+## ✨ 한눈에 보기
+
+- **RP 밖에서 따로 대화:** 콩톡 메시지를 메인 RP에 자동으로 넣지 않고 캐릭터와 대화합니다.
+- **방마다 다른 모드:** 콩톡·RP 어시·게스트톡·평행우주 AU·그룹톡을 선택합니다.
+- **필요한 맥락만 참고:** 최근 RP, 로어북, 접근 가능한 확장 메모리의 반영 여부를 조절합니다.
+- **테마와 기록 관리:** 답변·화면 설정을 조절하고 대화 기록은 별도로 관리합니다.
+
+## 🏠 홈: 새로운 대화와 대화 목록
+
+[🖼️ 최신 홈 구성도 크게 보기](assets/readme/konggomul-home-guide.png) — 실제 화면 캡처가 아닌, 현재 코드의 버튼과 목록 구조를 그린 설명 이미지입니다.
+
+새로고침하면 마지막 채팅방으로 자동 이동하지 않고 **콩고물톡 홈**이 열립니다. **새로운 대화**를 누르면 기존 모드 선택 화면이, **대화 목록**에서는 고정한 방과 실제 최근 메시지 순으로 정렬된 기존 채팅방이 표시됩니다. 방 이름·그룹톡 참여 캐릭터 이름으로 검색할 수 있으며, 방을 직접 눌러 해당 저장 기록을 엽니다. 채팅방 상단의 집 모양 버튼으로 홈에 돌아갈 수 있습니다. 현재 RP 캐릭터의 개인톡과 저장된 게스트톡·그룹톡만 목록에 표시하며, 새 홈 대화방이나 별도 기록은 만들지 않습니다. 홈과 채팅방의 상단바 높이는 테마별로 동일하게 유지하며, 상단 및 대화방 관리용 기능 버튼 8개만 Font Awesome으로 표시합니다. 테마 대표 이모지와 전송 버튼 이모지는 그대로 유지합니다.
 
 ## 🌍 화면 언어
 
@@ -252,6 +305,12 @@ The panel position and size, theme, character voice note, coworker work note, re
 저장된 대화 데이터를 초기화하기 전에, 같은 사용자로 접속한 다른 기기의 SillyTavern을 닫거나 새로고침해 주세요.
 
 ## 💬 콩고물 톡 패널
+
+<p align="center">
+  <a href="assets/readme/konggomul-panel-guide.png"><img src="assets/readme/konggomul-panel-guide.png" alt="기존 채팅 패널 화면에 번호로 표시한 각 버튼과 영역의 역할 / annotated chat panel" width="820" /></a>
+</p>
+
+*이전 버전의 실제 채팅 사진에 기능 위치를 표시했어. 현재 버전에는 홈으로 돌아가는 버튼도 있습니다.*
 
 확장 메뉴의 **콩고물 톡**을 누르면 패널이 열립니다.
 
@@ -286,6 +345,12 @@ The panel position and size, theme, character voice note, coworker work note, re
 - 게스트톡은 마지막 페르소나와 RP 캐릭터를 기록합니다. 페르소나가 바뀌면 **새 게스트톡 방 만들기 / 기존 방 이어가기**를 선택할 수 있어. 이전 메시지는 삭제하지 않으며, 페르소나는 그대로이고 RP만 바뀌었다면 묻지 않습니다.
 
 ## 🗂️ 대화 모드
+
+<p align="center">
+  <a href="assets/readme/konggomul-modes-guide.png"><img src="assets/readme/konggomul-modes-guide.png" alt="콩톡, RP 어시, 게스트톡, 평행우주 AU, 성격 반전 AU, 그룹톡의 기능 비교도" width="860" /></a>
+</p>
+
+*기능 차이를 정리한 안내 이미지이며 실제 모드 선택 화면 캡처는 아닙니다. 그룹톡의 상세 동작은 아래에서 설명합니다.*
 
 | 모드 | 설명 |
 |---|---|
@@ -328,19 +393,22 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 **API 한 번, 전체 답변 분량 하나.** 기본 목표는 캐릭터들이 나눠 쓰는 **전체 1,000토큰**입니다. 캐릭터마다 1,000토큰을 할당하지 않습니다. 그룹톡 고급 설정에서 100~8,000토큰으로 바꾸면 모든 그룹톡방에 똑같이 적용됩니다. 그룹톡은 전용 연결 프로필에서도 목표 분량에 JSON 형식용 여유만 더한 실제 출력 상한을 적용합니다. 기존 콩톡·게스트톡의 호출 방식은 유지하며, 말풍선 개수·균등한 발언량·전원 참여를 강제하지 않습니다.
 
+<details>
+<summary>발언 처리·기억 범위·방 관리·참고 맥락·검증 내용 자세히 보기</summary>
+
 **한 차례 발언을 한 말풍선에 담습니다.** 여러 문장이나 문단을 말해도 문장별로 쪼개지 않습니다. 완성된 캐릭터 발언은 순서대로 도착하지만 읽던 위치와 선택한 텍스트는 유지됩니다. 일반 콩톡·게스트톡·평행우주AU·RP 어시·그룹톡 등 모든 모드에서 화자 이름 옆에 캐시트의 원형 프로필 이미지를 표시하며, 고급 설정의 슬라이더로 크기를 전체 공통으로 18~48px(기본 26px) 조절하며 값이 실시간 반영됩니다. 맨 아래에서 시작했을 때는 첫 답변의 시작만 보여주며, 이후 도착 때문에 아래로 끌려가지 않습니다. ‘모두 표시’로 남은 발언을 펼칠 수 있습니다. 도착 중 새 메시지를 보내면 아직 보이지 않은 발언만 취소하고 새 요청을 시작합니다.
 
 **기억은 새 토큰 계산기 대신 메시지 수를 씁니다.** 모든 그룹톡방에 **이전 메시지 기본 80개**의 동일한 기억 범위를 적용합니다(20~320개 조절 가능). 실제 대화 기억은 각 그룹톡방의 자기 기록만 사용합니다. 방금 입력한 메시지는 별도로 한 번만 포함됩니다. 일반 RP 컨텍스트 수치로 그룹톡 요청을 사전 차단하지 않으며, 캐릭터별 호출이나 자동 요약 호출도 하지 않습니다.
 
 설정은 모든 방에서 열람할 수 있는 공통 설정·개인톡 고급 설정·그룹톡 고급 설정으로 나눕니다. 그룹톡의 토큰·기억·프리셋 포함(기본 OFF)·참고 자료 설정은 모든 그룹톡방에 공통으로 적용하고, 초대 인원·연결 RP·참고 맥락·대화 기록은 방별로 유지합니다. 기존 그룹톡 설정은 마지막 선택 방 또는 최근 그룹방에서 이관하되 이전 방별 기록은 삭제하지 않습니다. 프로필 이미지는 모든 개인톡 모드에도 표시합니다.
 
-새로고침하면 마지막 채팅방으로 자동 이동하지 않고 **콩고물톡 홈**이 열립니다. **새로운 대화**를 누르면 기존 모드 선택 화면이, **대화 목록**에서는 고정한 방과 실제 최근 메시지 순으로 정렬된 기존 채팅방이 표시됩니다. 방 이름·그룹톡 참여 캐릭터 이름으로 검색할 수 있으며, 방을 직접 눌러 해당 저장 기록을 엽니다. 채팅방 상단의 집 모양 버튼으로 홈에 돌아갈 수 있습니다. 현재 RP 캐릭터의 개인톡과 저장된 게스트톡·그룹톡만 목록에 표시하며, 새 홈 대화방이나 별도 기록은 만들지 않습니다. 홈과 채팅방의 상단바 높이는 테마별로 동일하게 유지하며, 상단 및 대화방 관리용 기능 버튼 8개만 Font Awesome으로 표시합니다. 테마 대표 이모지와 전송 버튼 이모지는 그대로 유지합니다.
-
 일반 콩톡·게스트톡과 별도 영역에 방·참여자·설정·기록을 저장합니다. ‘전체 그룹톡’ 대상으로 내보내기·가져오기·초기화가 가능합니다. 빈 전송으로 대화를 시작하거나 이어갈 수 있으며 재생성은 제공하지 않습니다. RP·페르소나가 달라지면 저장된 이전 맥락 유지, 현재 맥락 사용, RP 참고 해제 중 선택합니다. 열려 있지 않은 이전 RP는 마지막으로 저장된 참고 내용을 사용하며 실시간으로 다시 읽는 것은 아닙니다.
 
 발언자는 선택한 캐릭터의 번호로만 구분하며 USER는 생성 화자로 사용하지 않습니다. 캐시트 원본은 수정하지 않고 첫 인사를 실제 그룹 대화처럼 반복 주입하지 않습니다. 이전 미리보기의 짧은 말풍선·토큰 기억 설정은 새 방 설정으로 대체하되 저장된 대화는 삭제하지 않습니다.
 
 파싱·기억·요청 경로 테스트와 Chromium의 데스크톱·휴대폰 폭 UI 테스트에서 스크롤 유지, 끼어들기, 새로고침 복원, 방별 설정과 기존 게스트톡 회귀를 확인했습니다. 실제 모델의 대화 품질 및 사용 중인 실리태번·아이폰 실기 환경은 별도 검증이 필요합니다.
+
+</details>
 
 ## 🎛️ 패널 설정
 
@@ -363,6 +431,11 @@ The panel position and size, theme, character voice note, coworker work note, re
 |---|---|
 | **캐릭터 말투 고정 메모** | 현재 대화 상대의 말투와 답변 성향을 적습니다. 게스트톡에서는 초대한 캐릭터별로 따로 저장되어 메인 RP 캐릭터의 메모를 덮어쓰지 않습니다. |
 
+**반영 범위·기억 설정**
+
+<details>
+<summary>프리셋·로어북·메모리·RP 참조·요청 맥락 설정 자세히 보기</summary>
+
 **반영 범위 설정**
 
 캐릭터 카드, 유저·페르소나 정보, 현재 콩고물 톡 방의 이전 대화와 캐릭터 말투 고정 메모는 기본 맥락으로 반영됩니다. 아래 항목도 기본값은 모두 반영하도록 설정되어 있으며, 필요에 따라 포함 여부와 범위를 조절할 수 있습니다.
@@ -376,6 +449,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **콩톡 기억 범위** | 답변할 때 참고할 현재 대화방의 이전 메시지 수를 정합니다. |
 | **마지막 AI 요청 맥락 확인** | 고급 설정에서 현재 방의 마지막 AI 요청에 콩톡이 보낸 프롬프트를 보여줍니다. AI를 추가 호출하지 않고, 내용은 채팅 데이터가 아닌 메모리에만 남습니다. 연결 프로필·제공자가 추가하는 프리셋은 별도로 적용될 수 있습니다. |
 | **답변 목표 토큰 수** | 콩고물 톡 답변의 목표 용량을 조절합니다. 실제 길이는 선택한 문장 수와 현재 요청에 따라 달라집니다. |
+
+</details>
 
 ## 🎨 테마
 
@@ -397,6 +472,13 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **현재 RP 캐릭터** | 내보내기는 현재 캐릭터의 대화방, 메시지, 모드, 답변 버전, 고정 상태와 말투 메모를 저장합니다. 가져오기는 해당 캐릭터의 데이터를 백업 내용으로 교체하고, 초기화는 대화 기록을 지우고 기본 방을 다시 만들되 말투 메모와 확장 설정을 유지합니다. |
 | **게스트톡 전체** | 게스트톡 공통 저장 영역만 별도로 내보내기·가져오기·초기화합니다. 백업에는 캐릭터 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록이 포함됩니다. |
 
+### 대화 기록 파일과 복구 (5.5.5)
+
+일반 콩톡은 캐릭터별 JSON 파일에, 게스트톡·그룹톡은 각각 별도의 공통 파일에 대화가 저장됩니다. 기존 기록을 옮길 때 복구 백업을 보존합니다.
+
+<details>
+<summary>저장 위치·안전한 이전·데이터 정리·구버전 복구 방법 자세히 보기</summary>
+
 ### 대화 기록 별도 파일 저장 (5.5.5)
 
 5.5.2부터 일반 콩톡은 캐릭터별, 게스트톡과 그룹톡은 각 공통 저장 영역별로 대화 기록을 서버 JSON 파일에 저장합니다. 파일 위치는 `data/<사용자>/user/files/konggomul-room-*.json`이며, 새 파일명에는 캐릭터·아바타 식별자의 영문 부분 또는 게스트톡·그룹톡 구분과 고유 번호를 넣습니다. 실리태번 기본 파일 API가 한글 파일명을 허용하지 않으므로 실제 캐릭터 이름은 JSON 파일 안과 대화 파일 목록(index)에 그대로 기록하고, 마지막 저장 시간도 파일 안에 기록합니다. 기존 숫자·문자만 있는 파일명은 변경하거나 복사하지 않고 그대로 읽습니다. 기존 `settings.json`의 중복 대화 기록은 새 저장 파일·이전 백업·설정 저장 결과를 검증한 뒤 자동으로 정리됩니다. 검증에 실패하면 옛 데이터는 유지하며 다음 실행에서 다시 시도합니다. 같은 서버·계정으로 접속하는 PC와 휴대폰의 기록 공유는 유지하도록 설계했습니다.
@@ -410,6 +492,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 패널 위치와 크기, 테마, 캐릭터 말투 메모, 답변 설정과 반영 범위 설정도 유지됩니다. 이전 직장 동료 업무 메모 데이터는 삭제하지 않습니다. 인용 답장 정보와 게스트톡 페르소나 전환 기록은 백업에 포함됩니다. 오래된 RP 자동 검색이나 캐릭터 자동 선톡 기능은 추가하지 않았습니다.
 
 ---
+
+</details>
 
 ## Copyright & License
 
