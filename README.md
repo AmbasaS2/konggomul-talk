@@ -5,14 +5,22 @@
 The character card, persona, and selected RP context can inform the conversation, but Konggomul Talk messages remain separate from the main RP. The former Apply to RP summary/injection feature has been removed.
 
 
-## 📸 Screenshots
+## 📸 Preview / 미리보기
 
 <p align="center">
-  <img src="assets/readme/konggomul-chat.jpeg" alt="Example of chatting with a character in a separate Konggomul Talk room" width="390" />
-  <img src="assets/readme/konggomul-themes.jpeg" alt="Konggomul Talk theme selection in panel settings" width="310" />
+  <a href="assets/readme/konggomul-talk-preview.png"><img src="assets/readme/konggomul-talk-preview.png" alt="Konggomul Talk separate character chat and theme settings / 콩고물 톡 대화창과 테마 설정" width="900" /></a>
 </p>
 
-*Examples were captured with Korean UI in an earlier version. Labels and layout may differ; the current feature descriptions below take precedence.*
+*These are cropped examples from an earlier Korean-UI version. The current feature descriptions below take precedence when menus or layouts have changed.*  
+*이전 버전 한국어 UI 화면의 일부를 같은 크기로 맞춘 예시입니다. 메뉴나 배치가 달라졌다면 아래의 최신 기능 설명을 기준으로 봐주세요.*
+
+<details>
+<summary>Full-size screenshots / 원본 화면 보기</summary>
+
+- [Character chat / 캐릭터 대화](assets/readme/konggomul-chat.jpeg)
+- [Theme settings / 테마 설정](assets/readme/konggomul-themes.jpeg)
+
+</details>
 
 ## 📥 Installation and First Steps
 
@@ -211,15 +219,6 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 캐릭터 카드, 페르소나와 현재 RP 맥락을 참고해 대화하지만, 콩고물 톡 메시지는 메인 RP에 섞이지 않습니다. 기존 'RP 반영' 요약·주입 기능은 제거되었습니다.
 
-
-## 📸 화면 미리보기
-
-<p align="center">
-  <img src="assets/readme/konggomul-chat.jpeg" alt="메인 RP와 분리된 콩고물 톡 대화방 예시" width="390" />
-  <img src="assets/readme/konggomul-themes.jpeg" alt="콩고물 톡 패널 설정의 테마 선택" width="310" />
-</p>
-
-*이전 버전의 한국어 UI 예시 화면입니다. 현재 버전의 메뉴와 배치가 다를 수 있으므로 아래 기능 설명을 기준으로 봐주세요.*
 
 ## 📥 설치 및 처음 사용하기
 
