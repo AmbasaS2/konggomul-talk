@@ -5,20 +5,19 @@
 The character card, persona, and selected RP context can inform the conversation, but Konggomul Talk messages remain separate from the main RP. The former Apply to RP summary/injection feature has been removed.
 
 
-## 📸 Preview / 미리보기
+## 📸 Preview
 
 <p align="center">
-  <a href="assets/readme/konggomul-talk-preview.png"><img src="assets/readme/konggomul-talk-preview.png" alt="Konggomul Talk separate character chat and theme settings / 콩고물 톡 대화창과 테마 설정" width="900" /></a>
+  <a href="assets/readme/konggomul-talk-preview.png"><img src="assets/readme/konggomul-talk-preview.png" alt="Konggomul Talk chat panel and theme selection" width="900" /></a>
 </p>
 
-*These are cropped examples from an earlier Korean-UI version. The current feature descriptions below take precedence when menus or layouts have changed.*  
-*이전 버전 한국어 UI 화면의 일부를 같은 크기로 맞춘 예시입니다. 메뉴나 배치가 달라졌다면 아래의 최신 기능 설명을 기준으로 봐주세요.*
+*These cropped images show an earlier Korean-language UI. For complete views, open the originals below; controls may differ by version.*
 
 <details>
-<summary>Full-size screenshots / 원본 화면 보기</summary>
+<summary>Full-size screenshots</summary>
 
-- [Character chat / 캐릭터 대화](assets/readme/konggomul-chat.jpeg)
-- [Theme settings / 테마 설정](assets/readme/konggomul-themes.jpeg)
+- [Character chat](assets/readme/konggomul-chat.jpeg)
+- [Theme settings](assets/readme/konggomul-themes.jpeg)
 
 </details>
 
@@ -72,7 +71,11 @@ Before resetting saved conversation data, close or refresh SillyTavern on other 
 
 ## 💬 Konggomul Talk Panel
 
-[🖼️ See the annotated chat panel / 채팅 패널 안내 이미지](assets/readme/konggomul-panel-guide.png) — annotated earlier-version screenshot; the current release also provides a Home button.
+<p align="center">
+  <a href="assets/readme/konggomul-panel-guide.png"><img src="assets/readme/konggomul-panel-guide.png" alt="Annotated chat panel: controls, rooms, messages, and composer" width="820" /></a>
+</p>
+
+*This annotated screenshot uses an earlier Korean-language UI; the current release also includes a Home button.*
 
 Choose **Konggomul Talk** from the Extensions menu to open the panel.
 
@@ -108,7 +111,11 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 
 ## 🗂️ Conversation Modes
 
-[🖼️ Compare all conversation modes / 대화 모드 구성도](assets/readme/konggomul-modes-guide.png) — includes Group Talk, which is explained in its own section below.
+<p align="center">
+  <a href="assets/readme/konggomul-modes-guide.png"><img src="assets/readme/konggomul-modes-guide.png" alt="Kongtalk, RP Assistant, Guest Talk, AU and Group Talk modes" width="860" /></a>
+</p>
+
+*This is an explanatory diagram, not a live mode-picker screenshot; Group Talk details are described below.*
 
 | Mode | Description |
 |---|---|
@@ -260,6 +267,22 @@ The panel position and size, theme, character voice note, coworker work note, re
 캐릭터 카드, 페르소나와 현재 RP 맥락을 참고해 대화하지만, 콩고물 톡 메시지는 메인 RP에 섞이지 않습니다. 기존 'RP 반영' 요약·주입 기능은 제거되었습니다.
 
 
+## 📸 미리보기
+
+<p align="center">
+  <a href="assets/readme/konggomul-talk-preview.png"><img src="assets/readme/konggomul-talk-preview.png" alt="콩고물 톡 대화 화면과 테마 설정 예시" width="900" /></a>
+</p>
+
+*이전 버전 한국어 UI 캡처를 일부 잘라 크기를 맞춘 예시입니다. 전체 화면은 아래 원본 사진에서 볼 수 있으며, 버전에 따라 버튼이나 배치가 다를 수 있습니다.*
+
+<details>
+<summary>원본 화면 보기</summary>
+
+- [캐릭터 대화](assets/readme/konggomul-chat.jpeg)
+- [테마 설정](assets/readme/konggomul-themes.jpeg)
+
+</details>
+
 ## 📥 설치 및 처음 사용하기
 
 1. SillyTavern의 **확장 프로그램 → 확장 설치** 메뉴를 엽니다. 버전에 따라 확장 관리 메뉴 안에 있을 수 있습니다.
@@ -277,7 +300,11 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 ## 🏠 홈: 새로운 대화와 대화 목록
 
-[🖼️ 최신 홈 구성도 크게 보기](assets/readme/konggomul-home-guide.png) — 실제 화면 캡처가 아닌, 현재 코드의 버튼과 목록 구조를 그린 설명 이미지입니다.
+<p align="center">
+  <a href="assets/readme/konggomul-home-guide.png"><img src="assets/readme/konggomul-home-guide.png" alt="현재 콩고물 톡 홈의 주요 기능 구성도" width="860" /></a>
+</p>
+
+*현재 코드의 홈 구조를 설명한 그림이며 실제 화면 캡처는 아닙니다.*
 
 새로고침하면 마지막 채팅방으로 자동 이동하지 않고 **콩고물톡 홈**이 열립니다. **새로운 대화**를 누르면 기존 모드 선택 화면이, **대화 목록**에서는 고정한 방과 실제 최근 메시지 순으로 정렬된 기존 채팅방이 표시됩니다. 방 이름·그룹톡 참여 캐릭터 이름으로 검색할 수 있으며, 방을 직접 눌러 해당 저장 기록을 엽니다. 채팅방 상단의 집 모양 버튼으로 홈에 돌아갈 수 있습니다. 현재 RP 캐릭터의 개인톡과 저장된 게스트톡·그룹톡만 목록에 표시하며, 새 홈 대화방이나 별도 기록은 만들지 않습니다. 홈과 채팅방의 상단바 높이는 테마별로 동일하게 유지하며, 상단 및 대화방 관리용 기능 버튼 8개만 Font Awesome으로 표시합니다. 테마 대표 이모지와 전송 버튼 이모지는 그대로 유지합니다.
 
@@ -310,7 +337,7 @@ The panel position and size, theme, character voice note, coworker work note, re
   <a href="assets/readme/konggomul-panel-guide.png"><img src="assets/readme/konggomul-panel-guide.png" alt="기존 채팅 패널 화면에 번호로 표시한 각 버튼과 영역의 역할 / annotated chat panel" width="820" /></a>
 </p>
 
-*이전 버전의 실제 채팅 사진에 기능 위치를 표시했어. 현재 버전에는 홈으로 돌아가는 버튼도 있습니다.*
+*이전 버전의 실제 채팅 사진에 기능 위치를 표시했습니다. 현재 버전에는 홈으로 돌아가는 버튼도 있습니다.*
 
 확장 메뉴의 **콩고물 톡**을 누르면 패널이 열립니다.
 
