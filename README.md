@@ -8,7 +8,7 @@ The character card, persona, and selected RP context can inform the conversation
 ## 📸 Preview
 
 <p align="center">
-  <a href="assets/readme/konggomul-talk-preview.png"><img src="assets/readme/konggomul-talk-preview.png" alt="Konggomul Talk chat panel and theme selection" width="900" /></a>
+  <a href="assets/readme/mobile/konggomul-talk-preview-mobile.webp"><img src="assets/readme/mobile/konggomul-talk-preview-mobile.webp" alt="Konggomul Talk chat panel and theme selection" width="900" /></a>
 </p>
 
 *These cropped images show an earlier Korean-language UI. For complete views, open the originals below; controls may differ by version.*
@@ -39,7 +39,7 @@ The character card, persona, and selected RP context can inform the conversation
 ## 🏠 Home: New Chats and Saved Rooms
 
 <p align="center">
-  <a href="assets/readme/konggomul-home-guide.png"><img src="assets/readme/konggomul-home-guide.png" alt="Illustrated Konggomul Talk home with New conversation, Conversations, search, and saved rooms / 홈 구성도" width="860" /></a>
+  <a href="assets/readme/mobile/konggomul-home-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-home-guide-mobile.webp" alt="Illustrated Konggomul Talk home with New conversation, Conversations, search, and saved rooms / 홈 구성도" width="860" /></a>
 </p>
 
 *Illustrated from the current Home controls, not a screenshot of the live interface.*
@@ -85,7 +85,7 @@ Before resetting saved conversation data, close or refresh SillyTavern on other 
 ## 💬 Konggomul Talk Panel
 
 <p align="center">
-  <a href="assets/readme/konggomul-panel-guide.png"><img src="assets/readme/konggomul-panel-guide.png" alt="Annotated chat panel: controls, rooms, messages, and composer" width="820" /></a>
+  <a href="assets/readme/mobile/konggomul-panel-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-panel-guide-mobile.webp" alt="Annotated chat panel: controls, rooms, messages, and composer" width="820" /></a>
 </p>
 
 *This annotated screenshot uses an earlier Korean-language UI; the current release also includes a Home button.*
@@ -125,7 +125,7 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 ## 🗂️ Conversation Modes
 
 <p align="center">
-  <a href="assets/readme/konggomul-modes-guide.png"><img src="assets/readme/konggomul-modes-guide.png" alt="Kongtalk, RP Assistant, Guest Talk, AU and Group Talk modes" width="860" /></a>
+  <a href="assets/readme/mobile/konggomul-modes-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-modes-guide-mobile.webp" alt="Kongtalk, RP Assistant, Guest Talk, AU and Group Talk modes" width="860" /></a>
 </p>
 
 *This is an explanatory diagram, not a live mode-picker screenshot; Group Talk details are described below.*
@@ -261,7 +261,7 @@ The character card, user/persona information, the current room's previous conver
 The comparison below uses the **current CSS colors** for the four built-in palettes: panel background, header, character bubble, and user bubble. This is an illustrated color reference, **not a live screenshot**. **Custom** has no fixed palette; it follows the active SillyTavern theme.
 
 <p align="center">
-  <a href="assets/readme/konggomul-theme-css-preview.png"><img src="assets/readme/konggomul-theme-css-preview.png" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="880" /></a>
+  <a href="assets/readme/mobile/konggomul-theme-css-preview-mobile.webp"><img src="assets/readme/mobile/konggomul-theme-css-preview-mobile.webp" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="880" /></a>
 </p>
 
 | Theme | Style |
@@ -315,7 +315,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 📸 미리보기
 
 <p align="center">
-  <a href="assets/readme/konggomul-talk-preview.png"><img src="assets/readme/konggomul-talk-preview.png" alt="콩고물 톡 대화 화면과 테마 설정 예시" width="900" /></a>
+  <a href="assets/readme/mobile/konggomul-talk-preview-mobile.webp"><img src="assets/readme/mobile/konggomul-talk-preview-mobile.webp" alt="콩고물 톡 대화 화면과 테마 설정 예시" width="900" /></a>
 </p>
 
 *이전 버전 한국어 UI 캡처를 일부 잘라 크기를 맞춘 예시입니다. 전체 화면은 아래 원본 사진에서 볼 수 있으며, 버전에 따라 버튼이나 배치가 다를 수 있습니다.*
@@ -346,7 +346,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🏠 홈: 새로운 대화와 대화 목록
 
 <p align="center">
-  <a href="assets/readme/konggomul-home-guide.png"><img src="assets/readme/konggomul-home-guide.png" alt="현재 콩고물 톡 홈의 주요 기능 구성도" width="860" /></a>
+  <a href="assets/readme/mobile/konggomul-home-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-home-guide-mobile.webp" alt="현재 콩고물 톡 홈의 주요 기능 구성도" width="860" /></a>
 </p>
 
 *현재 코드의 홈 구조를 설명한 그림이며 실제 화면 캡처는 아닙니다.*
@@ -392,7 +392,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 💬 콩고물 톡 패널
 
 <p align="center">
-  <a href="assets/readme/konggomul-panel-guide.png"><img src="assets/readme/konggomul-panel-guide.png" alt="기존 채팅 패널 화면에 번호로 표시한 각 버튼과 영역의 역할 / annotated chat panel" width="820" /></a>
+  <a href="assets/readme/mobile/konggomul-panel-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-panel-guide-mobile.webp" alt="기존 채팅 패널 화면에 번호로 표시한 각 버튼과 영역의 역할 / annotated chat panel" width="820" /></a>
 </p>
 
 *이전 버전의 실제 채팅 사진에 기능 위치를 표시했습니다. 현재 버전에는 홈으로 돌아가는 버튼도 있습니다.*
@@ -432,7 +432,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🗂️ 대화 모드
 
 <p align="center">
-  <a href="assets/readme/konggomul-modes-guide.png"><img src="assets/readme/konggomul-modes-guide.png" alt="콩톡, RP 어시, 게스트톡, 평행우주 AU, 성격 반전 AU, 그룹톡의 기능 비교도" width="860" /></a>
+  <a href="assets/readme/mobile/konggomul-modes-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-modes-guide-mobile.webp" alt="콩톡, RP 어시, 게스트톡, 평행우주 AU, 성격 반전 AU, 그룹톡의 기능 비교도" width="860" /></a>
 </p>
 
 *기능 차이를 정리한 안내 이미지이며 실제 모드 선택 화면 캡처는 아닙니다. 그룹톡의 상세 동작은 아래에서 설명합니다.*
@@ -568,7 +568,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 아래 이미지는 현재 CSS에 정의된 **기본 테마 네 가지의 실제 색상**(배경·상단바·캐릭터 말풍선·유저 말풍선)을 비교한 안내용 예시입니다. **실제 화면 캡처는 아닙니다.** **커스텀**은 고정 색상이 없으며 현재 SillyTavern 테마의 색을 따라갑니다.
 
 <p align="center">
-  <a href="assets/readme/konggomul-theme-css-preview.png"><img src="assets/readme/konggomul-theme-css-preview.png" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="880" /></a>
+  <a href="assets/readme/mobile/konggomul-theme-css-preview-mobile.webp"><img src="assets/readme/mobile/konggomul-theme-css-preview-mobile.webp" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="880" /></a>
 </p>
 
 | 테마 | 특징 |
