@@ -44,7 +44,20 @@ The character card, persona, and selected RP context can inform the conversation
 
 *Illustrated from the current Home controls, not a screenshot of the live interface.*
 
-A fresh load opens the **Konggomul Talk home** rather than automatically selecting the last room. **New conversation** opens the existing mode picker; **Conversations** shows pinned rooms first, then rooms with the newest actual messages. Search matches room titles and group participant names. Selecting a room opens its exact saved owner and ID; a home button returns from chat to the list. Regular rooms shown on home belong only to the current RP character; existing Guest Talk and Group Talk rooms remain available across RP changes. No home room or duplicate chat data is created. The home and chat headers keep the same height within each theme. Only the eight header/room-toolbar function buttons use Font Awesome; theme mascot and send-button emojis stay unchanged.
+A fresh load opens **Home** instead of automatically selecting the last conversation.
+
+- **New conversation:** Open the mode picker to create a room.
+- **Conversations:** See pinned rooms first, then rooms ordered by their latest messages.
+- **Search:** Find rooms by title or by Group Talk participant names.
+- **Open a room / return home:** Select a saved room to open its own history; use the house button in the chat header to return.
+- **Which rooms appear:** Normal rooms belong to the current RP character. Saved Guest Talk and Group Talk rooms remain accessible across RP changes.
+
+<details>
+<summary>Home layout and storage notes</summary>
+
+The Home screen does not create a separate room or duplicate chat data. Home and chat headers keep the same height within each theme. Only the eight header/room-toolbar function buttons use Font Awesome; the theme mascot and send-button emojis stay unchanged.
+
+</details>
 
 ## 🌍 Interface Language
 
@@ -117,6 +130,22 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 
 *This is an explanatory diagram, not a live mode-picker screenshot; Group Talk details are described below.*
 
+**Which mode should I choose?**
+
+| Mode | Use it when… |
+|---|---|
+| **Kongtalk** | You want to chat casually with the current character outside the RP. |
+| **RP Assistant** | You want to discuss the active scene or possible story directions. |
+| **Guest Talk** | You want a private conversation with another installed character. |
+| **Parallel Universe AU** | You want a separate modern AU with the original personality and voice. |
+| **Opposite-personality AU** | You want a modern AU with a reversed personality and speaking style. |
+| **Group Talk** | You want two or more selected characters to talk in one room. |
+
+*The Group Talk section below explains how shared speaking turns and memory work.*
+
+<details>
+<summary>Detailed mode descriptions and opening messages</summary>
+
 | Mode | Description |
 |---|---|
 | **Kongtalk (콩톡)** | The default mode for freely chatting with the current character outside the RP. |
@@ -130,6 +159,8 @@ When a new room is created, its opening is prepared for the selected mode.
 - **Kongtalk and Guest Talk** open with the current theme's starting icon. Guest Talk first asks you to choose a character: the five most recently selected guests are shown first, with search and a scrollable full character list.
 - **RP Assistant mode** begins with the character reading the assigned role declaration and reacting in their own way.
 - **Parallel Universe AU modes** begin with a newly generated AU profile and a reaction to the current RP scene as a show.
+
+</details>
 
 ## ✉️ Chatting
 
@@ -156,10 +187,18 @@ After a response has multiple variants, use the `‹` and `›` arrows beneath i
 
 Create a Group Talk room from the mode picker, name it, and search/select at least two character cards. The current RP character is optional. Participants can be added or removed later. Recent RP, active lorebook, and accessible extension memory are independent reference choices; the same selective collectors as Kongtalk are used.
 
-**One request, one shared answer length.** The default target is **1,000 tokens total**, shared naturally among the characters—not 1,000 tokens per character. Change it from 100 to 8,000 in Group Talk Advanced settings; the same value applies to all group rooms. Group Talk enforces a separate actual output cap (target plus a small JSON-formatting margin), including when using a dedicated connection profile. Ordinary Kongtalk and Guest Talk retain their previous request limits. Speakers join only when relevant; no roll call or equal airtime is required.
+**How Group Talk replies work**
+
+- One request generates a shared response for the room, not one request per character.
+- The default total target is **1,000 tokens for all speakers combined** (adjustable in Group Talk Advanced settings).
+- Characters speak when relevant; equal turns or a response from everyone are not required.
+
+
 
 <details>
 <summary>Speaking turns, memory, room settings, references, and validation details</summary>
+
+**One request, one shared answer length.** The default target is **1,000 tokens total**, shared naturally among the characters—not 1,000 tokens per character. Change it from 100 to 8,000 in Group Talk Advanced settings; the same value applies to all group rooms. Group Talk enforces a separate actual output cap (target plus a small JSON-formatting margin), including when using a dedicated connection profile. Ordinary Kongtalk and Guest Talk retain their previous request limits. Speakers join only when relevant; no roll call or equal airtime is required.
 
 **One speaking turn, one bubble.** A character can develop a thought across sentences and paragraphs without being split at each sentence. Completed turns arrive sequentially. Speaker names in every Kongtalk mode include round character-card avatars, with one shared live-preview slider in Advanced settings (18–48 px, default 26). Reading position and existing text selection are preserved; when starting at the bottom, only the beginning of the first reply is revealed. Later arrivals never force the view downward. “Show all” reveals the remaining turns. A new user message during delivery cancels only the undisplayed turns and starts a new request.
 
@@ -306,7 +345,20 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 *현재 코드의 홈 구조를 설명한 그림이며 실제 화면 캡처는 아닙니다.*
 
-새로고침하면 마지막 채팅방으로 자동 이동하지 않고 **콩고물톡 홈**이 열립니다. **새로운 대화**를 누르면 기존 모드 선택 화면이, **대화 목록**에서는 고정한 방과 실제 최근 메시지 순으로 정렬된 기존 채팅방이 표시됩니다. 방 이름·그룹톡 참여 캐릭터 이름으로 검색할 수 있으며, 방을 직접 눌러 해당 저장 기록을 엽니다. 채팅방 상단의 집 모양 버튼으로 홈에 돌아갈 수 있습니다. 현재 RP 캐릭터의 개인톡과 저장된 게스트톡·그룹톡만 목록에 표시하며, 새 홈 대화방이나 별도 기록은 만들지 않습니다. 홈과 채팅방의 상단바 높이는 테마별로 동일하게 유지하며, 상단 및 대화방 관리용 기능 버튼 8개만 Font Awesome으로 표시합니다. 테마 대표 이모지와 전송 버튼 이모지는 그대로 유지합니다.
+새로고침하면 마지막 방을 자동으로 열지 않고 **콩고물 톡 홈**으로 이동합니다.
+
+- **새로운 대화:** 모드를 선택해 새 대화방을 만듭니다.
+- **대화 목록:** 고정한 방을 먼저 보여주고, 나머지는 실제 최근 메시지 순으로 정렬합니다.
+- **검색:** 방 이름이나 그룹톡 참여 캐릭터 이름으로 찾습니다.
+- **방 열기 / 홈으로 돌아가기:** 방을 누르면 해당 방의 저장 기록이 열리고, 채팅방 상단의 집 모양 버튼으로 홈에 돌아갑니다.
+- **표시되는 방:** 일반 콩톡방은 현재 RP 캐릭터의 것만 표시하며, 저장된 게스트톡과 그룹톡은 RP가 바뀌어도 열 수 있습니다.
+
+<details>
+<summary>홈 화면 구성과 데이터 관련 설명</summary>
+
+홈 화면은 새 대화방이나 별도의 기록을 만들지 않습니다. 홈과 채팅방의 상단바 높이는 테마별로 같고, 상단·대화방 관리용 기능 버튼 8개만 Font Awesome을 사용합니다. 테마 대표 이모지와 전송 버튼 이모지는 그대로 유지합니다.
+
+</details>
 
 ## 🌍 화면 언어
 
@@ -369,7 +421,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 - 기존 방의 모드를 변경해도 메시지는 유지되며 새 시작 메시지는 생성되지 않습니다.
 - 각 방의 모드, 메시지, 답변 버전과 고정 상태가 그대로 유지됩니다.
 - 일반 대화방을 모두 삭제하면 기본 콩톡 방이 다시 만들어집니다. 게스트톡의 마지막 방을 삭제하면 일반 대화방 목록으로 돌아갑니다.
-- 게스트톡은 마지막 페르소나와 RP 캐릭터를 기록합니다. 페르소나가 바뀌면 **새 게스트톡 방 만들기 / 기존 방 이어가기**를 선택할 수 있어. 이전 메시지는 삭제하지 않으며, 페르소나는 그대로이고 RP만 바뀌었다면 묻지 않습니다.
+- 게스트톡은 마지막 페르소나와 RP 캐릭터를 기록합니다. 페르소나가 바뀌면 **새 게스트톡 방 만들기 / 기존 방 이어가기**를 선택할 수 있습니다. 이전 메시지는 삭제하지 않으며, 페르소나는 그대로이고 RP만 바뀌었다면 묻지 않습니다.
 
 ## 🗂️ 대화 모드
 
@@ -378,6 +430,22 @@ The panel position and size, theme, character voice note, coworker work note, re
 </p>
 
 *기능 차이를 정리한 안내 이미지이며 실제 모드 선택 화면 캡처는 아닙니다. 그룹톡의 상세 동작은 아래에서 설명합니다.*
+
+**어떤 모드를 고르면 될까요?**
+
+| 모드 | 이럴 때 사용합니다 |
+|---|---|
+| **콩톡** | 현재 캐릭터와 RP 밖에서 편하게 잡담할 때 |
+| **RP 어시** | 현재 장면과 감정선, 다음 전개를 상의할 때 |
+| **게스트톡** | 다른 캐릭터를 초대해 별도로 대화할 때 |
+| **평행우주 AU** | 원래 성격과 말투를 유지한 현대 AU 인물과 대화할 때 |
+| **반전 성격 AU** | 성격과 말투가 반대인 현대 AU 인물과 대화할 때 |
+| **그룹톡** | 두 명 이상 캐릭터가 한 방에서 함께 대화하게 할 때 |
+
+*그룹톡의 발언 처리와 기억 방식은 아래 그룹톡 항목에서 자세히 설명합니다.*
+
+<details>
+<summary>모드별 자세한 설명과 시작 메시지 확인</summary>
 
 | 모드 | 설명 |
 |---|---|
@@ -392,6 +460,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 - **콩톡과 게스트톡**는 현재 테마의 시작 아이콘으로 열립니다. 게스트톡는 처음에 캐릭터를 선택하며, 최근 게스트 5명·이름 검색·스크롤되는 전체 목록을 제공합니다.
 - **RP 어시 모드**는 캐릭터가 부여된 역할 선언문을 읽고 자기 방식대로 반응하며 시작합니다.
 - **평행우주AU**는 새로 생성된 AU 프로필과 현재 RP 장면을 작품으로 본 반응으로 시작합니다.
+
+</details>
 
 ## ✉️ 대화하기
 
@@ -418,10 +488,18 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 모드 선택에서 그룹톡을 만들고, 방 이름과 참여 캐릭터 2명 이상을 고릅니다. 게스트톡처럼 캐시트를 검색할 수 있으며 현재 RP 캐릭터는 자유롭게 포함하거나 제외할 수 있습니다. 참여자는 나중에도 추가·제외할 수 있습니다. 최근 RP·로어북·확장 데이터는 각각 선택하며 기존 콩톡의 선택적 수집 방식을 사용합니다.
 
-**API 한 번, 전체 답변 분량 하나.** 기본 목표는 캐릭터들이 나눠 쓰는 **전체 1,000토큰**입니다. 캐릭터마다 1,000토큰을 할당하지 않습니다. 그룹톡 고급 설정에서 100~8,000토큰으로 바꾸면 모든 그룹톡방에 똑같이 적용됩니다. 그룹톡은 전용 연결 프로필에서도 목표 분량에 JSON 형식용 여유만 더한 실제 출력 상한을 적용합니다. 기존 콩톡·게스트톡의 호출 방식은 유지하며, 말풍선 개수·균등한 발언량·전원 참여를 강제하지 않습니다.
+**그룹톡 답변 방식**
+
+- 캐릭터마다 API를 따로 호출하지 않고, 한 번의 요청으로 그룹 전체 답변을 생성합니다.
+- 기본 목표는 **모든 화자가 함께 쓰는 총 1,000토큰**이며, 그룹톡 고급 설정에서 조절할 수 있습니다.
+- 모든 캐릭터가 반드시 발언하거나 발언량을 똑같이 나눌 필요는 없습니다.
+
+
 
 <details>
 <summary>발언 처리·기억 범위·방 관리·참고 맥락·검증 내용 자세히 보기</summary>
+
+**API 한 번, 전체 답변 분량 하나.** 기본 목표는 캐릭터들이 나눠 쓰는 **전체 1,000토큰**입니다. 캐릭터마다 1,000토큰을 할당하지 않습니다. 그룹톡 고급 설정에서 100~8,000토큰으로 바꾸면 모든 그룹톡방에 똑같이 적용됩니다. 그룹톡은 전용 연결 프로필에서도 목표 분량에 JSON 형식용 여유만 더한 실제 출력 상한을 적용합니다. 기존 콩톡·게스트톡의 호출 방식은 유지하며, 말풍선 개수·균등한 발언량·전원 참여를 강제하지 않습니다.
 
 **한 차례 발언을 한 말풍선에 담습니다.** 여러 문장이나 문단을 말해도 문장별로 쪼개지 않습니다. 완성된 캐릭터 발언은 순서대로 도착하지만 읽던 위치와 선택한 텍스트는 유지됩니다. 일반 콩톡·게스트톡·평행우주AU·RP 어시·그룹톡 등 모든 모드에서 화자 이름 옆에 캐시트의 원형 프로필 이미지를 표시하며, 고급 설정의 슬라이더로 크기를 전체 공통으로 18~48px(기본 26px) 조절하며 값이 실시간 반영됩니다. 맨 아래에서 시작했을 때는 첫 답변의 시작만 보여주며, 이후 도착 때문에 아래로 끌려가지 않습니다. ‘모두 표시’로 남은 발언을 펼칠 수 있습니다. 도착 중 새 메시지를 보내면 아직 보이지 않은 발언만 취소하고 새 요청을 시작합니다.
 
