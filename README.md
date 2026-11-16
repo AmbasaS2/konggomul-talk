@@ -4,6 +4,24 @@
 
 The character card, persona, and selected RP context can inform the conversation, but Konggomul Talk messages remain separate from the main RP. The former Apply to RP summary/injection feature has been removed.
 
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="assets/readme/konggomul-chat.jpeg" alt="Example of chatting with a character in a separate Konggomul Talk room" width="390" />
+  <img src="assets/readme/konggomul-themes.jpeg" alt="Konggomul Talk theme selection in panel settings" width="310" />
+</p>
+
+*Examples were captured with Korean UI in an earlier version. Labels and layout may differ; the current feature descriptions below take precedence.*
+
+## 📥 Installation and First Steps
+
+1. In SillyTavern, open **Extensions → Install extension** (sometimes under extension management).
+2. Paste \`https://github.com/AmbasaS2/konggomul-talk\`, install, and reload the page.
+3. Open the **Konggomul Talk** panel from the extensions menu and create or select a room for the current character.
+4. Choose a conversation mode and start chatting. These conversations are stored separately from the main RP.
+
+
 ## 🌍 Interface Language
 
 Konggomul Talk automatically follows the **SillyTavern UI language**. No separate language selector is needed.
@@ -192,6 +210,24 @@ The panel position and size, theme, character voice note, coworker work note, re
 **콩고물 톡은 현재 캐릭터 또는 별도로 초대한 게스트 캐릭터와 RP 밖에서 채팅할 수 있는 SillyTavern 어시스턴트 확장입니다.**
 
 캐릭터 카드, 페르소나와 현재 RP 맥락을 참고해 대화하지만, 콩고물 톡 메시지는 메인 RP에 섞이지 않습니다. 기존 'RP 반영' 요약·주입 기능은 제거되었습니다.
+
+
+## 📸 화면 미리보기
+
+<p align="center">
+  <img src="assets/readme/konggomul-chat.jpeg" alt="메인 RP와 분리된 콩고물 톡 대화방 예시" width="390" />
+  <img src="assets/readme/konggomul-themes.jpeg" alt="콩고물 톡 패널 설정의 테마 선택" width="310" />
+</p>
+
+*이전 버전의 한국어 UI 예시 화면입니다. 현재 버전의 메뉴와 배치가 다를 수 있으므로 아래 기능 설명을 기준으로 봐주세요.*
+
+## 📥 설치 및 처음 사용하기
+
+1. SillyTavern의 **확장 프로그램 → 확장 설치** 메뉴를 엽니다. 버전에 따라 확장 관리 메뉴 안에 있을 수 있습니다.
+2. \`https://github.com/AmbasaS2/konggomul-talk\`을 붙여넣어 설치하고 새로고침합니다.
+3. 확장 메뉴에서 **콩고물 톡** 패널을 열고 현재 캐릭터의 방을 만들거나 선택합니다.
+4. 대화 모드를 정해 채팅합니다. 이 대화들은 메인 RP와 별도로 저장됩니다.
+
 
 ## 🌍 화면 언어
 
