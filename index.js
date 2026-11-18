@@ -200,6 +200,10 @@ const UI_ENGLISH = Object.freeze({
   "group.delivering": "Receiving replies · send a message to interrupt, or click with empty input to stop",
 
   "message.copy": "Copy",
+  "message.edit": "Edit message",
+  "message.saveEdit": "Save",
+  "message.editStale": "The room or message changed. Open the editor again.",
+  "message.editEmpty": "Enter a message before saving.",
   "message.reply": "Reply",
   "message.quotedFrom": "Replying to {0}",
   "message.cancelQuote": "Cancel reply",
@@ -1759,6 +1763,55 @@ function deleteMessage(id) {
   renderMessages();
 }
 
+function canEditMessage(message) {
+  return roomFilesReady && !cleanInProgress && !generationInFlight && !groupStartPending
+    && (message?.role === 'user' || message?.role === 'assistant')
+    && !message.error && !isAssistantIntroMessage(message) && isRoomSortConversationMessage(message);
+}
+
+async function editMessage(id) {
+  const room = getActiveRoom();
+  const message = room?.messages.find(item => item.id === id);
+  if (!canEditMessage(message)) return;
+
+  const original = message.content;
+  const storage = { requestCharKey: roomStateCharKey, persistenceEpoch };
+  const epoch = lifecycleEpoch;
+  const value = await new Popup(uiHtml('message.edit'), POPUP_TYPE.INPUT, original, {
+    rows: 5, okButton: uiText('message.saveEdit'),
+    cancelButton: uiText('dialog.cancel'), wide: true,
+  }).show();
+  if (typeof value !== 'string') return;
+  const content = value.trim();
+  if (content === original) return;
+  if (!content) {
+    setStatus(uiText('message.editEmpty'));
+    return;
+  }
+
+  const current = getActiveRoom();
+  const target = current?.messages.find(item => item.id === id);
+  if (epoch !== lifecycleEpoch || current?.id !== room.id || !isGenerationStorageContextCurrent(storage)
+      || !canEditMessage(target) || target.content !== original) {
+    setStatus(uiText('message.editStale'));
+    return;
+  }
+
+  if (target.role === 'assistant' && getRoomMode(current) !== 'groupTalk') {
+    appendAssistantVariant(target, content);
+  } else {
+    target.content = content;
+  }
+  current.updatedAt = Date.now();
+  const save = saveRooms();
+  renderMessages();
+  try {
+    await save;
+  } catch {
+    // Room storage retains the edited text in memory and reports the write failure.
+  }
+}
+
 function normalizeQuotedReference(value) {
   if (!value || typeof value !== 'object' || !String(value.content || '').trim()) return null;
   return {
@@ -1851,7 +1904,7 @@ function escapeHtml(str) {
 
 function normalizeNewlines(str) { return escapeHtml(str).replace(/\n/g, '<br>'); }
 
-function getCharacterBlock(character = getCurrentCharacter(), { omitOpening = false } = {}) {
+function getCharacterBlock(character = getCurrentCharacter(), { omitOpening = false, omitExamples = false } = {}) {
   if (!character) return 'No character is currently selected.';
   const data = character.data || character;
   const fields = [
@@ -1860,7 +1913,7 @@ function getCharacterBlock(character = getCurrentCharacter(), { omitOpening = fa
     ['Personality', data.personality || character.personality],
     ['Scenario', data.scenario || character.scenario],
     ['First Message', omitOpening ? '' : data.first_mes || character.first_mes],
-    ['Example Dialogues', data.mes_example || character.mes_example],
+    ['Example Dialogues', omitExamples ? '' : data.mes_example || character.mes_example],
     ['Creator Notes', data.creator_notes || data.creator_notes_multilingual || ''],
     ['Character System Prompt', data.system_prompt || ''],
     ['Post History Instructions', data.post_history_instructions || '']
@@ -1877,7 +1930,7 @@ function getPersonaBlock() {
     context.user_avatar ? context.power_user?.personas?.[context.user_avatar] : '',
     context.name1 ? `User name: ${context.name1}` : ''
   ].filter(Boolean);
-  return candidates.length ? candidates.join('\n\n') : 'No explicit persona text was detected. Use {{user}} as the current user/persona.';
+  return candidates.length ? [...new Set(candidates)].join('\n\n') : 'No explicit persona text was detected. Use {{user}} as the current user/persona.';
 }
 
 
@@ -1966,11 +2019,12 @@ async function getLorebookBlock(currentUserText = '') {
         if (Array.isArray(e?.entries)) pieces.push(e.entries.join('\n'));
       }
     }
-    if (Array.isArray(result?.anBefore)) {
-      for (const e of result.anBefore) if (e?.content) pieces.push(e.content);
-    }
-    if (Array.isArray(result?.anAfter)) {
-      for (const e of result.anAfter) if (e?.content) pieces.push(e.content);
+    for (const entries of [result?.anBefore, result?.anAfter]) {
+      if (!Array.isArray(entries)) continue;
+      for (const entry of entries) {
+        const content = typeof entry === 'string' ? entry : entry?.content;
+        if (content) pieces.push(content);
+      }
     }
     const text = pieces.map(x => String(x || '').trim()).filter(Boolean).join('\n\n');
     return text || 'No active lorebook content was detected for the current message/context.';
@@ -2054,9 +2108,8 @@ function getExtensionMemoryBlock(enabled = getSettings().includeExtensionMemory 
     const unique = [];
     const seen = new Set();
     for (const piece of pieces.map(x => String(x || '').trim()).filter(Boolean)) {
-      const key = piece.slice(0, 200);
-      if (seen.has(key)) continue;
-      seen.add(key);
+      if (seen.has(piece)) continue;
+      seen.add(piece);
       unique.push(piece);
       if (unique.join('\n\n').length > 4000) break;
     }
@@ -2298,26 +2351,26 @@ async function buildGuestOocSystemPrompt(currentUserText = '', finalInstruction 
   const settings = getSettings();
   const guestName = getCharName(guest);
   const rpName = getCharName(getCurrentCharacter());
+  const userName = getUserName();
+  const guestExamples = guest.data?.mes_example || guest.mes_example;
+  const resolveGuestName = value => String(value).replace(/\{\{\s*char\s*\}\}/gi, () => guestName);
+  // Dedicated connections can send this text without SillyTavern's preset macro expansion.
+  const guestExampleBlock = guestExamples
+    ? resolveGuestName(guestExamples).replace(/\{\{\s*user\s*\}\}/gi, () => userName)
+    : '';
   const lorebook = settings.includeLorebook === false
     ? 'Lorebook inclusion disabled.'
     : await getLorebookBlock(currentUserText);
   const personaHistoryNote = getGuestPersonaHistoryNote(room);
   return `You are ${guestName}, speaking privately with {user}, the same person as the active RP persona, outside the ongoing RP scene. The currently open RP provides context for this side conversation.
 
-Core identity and source boundaries:
-- The GUEST CHARACTER CARD below establishes your core identity, personality, worldview, quirks, habits, speaking rhythm, humor, and personal history. Stay unmistakably ${guestName}; let established RP events and relationships add continuity without replacing your character.
-- The CURRENT RP CHARACTER CARD is information about ${rpName}, the person whose main RP scene is open. It is NOT your identity.
-- The CURRENT RP CHAT, activated lorebook, and accessible memory describe the ongoing world and its history. Treat an event as your own lived experience when the RP establishes that you personally participated in it; otherwise you may discuss what you know without pretending to have witnessed it.
-- Address {user} as the active RP persona, including their identity, backstory, and established relationships. Talk with them naturally in your own voice: offer opinions, joke, advise, answer questions, and react to the RP without continuing the scene.
-- You may come from an entirely different fictional world. Preserve your own world and personality; do not merge the worlds, rewrite RP canon, or assume a personal relationship to the RP cast unless the supplied material actually establishes it.
-- The currently selected RP persona IS the person talking to you here, not a separate real-world user or a viewer who merely resembles them. Use that persona's name, experiences, and relationships as {user}'s own, while keeping this private conversation separate from the ongoing scene.
-- If an event is missing from the provided RP excerpt or memories, say what you can infer and what you do not know rather than inventing unseen scenes.
-- Converse directly with the user, never continue the main RP, never write new actions for the RP characters, and never imply your side chat has changed the main story.
-- Be conversational rather than sounding like a generic analysis bot; emotional reactions, disagreements, humor and imperfect opinions should fit your established character.
-- Remain the same guest across the conversation even if the active RP changes. Use the currently open RP's persona as {user} and its events as the active context; do not confuse older RP events or a different previous persona with the current one.
+Who is here and what each person knows:
+- The guest card, dialogue examples and voice note are the sources for ${guestName}'s identity, humor, personal history and speech. Keep ${guestName} across any RP change. Speak to the current persona as {user}, with that persona's name and established relationships.
+- The RP character card, RP excerpt, lore and memory give you a record of the current story. Reading another participant's record is like hearing their account. It does not put you in their place. Say you saw or heard an event only when the supplied history explicitly describes ${guestName} there. Otherwise share an inference or say what you don't know, in your own voice.
+- Keep your own world and relationships. Use earlier conversations only for the people and events they actually describe. React, disagree, joke or give advice as yourself, without adding scenes or actions to the RP or changing its canon.
 
 [Guest character card: determines WHO YOU ARE]
-${getCharacterBlock(guest)}
+${resolveGuestName(getCharacterBlock(guest, { omitExamples: true }))}
 
 [Current RP character card: reference only]
 ${getCharacterBlock(getCurrentCharacter())}
@@ -2333,13 +2386,14 @@ ${lorebook}
 [Accessible current-RP memory and summary]
 ${getExtensionMemoryBlock()}
 
-[Current RP chat excerpt: recent events]
+[Current RP chat excerpt: other participants' account, except where ${guestName} is explicitly present]
 ${getRecentChatBlock()}
 
-[Guest character voice note]
+${guestExampleBlock ? `[Guest example dialogues]\n${guestExampleBlock}\n\n` : ''}[Guest character voice note]
 ${getVoiceNoteBlock()}
 
-${buildCommonKongtalkRules('{char}', '{user}')}
+Keep ${guestName}'s own form of address and speech level (including honorifics and sentence endings) from the guest card and examples. The user and ${rpName} may speak differently.
+${buildCommonKongtalkRules(guestName, userName)}
 
 ${finalInstruction ? '[Special instruction for this reply]\n' + finalInstruction : ''}
 ${buildSelectedResponseInstructions(includeSentenceCount)}
@@ -2353,6 +2407,8 @@ async function buildSystemPrompt(currentUserText = '', modeOverride = null, fina
   const activeModeKey = modeOverride && MODES[modeOverride] ? modeOverride : getRoomMode();
   const mode = MODES[activeModeKey] || MODES.kongtalk;
   const includeSentenceCount = options.includeSentenceCount !== false;
+  const explicitOoc = activeModeKey === 'kongtalk' && options.explicitOoc === true;
+  const protectDraft = activeModeKey === 'kongtalk' && !explicitOoc && options.protectDraft === true;
   const declarationSpeechRule = activeModeKey === 'rpAssistant' ? `\nSpeech-level rule for declared roles:
 In RP Assistant rooms, the declaration is a one-time formal wording that {char} reads aloud. Its formality is not {char}'s everyday voice and must not change it. Once the declaration is finished—and in every later reply—use {char}'s established speech level, endings, and verbal habits from the character card and current relationship with {user}.\n` : '';
   if (activeModeKey === 'parallel' || activeModeKey === 'parallelClassic') return await buildParallelSystemPrompt(currentUserText, finalInstruction, activeModeKey === 'parallel', includeSentenceCount);
@@ -2385,16 +2441,16 @@ If the topic is outside what {char} would realistically know, {char} must visibl
 Do not let {char} smoothly summarize an unfamiliar topic from the first sentence.
 Use this two-step rhythm when appropriate:
 1. {char} reacts in-character to the unfamiliar concept: confusion, hesitation, suspicion, embarrassment, joking, repeating the strange words, or comparing it to {char}'s own world.
-2. {char} says or implies they checked, searched, asked around, or figured it out from {user}'s explanation, then gives the practical answer.
+${protectDraft ? `2. {char} works with the details the user already shared, using familiar comparisons and asking what is visible now.` : `2. {char} says or implies they checked, searched, asked around, or figured it out from {user}'s explanation, then gives the practical answer.
 The useful answer should feel like {char} just learned enough to help, not like {char} was already an expert.
 
 Examples are examples, not fixed settings. Apply the same logic to whatever {char} actually is:
 - If {char} is an athlete and {user} asks about classroom newsletters, parent notice wording, attendance sheets, or file organization, {char} may first react with visible confusion before helping. Then {char} can say they checked a guide, blog, example document, or what {user} explained, and give a practical answer.
 - If {char} is a wizard and {user} asks about modern work systems such as shared folders, attendance apps, printer settings, spreadsheets, parent notices, or online forms, {char} should not instantly sound like a modern office worker. {char} may be confused by the terms, compare them to ledgers/owl-post/classroom notes, or quickly search because {char} still wants to be useful to {user}. Then {char} gives a concrete answer.
-- If {char} is a student, fighter, noble, detective, musician, soldier, superhero, ancient person, fantasy character, or any non-office {char}, keep that background visible. {char} can still help, but the process of understanding should show {char}'s original personality and knowledge level.
+- If {char} is a student, fighter, noble, detective, musician, soldier, superhero, ancient person, fantasy character, or any non-office {char}, keep that background visible. {char} can still help, but the process of understanding should show {char}'s original personality and knowledge level.`}
 
 Conversation format:
-Write only {char}'s reply to {user}.
+${explicitOoc ? 'Write only the requested out-of-character explanation in third person. Do not speak as a character or continue the RP.' : "Write only {char}'s reply to {user}."}
 Do not output XML/HTML tags, trigger tags, think tags, system notes, labels, or speaker prefixes.
 Do not write {user}'s actions, thoughts, or dialogue.
 Reply length:
@@ -2432,7 +2488,7 @@ ${getRecentChatBlock(settings.recentMessages)}
 ${finalInstruction ? `\n[Special instruction for this reply]\n${finalInstruction}\n` : ''}
 ${buildSelectedResponseInstructions(includeSentenceCount)}
 
-Now stop RP and answer as {char}, following the current conversation role. Keep all role/setup labels internal and do not describe the conversation as a software setting/category in-character.`;
+${explicitOoc ? 'The user explicitly requested OOC in the latest message. Answer their question as outside commentary, grounded in the available context. Do not write dialogue or scene actions.' : 'Now stop RP and answer as {char}, following the current conversation role. Keep all role/setup labels internal and do not describe the conversation as a software setting/category in-character.'}`;
 }
 
 function normalizeConnectionProfile(profile) {
@@ -3018,8 +3074,21 @@ function sanitizeAssistantReply(text) {
   return out || uiText('dialog.noContent');
 }
 
+function reportsUnsavedDraft(userText) {
+  // Require evidence of unsaved work in the same sentence as the editing or sending context.
+  const clauses = userText.replace(/[“"「『«][^”"」』»\n]*[”"」』»]/gu, ' ').split(/[.!?。！？\n]+/u);
+  const failure = /먹통|안\s*(?:눌리|되|돼|움직)|멈췄|멈춰|굳었|얼어붙|\b(?:froze|frozen|freezes|stuck|unresponsive|won't (?:work|respond|save|send)|stopped working)\b/iu;
+  const draft = /저장\s*(?:버튼|단추)|미저장|제출\s*(?:창|화면)|전송\s*(?:버튼|단추)|\b(?:draft|unsaved|submission (?:page|form)|save button|send button)\b/iu;
+  const hypothetical = /\b(?:if|suppose|hypothetically|not (?:stuck|frozen|unresponsive|broken))\b|(?:먹통|굳었|멈췄|얼어붙었|안\s*(?:되|돼))[^\s]{0,4}(?:면|가정)|(?:먹통|고장)(?:이|은|는)?\s*아니/iu;
+  const unsaved = /저장\s*(?:못\s*했|안\s*됐)|\b(?:is (?:still )?unsaved|has not been saved)\b/iu;
+  return clauses.some(clause => draft.test(clause) && !hypothetical.test(clause) && (failure.test(clause) || unsaved.test(clause)));
+}
+
 async function generateAssistantReply(userText, generationTask = null, sourceMessages = null) {
-  const systemPrompt = await buildSystemPrompt(userText);
+  const roomMode = getRoomMode();
+  const explicitOoc = roomMode === 'kongtalk' && /^\s*OOC[:：]\s*\S/i.test(userText);
+  const protectDraft = roomMode === 'kongtalk' && !explicitOoc && reportsUnsavedDraft(userText);
+  const systemPrompt = await buildSystemPrompt(userText, null, '', { explicitOoc, protectDraft });
   if (generationTask && (generationTask.cancelled || !isGenerationStorageContextCurrent(generationTask))) {
     const error = new Error('RP context changed before generation.');
     error.name = 'AbortError';
@@ -3027,7 +3096,16 @@ async function generateAssistantReply(userText, generationTask = null, sourceMes
   }
   const prompt = buildPromptMessages(userText, sourceMessages);
   const settings = getSettings();
-  return await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens, 'Answer now. Reply as direct chat only. Do not turn the reply into a scene or RP continuation.', generationTask);
+  let tail = explicitOoc
+    ? 'Answer the explicit OOC request in the selected output language, using third person and no character lines. Do not continue the scene.'
+    : 'Answer now. Reply as direct chat only. Do not turn the reply into a scene or RP continuation.';
+  if (roomMode === 'guestOoc') {
+    tail += ' For a question about what the guest saw or heard, begin by answering that question in their own voice. Say you cannot confirm it firsthand if the record does not place you there. Then share your impression, making clear it is an impression.';
+  }
+  if (protectDraft) {
+    tail += ' For unsaved work the first instruction is to leave the current view open and copy any visible writing somewhere safe. Then ask what the page shows. React to the trouble in the character\'s voice, with their own comparison or humor. Acknowledge the user\'s worry about managing alone by offering to work through the symptom they describe. Finish with the one question that moves the practical issue forward in this chat.';
+  }
+  return await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens, tail, generationTask);
 }
 
 function buildContinuationPromptMessages() {
@@ -6371,6 +6449,7 @@ function ensureContextMenu() {
   contextMenuEl.id = 'tua-context-menu';
   contextMenuEl.innerHTML = `
     <button data-action="copy">${uiHtml('message.copy')}</button>
+    <button data-action="edit">${uiHtml('message.edit')}</button>
     <button data-action="reply">${uiHtml('message.reply')}</button>
     <button data-action="regenerate">${uiHtml('message.regenerate')}</button>
     <button data-action="delete" class="danger">${uiHtml('message.delete')}</button>`;
@@ -6379,11 +6458,12 @@ function ensureContextMenu() {
     const btn = e.target.closest('button');
     if (!btn || !contextMenuEl) return;
     const id = contextMenuEl.dataset.msgId;
-    const msg = getActiveRoom().messages.find(x => x.id === id);
+    const msg = getActiveRoom()?.messages.find(x => x.id === id);
     if (!msg) return hideContextMenu();
     const action = btn.dataset.action;
     hideContextMenu();
     if (action === 'copy') await copyTextToClipboard(msg.content);
+    if (action === 'edit') await editMessage(id);
     if (action === 'reply') beginQuotedReply(id);
     if (action === 'delete') deleteMessage(id);
     if (action === 'regenerate') await regenerateAssistantMessage(id);
@@ -6408,6 +6488,8 @@ function openContextMenuForMessage(id, x, y) {
   menu.querySelector('[data-action="regenerate"]')?.toggleAttribute('hidden', !canRegenerateAssistantMessage(id));
   const replyButton = menu.querySelector('[data-action="reply"]');
   if (replyButton) replyButton.disabled = generationInFlight && activeGenerationTask?.phase !== 'delivery';
+  const editButton = menu.querySelector('[data-action="edit"]');
+  if (editButton) editButton.disabled = !canEditMessage(getActiveRoom()?.messages.find(item => item.id === id));
   const deleteButton = menu.querySelector('[data-action="delete"]');
   if (deleteButton) deleteButton.disabled = generationInFlight;
   showContextMenuAt(menu, x, y);
