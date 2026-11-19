@@ -85,7 +85,8 @@ test('normal room inserts all messages with a single DOM append and preserves ha
     assert.equal(f.stats.append.length, 1);
     assert.equal((f.stats.append[0].match(/class="tua-msg /g) || []).length, 40);
     assert.equal(f.stats.binds, 3);
-    assert.equal(f.stats.heightReads, 0, 'No synchronous reflow before first animation frame');
+    assert.equal(f.stats.heightReads, 1, 'One synchronous initial scroll read ensures the first room opens at bottom');
+    assert.equal(f.element.scrollTop, 500);
     assert.equal(f.frames.size, 1);
 });
 
@@ -127,7 +128,7 @@ test('room switch invalidates pending scroll from previous room', () => {
     f.api.scrollMessagesToBottom();
     assert.equal(f.frames.size, 1);
     f.stepFrame();
-    assert.equal(f.stats.heightReads, 1);
+    assert.equal(f.stats.heightReads, 2);
 });
 
 test('group mode delegates rendering to existing group renderer and keeps explicit scroll behavior', () => {
@@ -149,7 +150,7 @@ test('canceling pending scroll during extension disable removes timers', () => {
     f.stepFrame();
     f.api.cancelPendingMessageBottomScroll();
     assert.equal(f.timers.size, 0);
-    assert.match(source, /function cleanupRuntimeState\(\) \{\n  cancelPendingMessageBottomScroll\(\);/);
+    assert.match(source, /function cleanupRuntimeState\(\) \{\r?\n  cancelPendingMessageBottomScroll\(\);/);
 });
 
 test('storage, save queue, cross-device revisions, variants and group scroll remain unchanged', () => {
