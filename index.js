@@ -6351,7 +6351,7 @@ function scrollMessagesToBottom() {
   const el = document.getElementById('tua-messages');
   if (!el) return;
   const room = getActiveRoom();
-  // Group Talk has explicit reader-preserving scroll rules. Do not change them.
+  // Group Talk has its own reader-scrolling rules. Leave them untouched.
   if (getRoomMode(room) === 'groupTalk') {
     cancelPendingMessageBottomScroll();
     el.scrollTop = el.scrollHeight || 0;
@@ -6369,18 +6369,24 @@ function scrollMessagesToBottom() {
     && getRoomMode() !== 'groupTalk';
   const scroll = () => {
     if (!stillCurrent()) return false;
+    // Synchronous first adjustment is necessary when a previously unopened
+    // room mounts. Delaying all scrolling to RAF occasionally leaves the
+    // first room at the top (measured regression in PR #9 v1).
     el.scrollTop = el.scrollHeight || 0;
     return true;
   };
+  if (!scroll()) return;
+  const expectedTop = el.scrollTop;
   const scheduleFrame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : callback => setTimeout(callback, 16);
   messageBottomScrollFrame = scheduleFrame(() => {
     messageBottomScrollFrame = null;
-    if (!scroll()) return;
-    const expectedTop = el.scrollTop;
+    if (!stillCurrent() || Math.abs(el.scrollTop - expectedTop) >= 2) return;
+    // Allow one follow-up to account for layout shifts, but never force a
+    // manual reader scroll back down.
     messageBottomScrollFollowupTimer = setTimeout(() => {
       messageBottomScrollFollowupTimer = null;
-      // If the reader scrolled manually after rendering, do not pull them back.
-      if (Math.abs(el.scrollTop - expectedTop) < 2) scroll();
+      if (!stillCurrent() || Math.abs(el.scrollTop - expectedTop) >= 2) return;
+      scroll();
     }, 120);
   });
 }
