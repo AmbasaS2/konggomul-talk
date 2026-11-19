@@ -6325,16 +6325,64 @@ function renderRoomList() {
     .on('pointerup.tuaRoom pointercancel.tuaRoom pointerleave.tuaRoom', finishRoomLongPress);
 }
 
+// Coalesce repeated post-render scroll requests. Reading scrollHeight after each
+// appended message can force layout; one post-render frame is enough for the
+// current DOM, with one guarded late follow-up for delayed media/font layout.
+let messageBottomScrollFrame = null;
+let messageBottomScrollFollowupTimer = null;
+let messageBottomScrollOwner = '';
+let messageBottomScrollTarget = null;
+
+function cancelPendingMessageBottomScroll() {
+  if (messageBottomScrollFrame !== null) {
+    if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(messageBottomScrollFrame);
+    else clearTimeout(messageBottomScrollFrame);
+    messageBottomScrollFrame = null;
+  }
+  if (messageBottomScrollFollowupTimer !== null) {
+    clearTimeout(messageBottomScrollFollowupTimer);
+    messageBottomScrollFollowupTimer = null;
+  }
+  messageBottomScrollTarget = null;
+  messageBottomScrollOwner = '';
+}
+
 function scrollMessagesToBottom() {
-  const box = $('#tua-messages');
-  const el = box[0];
+  const el = document.getElementById('tua-messages');
   if (!el) return;
-  if (getRoomMode() === 'groupTalk') { el.scrollTop = el.scrollHeight || 0; return; }
-  const run = () => { el.scrollTop = el.scrollHeight || 0; };
-  run();
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
-  setTimeout(run, 30);
-  setTimeout(run, 120);
+  const room = getActiveRoom();
+  // Group Talk has explicit reader-preserving scroll rules. Do not change them.
+  if (getRoomMode(room) === 'groupTalk') {
+    cancelPendingMessageBottomScroll();
+    el.scrollTop = el.scrollHeight || 0;
+    return;
+  }
+  const owner = String(roomStateCharKey || '') + ':' + String(room?.id || '');
+  if (messageBottomScrollFrame !== null && messageBottomScrollTarget === el && messageBottomScrollOwner === owner) return;
+  cancelPendingMessageBottomScroll();
+  messageBottomScrollOwner = owner;
+  messageBottomScrollTarget = el;
+  const epoch = lifecycleEpoch;
+  const stillCurrent = () => lifecycleEnabled && runtimeActive && epoch === lifecycleEpoch
+    && messageBottomScrollTarget === el && el.isConnected
+    && (String(roomStateCharKey || '') + ':' + String(getActiveRoom()?.id || '')) === owner
+    && getRoomMode() !== 'groupTalk';
+  const scroll = () => {
+    if (!stillCurrent()) return false;
+    el.scrollTop = el.scrollHeight || 0;
+    return true;
+  };
+  const scheduleFrame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : callback => setTimeout(callback, 16);
+  messageBottomScrollFrame = scheduleFrame(() => {
+    messageBottomScrollFrame = null;
+    if (!scroll()) return;
+    const expectedTop = el.scrollTop;
+    messageBottomScrollFollowupTimer = setTimeout(() => {
+      messageBottomScrollFollowupTimer = null;
+      // If the reader scrolled manually after rendering, do not pull them back.
+      if (Math.abs(el.scrollTop - expectedTop) < 2) scroll();
+    }, 120);
+  });
 }
 
 function renderMessages() {
@@ -6348,6 +6396,9 @@ function renderMessages() {
   box.empty();
   hideContextMenu();
   const visibleMessages = (room.messages || []).filter(m => !isOrphanGenerationPlaceholder(m, room.id));
+  // Build all message markup off-DOM and insert once, instead of appending one
+  // message at a time and repeatedly invalidating layout for long rooms.
+  const messageMarkup = [];
   for (const m of visibleMessages) {
     const roleClass = m.role === 'declaration' ? 'declaration' : (m.role === 'user' ? 'user' : 'assistant');
     const name = m.role === 'declaration' ? '' : (m.role === 'user' ? getUserKongtalkNickname() : getSpeakerName());
@@ -6372,12 +6423,13 @@ function renderMessages() {
         <div class="tua-bubble">${quoteHtml}${normalizeNewlines(m.content)}</div>
         ${variantNavigation}
       </div>`;
-    box.append(html);
+    messageMarkup.push(html);
   }
+  if (messageMarkup.length) box.append(messageMarkup.join(''));
   bindVariantNavigationHandlers();
   bindMessagePressHandlers();
   bindSpeakerAvatarFallbacks(box[0]);
-  box.scrollTop(box[0]?.scrollHeight || 0);
+  scrollMessagesToBottom();
 }
 
 
@@ -6739,6 +6791,7 @@ function unbindRuntimeEvents() {
 
 
 function cleanupRuntimeState() {
+  cancelPendingMessageBottomScroll();
   clearCollapsedUnreadReply();
   runtimeActive = false;
   unbindRuntimeEvents();
