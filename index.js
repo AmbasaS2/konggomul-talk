@@ -2647,7 +2647,13 @@ function isImageOrFileOnlyReply(text) {
   if (!value) return false;
   if (/^!\[[^\]]*\]\((?:https?:\/\/|blob:|data:image\/)[^)]+\)\s*$/i.test(value)) return true;
   if (/^(?:https?:\/\/|blob:|data:image\/)\S+$/i.test(value)) return true;
-  if (/\.(?:png|jpe?g|webp|gif|bmp|svg)(?:\?\S*)?$/i.test(value)) return true;
+  // Only the final non-whitespace token can match a file extension.
+  // This avoids rescanning long earlier tokens with repeated ".png?" fragments.
+  let fileTokenStart = value.length;
+  while (fileTokenStart > 0 && !/\s/u.test(value[fileTokenStart - 1])) {
+    fileTokenStart--;
+  }
+  if (/\.(?:png|jpe?g|webp|gif|bmp|svg)(?:\?\S*)?$/i.test(value.slice(fileTokenStart))) return true;
   if (/^\[.*?\]\((?:https?:\/\/|blob:|data:image\/)[^)]+\)\s*$/i.test(value) && value.length < 500) return true;
   return false;
 }
