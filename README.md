@@ -63,7 +63,7 @@ Manage the connection API, saved conversation cleanup, and debug logs under **Ex
 | Setting | Description |
 |---|---|
 | **Connection Profile (연결 프로필)** | Selects a connection profile saved in Connection Manager. Leave it blank to use the current main API. |
-| **Conversation Data Cleanup (대화 데이터 정리)** | Lets you choose which character's saved Konggomul Talk data to reset, even when another character is currently open. Stored entries that no longer match an installed character are listed as well. All rooms and messages for the selected character are removed and one default Kongtalk room is created. The character voice note and extension settings, including the theme and connection profile, are kept. |
+| **Conversation Data Cleanup (대화 데이터 정리)** | Choose **Reset all conversation data** (ordinary, Guest and Group Talk) or **Reset by character** (ordinary rooms of the selected character, including unmatched stored characters). A blank default room is shown without saving an empty file. Voice notes, main RP chats, theme and connection settings are kept. |
 | **🐞 Debug Logs (디버그 로그)** | Shows recent request and error information and lets you copy or clear the logs. |
 
 If a selected dedicated API profile cannot be found, the extension reports an error instead of silently falling back to the main API.
@@ -134,7 +134,7 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 |---|---|
 | **Kongtalk (콩톡)** | The default mode for freely chatting with the current character outside the RP. |
 | **RP Assistant Mode (RP 어시 모드)** | Discusses the current RP from outside the scene: situation and emotional-flow reading, scene direction, possible actions, and sample lines. It writes OOC only when the user explicitly asks for OOC. |
-| **Guest Talk (게스트톡)** | Invites any installed character—even from a different story—to talk privately with the **current RP persona** (the same person playing in the active RP). The guest card determines the speaker; the current RP character card, active lorebook, accessible memories, and recent RP messages provide context. Established guest relationships and first-hand RP events are respected; unrelated guests do not automatically know the persona. The latest Guest Talk question also participates in dynamic lorebook keyword scanning. |
+| **Guest Talk (게스트톡)** | Invites any installed character—even from a different story—to talk privately with the **current RP persona** (the same person playing in the active RP). The guest card determines the speaker; the current RP character card, active lorebook, accessible memories, and recent RP messages provide context. Established guest relationships and first-hand RP events are respected; a guest does not treat another character's account as their own experience or invent a prior relationship. The latest Guest Talk question also participates in dynamic lorebook keyword scanning. |
 | **Parallel Universe AU (Watching RP)** | Creates a separate modern AU person with the original character's name, face, age, core personality, and way of speaking, but a different modern job and a newly generated relationship with the current user. They watch the main RP together as a show. |
 | **Parallel Universe AU (Watching RP) 🙃** | Creates a separate modern AU person with the original character's name, face, and age, but an opposite core personality and way of speaking, a different life and job, and a newly generated relationship with the current user. They watch the main RP together as a show. |
 
@@ -161,9 +161,12 @@ Right-click or long-press a message to open its menu.
 | Menu item | Action |
 |---|---|
 | **Copy** | Copies the message text. |
+| **Edit message** | Edits an eligible user message or AI reply without an AI request. In personal modes, editing an AI reply adds a new answer variant and preserves the original; in Group Talk it edits that turn without changing its speaker. Intro/error messages and messages during generation cannot be edited. |
 | **Regenerate (다시 생성)** | Regenerates the latest eligible AI response. The new response is saved as another answer variant instead of replacing the previous one. |
 | **Delete** | Deletes the selected message. |
 | **Reply** | Quotes a chosen message above the composer. Send a normal reply and both the quote and message are saved; the model receives the quoted text as part of the conversation. |
+
+In ordinary Kongtalk, begin a message with `OOC:` followed by your question to explicitly request out-of-character commentary instead of a character reply.
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
@@ -260,9 +263,10 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 
 | Feature | Description |
 |---|---|
-| **Conversation data management** | In Advanced settings, use a **dropdown** to choose **Current RP character** or **All Guest Talk**, then use the shared **Export / Import / Reset** buttons in one row. The selected scope determines which data is affected. |
+| **Conversation data management** | In Advanced settings, use a **dropdown** to choose **Current RP character**, **All Guest Talk**, or **All Group Talk**, then use the shared **Export / Import / Reset** buttons in one row. The selected scope determines which data is affected. |
 | **Current RP character** | Export saves the current character's rooms, messages, modes, answer variants, pinned states and voice note. Import replaces this character's saved conversation data. Reset removes this character's rooms and messages, recreating a default room while preserving the voice note and extension settings. |
 | **All Guest Talk** | Export, import and reset work on the global Guest Talk conversation store only. Backups preserve guest character identifiers, messages, answer variants, voice notes and recent guest choices. |
+| **All Group Talk** | Export, import or reset the shared Group Talk store, including saved rooms, participants and conversation history. |
 
 ### Conversation files and recovery (5.5.5)
 
@@ -352,7 +356,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 | 설정 | 설명 |
 |---|---|
 | **연결 프로필** | Connection Manager에 저장된 연결 프로필을 선택합니다. 비워두면 현재 메인 API를 사용합니다. |
-| **대화 데이터 정리** | 현재 열어 둔 캐릭터와 관계없이, 저장 데이터가 있는 캐릭터 중 초기화할 대상을 선택합니다. 현재 설치된 캐릭터와 매칭되지 않은 저장 데이터도 목록에 표시됩니다. 선택한 캐릭터의 모든 방과 메시지가 삭제되고 기본 콩톡 방 1개가 새로 만들어집니다. 캐릭터 말투 메모와 테마·연결 프로필을 포함한 확장 설정은 유지됩니다. |
+| **대화 데이터 정리** | **전체 데이터 초기화**(일반 콩톡·게스트톡·그룹톡) 또는 **캐릭터별 대화 초기화**(선택한 캐릭터의 일반 콩톡방)를 선택합니다. 설치된 캐릭터와 매칭되지 않는 저장 데이터도 선택할 수 있습니다. 빈 기본 방은 화면에만 만들며 빈 파일을 저장하지 않습니다. 말투 메모·메인 RP·테마·연결 설정은 유지됩니다. |
 | **🐞 디버그 로그** | 최근 요청과 오류 정보를 확인하고, 로그를 복사하거나 비웁니다. |
 
 선택한 전용 API 프로필을 찾을 수 없으면 메인 API로 자동 변경하지 않고 오류를 표시합니다.
@@ -423,7 +427,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 |---|---|
 | **콩톡** | RP 밖에서 현재 캐릭터와 자유롭게 대화하는 기본 모드입니다. |
 | **RP 어시 모드** | 현재 캐릭터와 RP 밖에서 장면 상황, 감정선, 다음 전개, 가능한 행동과 예시 대사를 상의합니다. OOC는 사용자가 명시적으로 요청했을 때만 작성합니다. |
-| **게스트톡** | 설치된 다른 캐릭터를 초대해 **현재 RP의 페르소나 본인**과 별도로 대화합니다. 다른 세계관 캐릭터도 초대할 수 있습니다. 게스트 캐릭터 시트는 화자의 인격, 현재 RP 캐릭터 시트·로어북·접근 가능한 메모리·최근 대화는 상황과 관계를 이해하는 자료입니다. 게스트가 RP에서 실제로 겪은 사건과 기존 관계는 유지하되, 인연 없는 캐릭터에게 친분을 만들어 주지는 않습니다. 방금 보낸 콩톡 질문도 로어북 키워드 검사에 포함됩니다. |
+| **게스트톡** | 설치된 다른 캐릭터를 초대해 **현재 RP의 페르소나 본인**과 별도로 대화합니다. 다른 세계관 캐릭터도 초대할 수 있습니다. 게스트 캐릭터 시트는 화자의 인격, 현재 RP 캐릭터 시트·로어북·접근 가능한 메모리·최근 대화는 상황과 관계를 이해하는 자료입니다. 게스트가 RP에서 실제로 겪은 사건과 기존 관계는 유지하되, 다른 캐릭터에게 전해 들은 일을 자신의 경험처럼 말하거나 없는 친분을 만들어 내지 않도록 합니다. 방금 보낸 콩톡 질문도 로어북 키워드 검사에 포함됩니다. |
 | **평행우주AU(Watching RP)** | 원래 캐릭터와 같은 이름, 얼굴, 나이, 핵심 성격과 말투를 가지지만, 다른 현대 직업과 새로 정해진 현재 사용자와의 관계를 가진 별개의 현대 AU 인물과 메인 RP를 작품처럼 함께 보며 대화합니다. |
 | **평행우주AU(Watching RP)🙃** | 원래 캐릭터와 같은 이름, 얼굴과 나이를 가지지만, 핵심 성격과 말투는 반대이고 삶·직업·현재 사용자와의 관계는 새로 정해진 별개의 현대 AU 인물과 메인 RP를 작품처럼 함께 보며 대화합니다. |
 
@@ -450,9 +454,12 @@ The panel position and size, theme, character voice note, coworker work note, re
 | 메뉴 | 기능 |
 |---|---|
 | **복사** | 메시지 내용을 복사합니다. |
+| **메시지 수정** | 수정 가능한 유저 메시지나 AI 답변을 별도 AI 호출 없이 편집합니다. 개인톡 AI 답변은 원본을 보존한 새 스와이프 버전으로 저장하고, 그룹톡은 기존 화자를 유지한 채 해당 발언을 수정합니다. 시작·오류 메시지나 생성 중인 메시지는 수정할 수 없습니다. |
 | **다시 생성** | 다시 생성할 수 있는 가장 최근 AI 답변을 새로 생성합니다. 새 답변은 기존 답변을 덮어쓰지 않고 다른 답변 버전으로 저장됩니다. |
 | **삭제** | 선택한 메시지를 삭제합니다. |
 | **답장** | 기존 메시지를 골라 인용한 뒤 답장합니다. 인용 내용은 대화 기록과 AI 요청에도 함께 포함됩니다. |
+
+일반 콩톡에서는 메시지 앞에 `OOC:`를 붙이고 질문하면 캐릭터의 대사 대신 장면 밖 설명을 명시적으로 요청할 수 있습니다.
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
@@ -549,9 +556,10 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 | 기능 | 설명 |
 |---|---|
-| **대화 데이터 관리** | 고급 설정의 **선택 박스**에서 **현재 RP 캐릭터 / 게스트톡 전체** 중 대상을 고르고, 한 줄로 배치된 **내보내기·가져오기·초기화** 버튼을 사용합니다. 선택한 대상에만 적용됩니다. |
+| **대화 데이터 관리** | 고급 설정의 **선택 박스**에서 **현재 RP 캐릭터 / 게스트톡 전체 / 그룹톡 전체** 중 대상을 고르고, 한 줄로 배치된 **내보내기·가져오기·초기화** 버튼을 사용합니다. 선택한 대상에만 적용됩니다. |
 | **현재 RP 캐릭터** | 내보내기는 현재 캐릭터의 대화방, 메시지, 모드, 답변 버전, 고정 상태와 말투 메모를 저장합니다. 가져오기는 해당 캐릭터의 데이터를 백업 내용으로 교체하고, 초기화는 대화 기록을 지우고 기본 방을 다시 만들되 말투 메모와 확장 설정을 유지합니다. |
 | **게스트톡 전체** | 게스트톡 공통 저장 영역만 별도로 내보내기·가져오기·초기화합니다. 백업에는 캐릭터 식별자, 대화 기록, 답변 버전, 말투 메모와 최근 선택 목록이 포함됩니다. |
+| **그룹톡 전체** | 그룹톡 공통 저장 영역의 방·참여자·대화 기록을 별도로 내보내기·가져오기·초기화합니다. |
 
 ### 대화 기록 파일과 복구 (5.5.5)
 
