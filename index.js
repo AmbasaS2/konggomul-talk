@@ -493,6 +493,7 @@ let pendingQuote = null;
 let lastRequestPreview = null;
 let dataManageScope = 'character';
 let panelEl = null;
+let panelRenderPending = true;
 let contextMenuEl = null;
 let roomContextMenuEl = null;
 let longPressTimer = null;
@@ -1073,22 +1074,28 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
   }
   const cache = {};
   const revisions = {};
-  for (const key of index.keys) {
-    // Leave older hash-only filenames untouched. The reader supports both.
-    const stored = await readRoomSnapshot(key, ctx());
-    if (!stored) throw new Error('Missing Konggomul room file: ' + key);
-    if (!completedMigration && Object.hasOwn(legacy, key) && !roomStatesEqual(legacy[key], stored.data)) {
-      throw new Error('Legacy settings and stored room file differ. Migration stopped: ' + key);
+  const context = ctx();
+  // Read a few independent owners at a time; keep validation ahead of enabling room access.
+  for (let offset = 0; offset < index.keys.length; offset += 4) {
+    const keys = index.keys.slice(offset, offset + 4);
+    const snapshots = await Promise.all(keys.map(key => readRoomSnapshot(key, context)));
+    if (cleanInProgress || epoch !== lifecycleEpoch || !lifecycleEnabled) return false;
+    for (const [i, key] of keys.entries()) {
+      const stored = snapshots[i];
+      if (!stored) throw new Error('Missing Konggomul room file: ' + key);
+      if (!completedMigration && Object.hasOwn(legacy, key) && !roomStatesEqual(legacy[key], stored.data)) {
+        throw new Error('Legacy settings and stored room file differ. Migration stopped: ' + key);
+      }
+      cache[key] = stored.data;
+      revisions[key] = stored.revision;
     }
-    cache[key] = stored.data;
-    revisions[key] = stored.revision;
   }
   if (cleanInProgress || epoch !== lifecycleEpoch || !lifecycleEnabled) return false;
   requireRoomFileCache(settings, cache);
   roomFileRevisions = revisions;
   roomFileIndex = index;
   roomFilesReady = true;
-  settings.roomFileStorage = {
+  const fileStorage = {
     format: 'server-files-v1',
     legacyBackup: index.legacyBackup,
     keys: [...index.keys],
@@ -1097,7 +1104,10 @@ async function initializeRoomFileStorage(epoch = lifecycleEpoch) {
   };
   // File snapshots are authoritative. Keep the old settings copy intact until
   // its verified backup exists and SillyTavern confirms the settings rewrite.
-  saveSettings();
+  if (JSON.stringify(settings.roomFileStorage) !== JSON.stringify(fileStorage)) {
+    settings.roomFileStorage = fileStorage;
+    saveSettings();
+  }
   return true;
 }
 
@@ -3389,6 +3399,7 @@ function ensurePanel() {
     bindPanelViewportRepairEvents();
     return;
   }
+  panelRenderPending = true;
   panelEl = document.createElement('div');
   panelEl.id = 'tua-panel';
   panelEl.innerHTML = `
@@ -5011,7 +5022,8 @@ function setPanelVisible(show, { persistPreference = true } = {}) {
   if (show) {
     panelEl.classList.toggle('tua-collapsed', !!getSettings().collapsed);
     if (!getSettings().collapsed) clearCollapsedUnreadReply();
-    applyVisualSettings();
+    if (panelRenderPending) renderAll();
+    else applyVisualSettings();
     applyPanelPosition();
     if (getRoomMode() !== 'groupTalk') scrollMessagesToBottom();
   }
@@ -6238,7 +6250,8 @@ function applyVisualSettings() {
 function setStatus(_text) { /* v4.5.0: keep settings panel quiet; no visible action status text. */ }
 
 function renderAll() {
-  if (!panelEl) return;
+  panelRenderPending = !panelEl?.classList.contains('tua-visible');
+  if (panelRenderPending) return;
   panelEl.classList.toggle('tua-home-active', homeVisible);
   $('#tua-home-button').toggle(!homeVisible);
   $('#tua-home').attr('aria-hidden', homeVisible ? 'false' : 'true');
@@ -6304,6 +6317,10 @@ function getHomeParticipants(room) {
 
 function renderHome() {
   if (!homeVisible) return;
+  if (!panelEl?.classList.contains('tua-visible')) {
+    panelRenderPending = true;
+    return;
+  }
   const list = $('#tua-home-list');
   if (!list.length) return;
   const query = String($('#tua-home-search').val() || '').trim().toLocaleLowerCase();
@@ -6792,7 +6809,7 @@ function bindRuntimeEvents() {
         if (homeVisible) {
           // Refresh the current RP character's room list, not a last-room route.
           if (!generationInFlight) await loadRooms({ expectedLifecycleEpoch: eventEpoch, storageKey: getCharKey() });
-          renderHome();
+          else renderHome();
         } else if (isSharedRoomStore(roomStateCharKey)) {
           renderAll();
         } else {
