@@ -158,6 +158,10 @@ When a new room is created, its opening is prepared for the selected mode.
 
 Right-click or long-press a message to open its menu.
 
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-message-menu-mobile.png"><img src="assets/readme/mobile/konggomul-message-menu-mobile.png" alt="Konggomul Talk message menu (v5.5.5 UI illustration)" width="860" /></a>
+</p>
+
 | Menu item | Action |
 |---|---|
 | **Copy** | Copies the message text. |
@@ -169,6 +173,10 @@ Right-click or long-press a message to open its menu.
 In ordinary Kongtalk, begin a message with `OOC:` followed by your question to explicitly request out-of-character commentary instead of a character reply.
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-edit-message-mobile.png"><img src="assets/readme/mobile/konggomul-edit-message-mobile.png" alt="Editing messages and reply variants (v5.5.5 UI illustration)" width="860" /></a>
+</p>
 
 ## 👥 Group Talk — complete speaking turns (5.5.2)
 
@@ -204,6 +212,10 @@ Validation covered parser/history/request tests and Chromium desktop/mobile-widt
 ## 🎛️ Panel Settings
 
 Use `⚙` in the panel header to adjust the current character and Konggomul Talk display settings.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-panel-settings-mobile.png"><img src="assets/readme/mobile/konggomul-panel-settings-mobile.png" alt="Panel settings and speaker avatar size (v5.5.5 UI illustration)" width="860" /></a>
+</p>
 
 **Display and reply settings**
 
@@ -271,6 +283,10 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 ### Conversation files and recovery (5.5.5)
 
 Normal rooms are stored per character in server-side JSON files; Guest Talk and Group Talk use separate shared stores. Original migration backups are retained for recovery.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-data-cleanup-mobile.png"><img src="assets/readme/mobile/konggomul-data-cleanup-mobile.png" alt="Conversation data cleanup options (v5.5.5 UI illustration)" width="860" /></a>
+</p>
 
 <details>
 <summary>File paths, verified migration, data cleanup, rollback, and error-handling details</summary>
@@ -451,6 +467,10 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 메시지를 우클릭하거나 길게 누르면 메뉴가 열립니다.
 
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-message-menu-mobile.png"><img src="assets/readme/mobile/konggomul-message-menu-mobile.png" alt="콩고물 톡 메시지 메뉴 (v5.5.5 UI 구성 예시)" width="860" /></a>
+</p>
+
 | 메뉴 | 기능 |
 |---|---|
 | **복사** | 메시지 내용을 복사합니다. |
@@ -462,6 +482,10 @@ The panel position and size, theme, character voice note, coworker work note, re
 일반 콩톡에서는 메시지 앞에 `OOC:`를 붙이고 질문하면 캐릭터의 대사 대신 장면 밖 설명을 명시적으로 요청할 수 있습니다.
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-edit-message-mobile.png"><img src="assets/readme/mobile/konggomul-edit-message-mobile.png" alt="메시지 수정 및 답변 스와이프 (v5.5.5 UI 구성 예시)" width="860" /></a>
+</p>
 
 ## 👥 그룹톡 — 발언 단위 대화 (5.5.2)
 
@@ -497,6 +521,10 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🎛️ 패널 설정
 
 패널 상단의 `⚙`에서 현재 캐릭터와 콩고물 톡 화면에 적용할 설정을 조절합니다.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-panel-settings-mobile.png"><img src="assets/readme/mobile/konggomul-panel-settings-mobile.png" alt="패널 설정과 캐릭터 프로필 이미지 크기 (v5.5.5 UI 구성 예시)" width="860" /></a>
+</p>
 
 **화면과 답변 설정**
 
@@ -564,6 +592,10 @@ The panel position and size, theme, character voice note, coworker work note, re
 ### 대화 기록 파일과 복구 (5.5.5)
 
 일반 콩톡은 캐릭터별 JSON 파일에, 게스트톡·그룹톡은 각각 별도의 공통 파일에 대화가 저장됩니다. 기존 기록을 옮길 때 복구 백업을 보존합니다.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-data-cleanup-mobile.png"><img src="assets/readme/mobile/konggomul-data-cleanup-mobile.png" alt="대화 데이터 정리 옵션 (v5.5.5 UI 구성 예시)" width="860" /></a>
+</p>
 
 <details>
 <summary>저장 위치·안전한 이전·데이터 정리·구버전 복구 방법 자세히 보기</summary>
