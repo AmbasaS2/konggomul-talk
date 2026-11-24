@@ -5,14 +5,14 @@ import { ROOM_INDEX_FORMAT, readRoomIndex, writeRoomIndex, readRoomSnapshot, wri
 import { countRoomData } from './room-reset.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.5
+ * 🐕 콩고물 톡 v5.5.6
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
- * - RP/instruct presets are not copied into the prompt; character/persona/recent chat are rebuilt separately.
+ * - Enabled static Chat Completion preset instructions are optional; RP markers and context are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.5';
+const EXTENSION_VERSION = '5.5.6';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -87,9 +87,9 @@ const UI_ENGLISH = Object.freeze({
   "settings.groupAdvanced": "Group Talk \u00b7 Advanced settings",
   "settings.groupRoomManagement": "Manage this Group Talk room",
   "settings.dataAdvanced": "Conversation history and tools",
-  "settings.groupPresetHint": "Include the preset of the selected dedicated connection profile for Group Talk. Off by default.",
+  "settings.groupPresetHint": "Include enabled Chat Completion preset instructions from the selected profile or main API. Off by default.",
   "panel.preset": "Include preset",
-  "panel.presetHint": "Disable to omit the selected dedicated API preset and reduce prompt influence or token usage.",
+  "panel.presetHint": "Include enabled Chat Completion preset instructions from the selected profile or main API. Turning this off omits them.",
   "panel.lorebook": "Include lorebook",
   "panel.lorebookHint": "Disable to omit active World Info / lorebook entries.",
   "panel.extensionMemory": "Include extension memory",
@@ -2925,6 +2925,78 @@ async function showLastRequestPreview() {
   }).show();
 }
 
+// The ST connection service's includePreset option applies generation parameters,
+// not Prompt Manager instructions. Read the enabled static Chat Completion prompts
+// separately, without selecting a preset or touching main RP state.
+function getKongtalkPresetPrompts(context, profile, enabled, generationType = 'normal') {
+  if (!enabled) return { reason: 'disabled', messages: [] };
+  const saved = profile && (context.extensionSettings?.connectionManager?.profiles || [])
+    .find(item => item.id === profile.id);
+  const selected = saved || profile;
+  const api = selected ? context.CONNECT_API_MAP?.[selected.api]?.selected : context.mainApi;
+  if (api !== 'openai') return { reason: 'not-chat-completion', messages: [] };
+
+  let settings = context.chatCompletionSettings;
+  if (selected) {
+    const name = selected.preset;
+    settings = name ? context.getPresetManager?.('openai')?.getCompletionPresetByName?.(name) : null;
+    if (!settings) return { reason: 'profile-preset-unavailable', messages: [] };
+  }
+
+  // ST Chat Completion uses a global Prompt Manager order (dummy character 100001).
+  // Never guess the enabled state from a raw list of definitions.
+  const order = Array.isArray(settings?.prompt_order)
+    ? settings.prompt_order.find(item => String(item?.character_id) === '100001')?.order
+    : null;
+  if (!Array.isArray(order) || !Array.isArray(settings?.prompts)) {
+    return { reason: 'prompt-order-unavailable', messages: [] };
+  }
+  const definitions = new Map(settings.prompts.filter(item => item?.identifier).map(item => [item.identifier, item]));
+  const contextMarkers = new Set(['chatHistory', 'dialogueExamples', 'worldInfoBefore', 'worldInfoAfter',
+    'charDescription', 'charPersonality', 'scenario', 'personaDescription']);
+  const messages = [];
+  const seen = new Set();
+  for (const entry of order) {
+    if (entry?.enabled !== true || seen.has(entry.identifier)) continue;
+    seen.add(entry.identifier);
+    const prompt = definitions.get(entry.identifier);
+    if (!prompt || prompt.marker || contextMarkers.has(entry.identifier) || typeof prompt.content !== 'string' || !prompt.content.trim()) continue;
+    if (Array.isArray(prompt.injection_trigger) && prompt.injection_trigger.length && !prompt.injection_trigger.includes(generationType)) continue;
+    const role = ['system', 'user', 'assistant'].includes(prompt.role) ? prompt.role : 'system';
+    messages.push({ role, content: prompt.content });
+  }
+  return { reason: messages.length ? 'included' : 'no-enabled-prompts', messages };
+}
+
+// Resolve room identities, not the main RP character, for the added preset text.
+// generateRaw performs native macro expansion itself; profile requests do not.
+function prepareKongtalkPresetMessages(messages, context, { speaker, user, dedicated }) {
+  return messages.map(message => {
+    let content = message.content
+      .replace(/\{\{\s*(?:char|charIfNotGroup)\s*\}\}/gi, () => speaker)
+      .replace(/\{\{\s*user\s*\}\}/gi, () => user);
+    if (dedicated && typeof context.substituteParams === 'function') {
+      content = context.substituteParams(content, { name1Override: user, name2Override: speaker, replaceCharacterCard: false });
+    }
+    return { role: message.role, content };
+  });
+}
+
+function buildKongtalkPresetRequest(presetMessages, systemPrompt, safePrompt) {
+  // Keep the configured relative order and roles of preset instructions. Insert
+  // Kongtalk's own system context among the leading system messages so it stays
+  // a real system message even on providers that only accept initial system roles.
+  const result = presetMessages.map(message => ({ ...message }));
+  const firstNonSystem = result.findIndex(message => message.role !== 'system');
+  result.splice(firstNonSystem < 0 ? result.length : firstNonSystem, 0, { role: 'system', content: String(systemPrompt || '') });
+  result.push({ role: 'user', content: 'CURRENT KONGGOMUL TALK CONVERSATION:\n' + safePrompt });
+  return result;
+}
+
+function formatKongtalkRequestPreview(messages) {
+  return messages.map(message => '[' + message.role + ']\n' + message.content).join('\n\n');
+}
+
 async function generateWithSelectedProfile(systemPrompt, prompt, maxTokens, tail = 'Answer now.', generationTask = null, options = {}) {
   const context = ctx();
   const s = getSettings();
@@ -2941,12 +3013,22 @@ async function generateWithSelectedProfile(systemPrompt, prompt, maxTokens, tail
   const safePrompt = stringifyPromptMessages(appendTailToMessages(prompt, outputTail));
   const includePreset = options.outputFormat === 'group'
     ? getGlobalGroupSettings().includePreset === true : s.includePreset !== false;
+  const preset = getKongtalkPresetPrompts(context, resolvedProfile, includePreset, options.generationType || 'normal');
+  const room = getActiveRoom();
+  const presetMessages = prepareKongtalkPresetMessages(preset.messages, context, {
+    speaker: options.outputFormat === 'group' ? 'each participant' : getSpeakerName(room),
+    user: options.outputFormat === 'group' ? (room?.groupBinding?.name || getUserName()) : getUserName(),
+    dedicated: !!resolvedProfile,
+  });
+  const presetRequest = presetMessages.length ? buildKongtalkPresetRequest(presetMessages, systemPrompt, safePrompt) : null;
   addDebugLog('request.start', '콩고물 톡 생성 요청 시작', {
     selectedProfile: selectedBefore,
     requestedMaxTokens: safeMaxTokens,
     systemPromptLength: String(systemPrompt || '').length,
     promptLength: safePrompt.length,
     includePreset,
+    presetPromptCount: presetMessages.length,
+    presetPromptStatus: preset.reason,
   });
   const mergedPrompt = `${String(systemPrompt || '')}
 
@@ -2993,8 +3075,8 @@ ${safePrompt}`;
         timeoutMs,
       });
 
-      const messages = [{ role: 'user', content: mergedPrompt }];
-      rememberOutgoingPrompt('Connection Manager', mergedPrompt, profile.name);
+      const messages = presetRequest || [{ role: 'user', content: mergedPrompt }];
+      rememberOutgoingPrompt('Connection Manager', presetRequest ? formatKongtalkRequestPreview(messages) : mergedPrompt, profile.name);
       const raw = await Service.sendRequest(
         profile.id,
         messages,
@@ -3029,10 +3111,10 @@ ${safePrompt}`;
       maxTokens: groupRawMaxTokens,
       responseLength: groupRawMaxTokens,
     });
-    rememberOutgoingPrompt('Main API · generateRaw', '[System prompt]\n' + String(systemPrompt || '') + '\n\n[Conversation prompt]\n' + safePrompt);
+    rememberOutgoingPrompt('Main API · generateRaw', presetRequest ? formatKongtalkRequestPreview(presetRequest) : '[System prompt]\n' + String(systemPrompt || '') + '\n\n[Conversation prompt]\n' + safePrompt);
     const raw = await context.generateRaw({
-      systemPrompt,
-      prompt: safePrompt,
+      systemPrompt: presetRequest ? '' : systemPrompt,
+      prompt: presetRequest || safePrompt,
       responseLength: groupRawMaxTokens,
       maxTokens: groupRawMaxTokens,
       max_tokens: groupRawMaxTokens,
@@ -3051,8 +3133,9 @@ ${safePrompt}`;
       maxTokens: groupRawMaxTokens,
       responseLength: groupRawMaxTokens,
     });
-    rememberOutgoingPrompt('Main API · generateQuietPrompt', mergedPrompt);
-    const raw = await context.generateQuietPrompt({ quietPrompt: mergedPrompt, responseLength: groupRawMaxTokens, maxTokens: groupRawMaxTokens, max_tokens: groupRawMaxTokens, signal: generationTask?.controller?.signal });
+    const quietPrompt = presetRequest ? formatKongtalkRequestPreview(presetRequest) : mergedPrompt;
+    rememberOutgoingPrompt('Main API · generateQuietPrompt', quietPrompt);
+    const raw = await context.generateQuietPrompt({ quietPrompt, responseLength: groupRawMaxTokens, maxTokens: groupRawMaxTokens, max_tokens: groupRawMaxTokens, signal: generationTask?.controller?.signal });
     const extracted = options.outputFormat === 'group' ? extractGroupResponse(raw) : extractAssistantText(raw);
     addDebugLog('response.received', `메인 generateQuietPrompt 응답 수신: ${extracted.length}자`, {
       route: 'generateQuietPrompt',
@@ -3090,7 +3173,7 @@ function reportsUnsavedDraft(userText) {
   return clauses.some(clause => draft.test(clause) && !hypothetical.test(clause) && (failure.test(clause) || unsaved.test(clause)));
 }
 
-async function generateAssistantReply(userText, generationTask = null, sourceMessages = null) {
+async function generateAssistantReply(userText, generationTask = null, sourceMessages = null, generationType = 'normal') {
   const roomMode = getRoomMode();
   const explicitOoc = roomMode === 'kongtalk' && /^\s*OOC[:：]\s*\S/i.test(userText);
   const protectDraft = roomMode === 'kongtalk' && !explicitOoc && reportsUnsavedDraft(userText);
@@ -3111,7 +3194,7 @@ async function generateAssistantReply(userText, generationTask = null, sourceMes
   if (protectDraft) {
     tail += ' For unsaved work the first instruction is to leave the current view open and copy any visible writing somewhere safe. Then ask what the page shows. React to the trouble in the character\'s voice, with their own comparison or humor. Acknowledge the user\'s worry about managing alone by offering to work through the symptom they describe. Finish with the one question that moves the practical issue forward in this chat.';
   }
-  return await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens, tail, generationTask);
+  return await generateWithSelectedProfile(systemPrompt, prompt, settings.maxTokens, tail, generationTask, { generationType });
 }
 
 function buildContinuationPromptMessages() {
@@ -3131,7 +3214,7 @@ async function generateAssistantContinuation(generationTask = null) {
     error.name = 'AbortError';
     throw error;
   }
-  return await generateWithSelectedProfile(systemPrompt, buildContinuationPromptMessages(), settings.maxTokens, 'Answer now. Continue naturally from the latest message as {char}. Reply as direct chat only. Do not turn the reply into a scene or RP continuation.', generationTask);
+  return await generateWithSelectedProfile(systemPrompt, buildContinuationPromptMessages(), settings.maxTokens, 'Answer now. Continue naturally from the latest message as {char}. Reply as direct chat only. Do not turn the reply into a scene or RP continuation.', generationTask, { generationType: 'continue' });
 }
 
 
@@ -3293,7 +3376,7 @@ async function generateGroupCompletion(userText, task) {
     historyCharacters: history.map(format).join('\n\n').length,
   });
   const raw = await generateWithSelectedProfile(system, [{ role: 'user', content: prompt }], globalGroup.maxTokens,
-    'Return only the numbered group messages JSON. Keep every complete speaking turn together.', task, { outputFormat: 'group' });
+    'Return only the numbered group messages JSON. Keep every complete speaking turn together.', task, { outputFormat: 'group', generationType: userText ? 'normal' : 'continue' });
   assertGroupTaskCurrent(task);
   const turns = parseGroupCompletion(raw, participants);
   if (!turns.length) throw new Error(uiText('group.parseFailed'));
@@ -5761,7 +5844,7 @@ async function regenerateAssistantMessage(messageId) {
     scrollMessagesToBottom();
 
     try {
-      const reply = sanitizeAssistantReply(await generateAssistantReply(String(lastUserMessage.content || ''), task, sourceMessages));
+      const reply = sanitizeAssistantReply(await generateAssistantReply(String(lastUserMessage.content || ''), task, sourceMessages, 'regenerate'));
       if (task.cancelled || !isGenerationStorageContextCurrent(task)) return;
       const currentRoom = (roomState.rooms || []).find(item => item.id === task.roomId);
       const currentTarget = currentRoom?.messages?.find(item => item.id === task.targetMessageId);
