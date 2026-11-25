@@ -5,14 +5,14 @@ import { ROOM_INDEX_FORMAT, readRoomIndex, writeRoomIndex, readRoomSnapshot, wri
 import { countRoomData } from './room-reset.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.6
+ * 🐕 콩고물 톡 v5.5.7
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - Enabled static Chat Completion preset instructions are optional; RP markers and context are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.6';
+const EXTENSION_VERSION = '5.5.7';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -494,6 +494,8 @@ let lastRequestPreview = null;
 let dataManageScope = 'character';
 let panelEl = null;
 let panelRenderPending = true;
+let homeRenderPending = true;
+let homeRoomEntries = null;
 let contextMenuEl = null;
 let roomContextMenuEl = null;
 let longPressTimer = null;
@@ -1839,9 +1841,10 @@ function formatQuotedMessageContent(content, quote = null) {
 }
 
 function renderPendingQuote() {
+  if (pendingQuote && (pendingQuote.roomId !== getActiveRoom()?.id || pendingQuote.storeKey !== roomStateCharKey)) pendingQuote = null;
+  if (!canRenderMessages()) { panelRenderPending = true; return; }
   const preview = $('#tua-reply-preview');
   if (!preview.length) return;
-  if (pendingQuote && (pendingQuote.roomId !== getActiveRoom()?.id || pendingQuote.storeKey !== roomStateCharKey)) pendingQuote = null;
   if (!pendingQuote) {
     preview.empty().hide();
     return;
@@ -1903,7 +1906,7 @@ function appendMessage(role, content, quote = null) {
   room.lastMessageAt = now;
   room.updatedAt = now;
   const savePromise = saveRooms();
-  renderAll();
+  renderMessages();
   scrollMessagesToBottom();
   return savePromise;
 }
@@ -3585,11 +3588,11 @@ function ensurePanel() {
     hideRoomContextMenu(); closeSettingsPanel(); closeRoomList();
     toggleModePicker(true);
   });
-  $('#tua-home-search').on('input search', renderHome);
+  $('#tua-home-search').on('input search', () => renderHome({ reuseEntries: true }));
   $('#tua-home-search-clear').on('click', event => {
     event.preventDefault();
     $('#tua-home-search').val('');
-    renderHome();
+    renderHome({ reuseEntries: true });
     $('#tua-home-search').trigger('focus');
   });
   $('#tua-home-list').on('click', 'button[data-owner][data-id]', async function(event) {
@@ -3606,7 +3609,10 @@ function ensurePanel() {
     closeModePicker();
     const settingsPanel = $('#tua-in-panel-settings');
     settingsPanel.toggleClass('open');
-    panelEl?.classList.toggle('tua-home-settings-open', homeVisible && settingsPanel.hasClass('open'));
+    const open = settingsPanel.hasClass('open');
+    panelEl?.classList.toggle('tua-home-settings-open', homeVisible && open);
+    if (open) hydratePanelSettingsUI();
+    else if (homeVisible && homeRenderPending) renderHome();
   });
   $('#tua-active-room-title')
     .on('click', (e) => {
@@ -3646,7 +3652,11 @@ function ensurePanel() {
   }).on('change', readPanelSettingsUI);
   $('#tua-panel-sentence-count,#tua-panel-output-language').on('change', readPanelSettingsUI);
   $('#tua-panel-include-preset,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-fixed-scrollbar').on('change', readPanelSettingsUI);
-  $('#tua-panel-voice-note').on('change input', readPanelSettingsUI);
+  $('#tua-panel-voice-note').on('change input', function () {
+    if (getRoomMode() === 'groupTalk') return;
+    const next = String(this.value || '');
+    if (next !== getVoiceNote()) setVoiceNote(next);
+  });
   $('#tua-group-output,#tua-group-memory-messages,#tua-group-include-preset').on('change', saveGroupPanelOptions);
   $('#tua-group-ref-recent,#tua-group-ref-lore,#tua-group-ref-extension').on('change', saveGroupPanelOptions);
   $('#tua-group-edit-members').on('click', () => {
@@ -3686,7 +3696,8 @@ function ensurePanel() {
   $('#tua-import-group-file').on('change', importGroupRooms);
   $('#tua-reset-all-rooms').on('click', () =>
     dataManageScope === 'guest' ? resetGuestRooms() : dataManageScope === 'group' ? resetGroupRooms() : resetAllRoomsForCurrentCharacter());
-  $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
+  $('#tua-messages').on('click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); })
+    .on('scroll.tuaPressCancel', cancelMessageLongPress);
 
   makePanelDraggable();
   makePanelResizable();
@@ -3909,8 +3920,10 @@ function makePanelDraggable() {
 
 
 function closeSettingsPanel() {
+  const wasOpen = panelEl?.classList.contains('tua-home-settings-open');
   $('#tua-in-panel-settings').removeClass('open');
   panelEl?.classList.remove('tua-home-settings-open');
+  if (wasOpen && homeVisible && homeRenderPending) renderHome();
 }
 
 function closeRoomList() {
@@ -3918,19 +3931,22 @@ function closeRoomList() {
 }
 
 function closeModePicker() {
+  const wasOpen = panelEl?.classList.contains('tua-home-choosing-mode');
   $('#tua-mode-picker').removeClass('open');
   panelEl?.classList.remove('tua-home-choosing-mode');
   modePickerTargetRoomId = null;
+  if (wasOpen && homeVisible && homeRenderPending) renderHome();
 }
 
 function toggleModePicker(force, targetRoomId = null) {
   const picker = $('#tua-mode-picker');
   if (!picker.length) return;
   modePickerTargetRoomId = targetRoomId && roomState.rooms.some(room => room.id === targetRoomId) ? targetRoomId : null;
-  renderModePicker();
-  if (typeof force === 'boolean') picker.toggleClass('open', force);
-  else picker.toggleClass('open');
-  panelEl?.classList.toggle('tua-home-choosing-mode', homeVisible && picker.hasClass('open'));
+  const open = typeof force === 'boolean' ? force : !picker.hasClass('open');
+  if (open) renderModePicker();
+  picker.toggleClass('open', open);
+  panelEl?.classList.toggle('tua-home-choosing-mode', homeVisible && open);
+  if (!open && homeVisible && homeRenderPending) renderHome();
 }
 
 function renderModePicker() {
@@ -4308,6 +4324,11 @@ function setPanelCollapsed(collapsed) {
   saveSettings();
   if (panelEl) panelEl.classList.toggle('tua-collapsed', !!collapsed);
   if (!collapsed) clearCollapsedUnreadReply();
+  else {
+    cancelMessageLongPress();
+    hideContextMenu();
+    hideRoomContextMenu();
+  }
 }
 
 function exportCurrentCharacterRooms() {
@@ -5016,16 +5037,27 @@ function renameActiveRoom() {
   renameRoomById(activeRoomId);
 }
 
+function canRenderPanel() {
+  return !!panelEl?.classList.contains('tua-visible') && !panelEl.classList.contains('tua-collapsed');
+}
+
+function canRenderMessages() {
+  return canRenderPanel() && !homeVisible;
+}
+
 function setPanelVisible(show, { persistPreference = true } = {}) {
   ensurePanel();
   panelEl.classList.toggle('tua-visible', !!show);
   if (show) {
     panelEl.classList.toggle('tua-collapsed', !!getSettings().collapsed);
     if (!getSettings().collapsed) clearCollapsedUnreadReply();
-    if (panelRenderPending) renderAll();
+    if (panelRenderPending && canRenderPanel()) renderAll();
     else applyVisualSettings();
-    applyPanelPosition();
-    if (getRoomMode() !== 'groupTalk') scrollMessagesToBottom();
+    if (canRenderMessages() && getRoomMode() !== 'groupTalk') scrollMessagesToBottom();
+  } else {
+    cancelMessageLongPress();
+    hideContextMenu();
+    hideRoomContextMenu();
   }
   if (persistPreference) {
     const settings = getSettings();
@@ -5269,11 +5301,21 @@ function refreshSendButtonState() {
   }
 }
 
-function setComposerBusy(isBusy) {
+function syncComposerUI(isBusy = generationInFlight && activeGenerationTask?.phase !== 'delivery') {
+  if (!canRenderMessages()) return;
   $('#tua-input').prop('disabled', !!isBusy);
   refreshSendButtonState();
   if (panelEl) panelEl.classList.toggle('tua-generating', !!isBusy);
-  if (getRoomMode() === 'groupTalk') $('#tua-group-settings input,#tua-group-settings button').prop('disabled', generationInFlight || groupStartPending);
+  if (getRoomMode() === 'groupTalk' && $('#tua-in-panel-settings').hasClass('open')) $('#tua-group-settings input,#tua-group-settings button').prop('disabled', generationInFlight || groupStartPending);
+  $('#tua-group-show-all').toggle(getRoomMode() === 'groupTalk' && activeGenerationTask?.phase === 'delivery' && generationInFlight);
+  $('#tua-messages .tua-variant-nav button').each(function () {
+    if (this.disabled !== generationInFlight) this.disabled = generationInFlight;
+  });
+}
+
+function setComposerBusy(isBusy) {
+  if (!canRenderMessages()) { panelRenderPending = true; return; }
+  syncComposerUI(isBusy);
 }
 
 function isAbortError(error) {
@@ -5436,7 +5478,6 @@ async function cancelCurrentGeneration({ persist = true, render = true, announce
   task.deliveryTimer = null;
   task.resolveDelivery = null;
   task.removeReaderListener?.();
-  $('#tua-group-show-all').hide();
 
   removeGenerationLoadingMessages(task);
   if (activeGenerationTask?.id === task.id) {
@@ -5462,48 +5503,189 @@ function assertGroupTaskCurrent(task) {
   throw error;
 }
 
-function renderGroupMessages(room) {
-  const box = document.getElementById('tua-messages');
-  if (!box || !room) return;
-  const oldTop = box.scrollTop;
-  const owner = GROUP_ROOM_STORE_KEY + ':' + room.id;
-  const switched = box.dataset.groupRoom !== owner;
-  if (switched) { box.replaceChildren(); box.dataset.groupRoom = owner; }
-  const visible = (room.messages || []).filter(message => !isOrphanGenerationPlaceholder(message, room.id));
-  const existing = new Map(Array.from(box.children).map(node => [node.dataset.id, node]));
-  const available = Array.isArray(ctx().characters) ? ctx().characters : Object.values(ctx().characters || {});
-  const cards = new Map(available.filter(Boolean).map(character => [getCharKey(character), character]));
+function reconcileMessageNodes(box, room, updateNode) {
+  const owner = JSON.stringify([roomStateCharKey, room?.id ?? null]);
+  const switched = box.dataset.renderRoom !== owner;
+  if (switched) {
+    cancelMessageLongPress();
+    hideContextMenu();
+    $(box).empty();
+    box.dataset.renderRoom = owner;
+  }
+  const existing = new Map(Array.from(box.children, node => [node.dataset.id, node]));
+  const visible = (room?.messages || []).filter(message => !isOrphanGenerationPlaceholder(message, room.id));
   const retained = new Set(visible.map(message => String(message.id)));
-  for (const [id, node] of existing) if (!retained.has(id)) node.remove();
+  let changed = switched;
+  for (const [id, node] of existing) {
+    if (retained.has(id)) continue;
+    if (String(messageLongPressState?.id) === id) cancelMessageLongPress();
+    $(node).remove();
+    existing.delete(id);
+    changed = true;
+  }
   let cursor = box.firstElementChild;
   for (const message of visible) {
     const id = String(message.id);
     let node = existing.get(id);
-    const speaker = message.role === 'user' ? getUserKongtalkNickname() : message.speakerName || uiText('mode.groupTalk');
-    const avatarUrl = message.role === 'assistant' && message.speakerKey && !message.loading && !message.error
-      ? getKongtalkCharacterAvatarUrl(cards.get(message.speakerKey)) : '';
-    const signature = JSON.stringify([message.role, speaker, avatarUrl, message.content, message.loading, message.error, message.quote]);
-    if (!node) {
-      node = document.createElement('div'); node.dataset.id = id; node.tabIndex = 0;
-      node.title = uiText('message.pressHint');
+    const fresh = !node;
+    if (fresh) {
+      node = document.createElement('div');
+      node.dataset.id = id;
+      node.tabIndex = 0;
     }
-    if (node._groupSignature !== signature) {
-      node.className = 'tua-msg tua-' + (message.role === 'user' ? 'user' : 'assistant')
-        + (message.loading ? ' tua-loading' : '') + (message.error ? ' tua-error' : '');
-      const reference = normalizeQuotedReference(message.quote);
-      const quote = reference ? '<div class="tua-quoted-message"><b>' + uiHtml('message.quotedFrom', reference.speaker) + '</b><span>' + escapeHtml(reference.content.slice(0, 220)) + '</span></div>' : '';
-      node.innerHTML = (speaker && message.role === 'assistant' && message.speakerKey && !message.loading && !message.error
-        ? renderSpeakerNameWithAvatar(speaker, avatarUrl)
-        : (speaker ? '<div class="tua-msg-name">' + escapeHtml(speaker) + '</div>' : ''))
-        + '<div class="tua-bubble">' + quote + normalizeNewlines(message.content) + '</div>';
-      node._groupSignature = signature;
+    const wasLocked = node.classList.contains('tua-locked');
+    changed = updateNode(node, message) || changed;
+    if (fresh || wasLocked !== node.classList.contains('tua-locked')) {
+      if (!fresh) $(node).off('.tuaPress');
+      bindMessagePressHandlers(node);
     }
-    if (node !== cursor) box.insertBefore(node, cursor);
+    if (node !== cursor) {
+      box.insertBefore(node, cursor);
+      changed = true;
+    }
     cursor = node.nextElementSibling;
   }
-  bindMessagePressHandlers();
-  bindSpeakerAvatarFallbacks(box);
-  // No scrolling to bottom and no delayed scroll timers: reading and text selection survive arrivals.
+  return { switched, changed };
+}
+
+// Keep the name/avatar, bubble and variant controls independent. In particular,
+// swiping or editing a reply does not replace its already-loaded avatar.
+function getMessageRenderLabels() {
+  return {
+    declaration: uiText('message.declaration'),
+    press: uiText('message.pressHint'),
+    quoted: uiText('message.quotedFrom'),
+    variant: uiText('message.variant'),
+    previous: uiText('message.previous'),
+    next: uiText('message.next'),
+  };
+}
+
+function updateMessageNode(node, message, name, avatarUrl, showAvatar, labels, group = false) {
+  const roleClass = message.role === 'declaration' && !group ? 'declaration'
+    : message.role === 'user' ? 'user' : 'assistant';
+  const locked = roleClass === 'declaration';
+  const title = locked ? labels.declaration : labels.press;
+  const className = 'tua-msg tua-' + roleClass + (locked ? ' tua-locked' : '')
+    + (message.error ? ' tua-error' : '') + (message.loading ? ' tua-loading' : '');
+  const previous = node._tuaRenderState || {};
+  const isAssistant = !group && message.role === 'assistant';
+  const variants = isAssistant && Array.isArray(message.variants) ? message.variants : [];
+  const rawUnchanged = isAssistant && previous.content === message.content && previous.rawIndex === message.variantIndex &&
+    previous.rawVariants?.length === variants.length &&
+    variants.every((value, index) => value === previous.rawVariants[index]);
+  // Saved snapshots replace objects, so compare their visible fields rather than
+  // object identity. Unchanged rows never query their child DOM or reformat text.
+  if (previous.className === className && previous.title === title && previous.isAssistant === isAssistant &&
+      previous.name === name && previous.avatarUrl === avatarUrl && previous.showAvatar === showAvatar &&
+      previous.content === message.content && previous.rawQuoteSpeaker === message.quote?.speaker &&
+      previous.rawQuoteContent === message.quote?.content && previous.quoteTemplate === labels.quoted &&
+      (!isAssistant || (rawUnchanged && (previous.variantCount <= 1 ||
+        (previous.variantTemplate === labels.variant && previous.previousLabel === labels.previous &&
+          previous.nextLabel === labels.next && previous.variantBusy === generationInFlight))))) return false;
+  let changed = false;
+  if (node.className !== className) { node.className = className; changed = true; }
+  if (node.title !== title) node.title = title;
+  const state = { className, title, isAssistant, name, avatarUrl, showAvatar, content: message.content };
+  // Normalization and escaping are only needed if the visible quote changes.
+  const rawQuote = message.quote;
+  state.rawQuoteSpeaker = rawQuote?.speaker;
+  state.rawQuoteContent = rawQuote?.content;
+  const sameQuote = node._tuaRenderState && previous.rawQuoteSpeaker === state.rawQuoteSpeaker &&
+    previous.rawQuoteContent === state.rawQuoteContent && previous.quoteTemplate === labels.quoted;
+  state.quoteTemplate = labels.quoted;
+  if (sameQuote) {
+    state.quoteContent = previous.quoteContent;
+    state.quoteLabel = previous.quoteLabel;
+  } else {
+    const reference = normalizeQuotedReference(rawQuote);
+    state.quoteContent = reference?.content?.slice(0, 220);
+    state.quoteLabel = reference ? escapeHtml(labels.quoted.replace(/\{0\}/g, () => reference.speaker)) : '';
+  }
+  if (previous.name !== name || previous.avatarUrl !== avatarUrl || previous.showAvatar !== showAvatar) {
+    $(node).children('.tua-msg-name').remove();
+    if (name) {
+      const nameHtml = showAvatar ? renderSpeakerNameWithAvatar(name, avatarUrl)
+        : '<div class="tua-msg-name">' + escapeHtml(name) + '</div>';
+      $(node).prepend(nameHtml);
+      bindSpeakerAvatarFallbacks(node);
+    }
+    changed = true;
+  }
+  let bubble = node.querySelector('.tua-bubble');
+  if (!bubble) {
+    bubble = document.createElement('div');
+    bubble.className = 'tua-bubble';
+    node.appendChild(bubble);
+    changed = true;
+  }
+  if (!node._tuaRenderState || previous.content !== state.content ||
+      previous.quoteContent !== state.quoteContent || previous.quoteLabel !== state.quoteLabel) {
+    const quote = state.quoteContent !== undefined ? '<div class="tua-quoted-message"><b>' + state.quoteLabel +
+      '</b><span>' + escapeHtml(state.quoteContent) + '</span></div>' : '';
+    bubble.innerHTML = quote + normalizeNewlines(message.content);
+    changed = true;
+  }
+  if (isAssistant) {
+    state.rawVariants = rawUnchanged ? previous.rawVariants : variants.slice();
+    state.rawIndex = message.variantIndex;
+    const variant = rawUnchanged ? previous.variant : getAssistantVariantState(message);
+    state.variant = variant;
+    const count = variant.variants.length;
+    state.variantCount = count;
+    state.variantTemplate = labels.variant;
+    const index = variant.variantIndex + 1;
+    const nav = node.querySelector('.tua-variant-nav');
+    if (count > 1) {
+      const label = labels.variant.replace(/\{(\d+)\}/g, (token, n) => [index, count][Number(n)] ?? token);
+      const previousLabel = labels.previous;
+      const nextLabel = labels.next;
+      if (!nav) {
+        $(node).append('<div class="tua-variant-nav"><button type="button" data-variant-direction="-1">‹</button><span></span><button type="button" data-variant-direction="1">›</button></div>');
+        bindVariantNavigationHandlers(node);
+        changed = true;
+      }
+      const currentNav = node.querySelector('.tua-variant-nav');
+      if (!nav || previous.variantLabel !== label || previous.previousLabel !== previousLabel || previous.nextLabel !== nextLabel ||
+          previous.variantCount !== count || previous.variantIndex !== index) {
+        currentNav.setAttribute('aria-label', label);
+        const buttons = currentNav.querySelectorAll('button');
+        buttons[0].title = previousLabel; buttons[0].setAttribute('aria-label', previousLabel);
+        buttons[1].title = nextLabel; buttons[1].setAttribute('aria-label', nextLabel);
+        currentNav.querySelector('span').textContent = index + '/' + count;
+        changed = true;
+      }
+      if (!nav || previous.variantBusy !== generationInFlight) {
+        for (const button of currentNav.querySelectorAll('button')) button.disabled = generationInFlight;
+      }
+      Object.assign(state, { variantLabel: label, previousLabel, nextLabel, variantCount: count, variantIndex: index, variantBusy: generationInFlight });
+    } else if (nav) { $(nav).remove(); changed = true; }
+  } else if (previous.variantCount > 1) {
+    $(node).children('.tua-variant-nav').remove();
+    changed = true;
+  }
+  node._tuaRenderState = state;
+  return changed;
+}
+
+function renderGroupMessages(room) {
+  if (!canRenderMessages()) { panelRenderPending = true; return; }
+  const box = document.getElementById('tua-messages');
+  if (!box || !room) return;
+  const oldTop = box.scrollTop;
+  const available = Array.isArray(ctx().characters) ? ctx().characters : Object.values(ctx().characters || {});
+  const cards = new Map(available.filter(Boolean).map(character => [getCharKey(character), character]));
+  const userName = getUserKongtalkNickname();
+  const avatars = new Map();
+  const labels = getMessageRenderLabels();
+  const groupName = uiText('mode.groupTalk');
+  const { switched } = reconcileMessageNodes(box, room, (node, message) => {
+    const speaker = message.role === 'user' ? userName : message.speakerName || groupName;
+    const showAvatar = !!(speaker && message.role === 'assistant' && message.speakerKey && !message.loading && !message.error);
+    if (showAvatar && !avatars.has(message.speakerKey)) avatars.set(message.speakerKey, getKongtalkCharacterAvatarUrl(cards.get(message.speakerKey)));
+    return updateMessageNode(node, message, speaker, showAvatar ? avatars.get(message.speakerKey) : '', showAvatar, labels, true);
+  });
+  // Preserve the established group reading position and first-turn behavior.
   box.scrollTop = switched ? 0 : oldTop;
 }
 
@@ -5559,11 +5741,10 @@ async function runGroupGeneration({ text = '', continuation = false }) {
     room.updatedAt = Date.now();
     await saveRooms();
     assertGroupTaskCurrent(task);
-    renderMessages(); renderRoomList();
+    renderMessages();
     const turns = await generateGroupCompletion(text, task);
     assertGroupTaskCurrent(task);
     task.phase = 'delivery'; setComposerBusy(false);
-    $('#tua-group-show-all').show();
     for (let index = 0; index < turns.length; index++) {
       if (index > 0) await groupPauseBetweenTurns(task);
       assertGroupTaskCurrent(task);
@@ -5584,9 +5765,9 @@ async function runGroupGeneration({ text = '', continuation = false }) {
       }
       await saveRooms();
       assertGroupTaskCurrent(task);
-      const reader = document.getElementById('tua-messages');
+      const reader = canRenderMessages() ? document.getElementById('tua-messages') : null;
       const topBefore = reader?.scrollTop || 0;
-      renderMessages(); renderRoomList();
+      renderMessages();
       // Trigger for the first unread turn received while minimized. If an
       // earlier turn already triggered it, the class guard prevents a replay.
       markCollapsedUnreadReply();
@@ -5624,7 +5805,7 @@ async function runGroupGeneration({ text = '', continuation = false }) {
           removeGenerationLoadingMessages(task); await saveRooms(); task.loadingId = '';
         }
         activeGenerationTask = null; generationInFlight = false;
-        $('#tua-group-show-all').hide(); setComposerBusy(false);
+        setComposerBusy(false);
         if (runtimeActive) renderMessages();
       }
     }
@@ -6038,7 +6219,10 @@ function renderProfileOptions(options = {}) {
 
 function readPanelSettingsUI() {
   const s = getSettings();
-  const group = getRoomMode() === 'groupTalk';
+  const nicknameBefore = s.userKongtalkNickname;
+  const visualsBefore = [s.fontSize, s.speakerAvatarSize, s.fixedScrollbar];
+  const settingsBefore = JSON.stringify([s.maxTokens, s.recentMessages, s.chatMemoryLimit, s.sentenceCount, s.outputLanguage,
+    s.userKongtalkNickname, s.includePreset, s.includeLorebook, s.includeExtensionMemory, ...visualsBefore]);
 
   const sentenceCount = String($('#tua-panel-sentence-count').val() || '');
   if (SENTENCE_COUNT_KEYS.has(sentenceCount)) s.sentenceCount = sentenceCount;
@@ -6096,10 +6280,11 @@ function readPanelSettingsUI() {
     $('#tua-panel-avatar-size-value').text(s.speakerAvatarSize + 'px');
   }
 
-  if (!group) setVoiceNote($('#tua-panel-voice-note').val() || '');
-  saveSettings();
-  applyVisualSettings();
-  renderAll();
+  const settingsAfter = JSON.stringify([s.maxTokens, s.recentMessages, s.chatMemoryLimit, s.sentenceCount, s.outputLanguage,
+    s.userKongtalkNickname, s.includePreset, s.includeLorebook, s.includeExtensionMemory, s.fontSize, s.speakerAvatarSize, s.fixedScrollbar]);
+  if (settingsBefore !== settingsAfter) saveSettings();
+  if (visualsBefore.some((value, index) => value !== [s.fontSize, s.speakerAvatarSize, s.fixedScrollbar][index])) applyVisualSettings();
+  if (nicknameBefore !== s.userKongtalkNickname) renderMessages();
 }
 
 function isPanelSizeInputFocused() {
@@ -6250,24 +6435,31 @@ function applyVisualSettings() {
 function setStatus(_text) { /* v4.5.0: keep settings panel quiet; no visible action status text. */ }
 
 function renderAll() {
-  panelRenderPending = !panelEl?.classList.contains('tua-visible');
+  homeRenderPending = true;
+  panelRenderPending = !canRenderPanel();
   if (panelRenderPending) return;
   panelEl.classList.toggle('tua-home-active', homeVisible);
   $('#tua-home-button').toggle(!homeVisible);
   $('#tua-home').attr('aria-hidden', homeVisible ? 'false' : 'true');
-  const s = getSettings();
   $('#tua-char-name').text(homeVisible ? uiText('home.title') : getRoomMode() === 'groupTalk'
     ? getGroupParticipants().map(item => item.name).join(', ') : getSpeakerName());
   const currentMode = getRoomMode();
   const binding = currentMode === 'guestOoc' ? normalizeGuestPersonaBinding(getActiveRoom()?.personaBinding) : null;
   $('#tua-mode-badge').text(homeVisible ? uiText('home.list') : binding ? modeUiLabel(currentMode) + ' · ' + uiText('guest.personaLabel', binding.name, binding.rpCharacterName || '—') : modeUiLabel(currentMode));
-  const activeRoom = getActiveRoom();
-  $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${getRoomDisplayTitle(activeRoom)}`);
-  $('#tua-pin-room').toggleClass('active', !!activeRoom?.pinned).attr('title', uiText(activeRoom?.pinned ? 'panel.unpinRoom' : 'panel.pinRoom'));
-  hydratePanelSettingsUI();
-  renderRoomList();
-  renderMessages();
-  renderPendingQuote();
+  if (!homeVisible) {
+    const activeRoom = getActiveRoom();
+    $('#tua-active-room-title').text(`${activeRoom?.pinned ? '📌 ' : ''}${getRoomDisplayTitle(activeRoom)}`);
+    $('#tua-pin-room').toggleClass('active', !!activeRoom?.pinned).attr('title', uiText(activeRoom?.pinned ? 'panel.unpinRoom' : 'panel.pinRoom'));
+  }
+  panelEl.classList.toggle('tua-group-active', !homeVisible && currentMode === 'groupTalk');
+  if ($('#tua-in-panel-settings').hasClass('open')) hydratePanelSettingsUI();
+  if (homeVisible) renderHome();
+  else {
+    renderMessages({ updateLists: false });
+    renderRoomList();
+    renderPendingQuote();
+    syncComposerUI();
+  }
   applyVisualSettings();
 }
 
@@ -6278,6 +6470,8 @@ function leaveHomeForRoom() {
 }
 
 function showHome() {
+  cancelMessageLongPress();
+  hideContextMenu();
   homeVisible = true;
   closeRoomList(); closeModePicker(); closeSettingsPanel();
   hideRoomContextMenu();
@@ -6315,43 +6509,47 @@ function getHomeParticipants(room) {
   return getCharName();
 }
 
-function renderHome() {
+function renderHome({ reuseEntries = false } = {}) {
   if (!homeVisible) return;
-  if (!panelEl?.classList.contains('tua-visible')) {
-    panelRenderPending = true;
-    return;
-  }
+  if (!reuseEntries) homeRenderPending = true;
+  if (!canRenderPanel()) { panelRenderPending = true; return; }
+  if (panelEl.classList.contains('tua-home-choosing-mode') || panelEl.classList.contains('tua-home-settings-open')) return;
   const list = $('#tua-home-list');
   if (!list.length) return;
   const query = String($('#tua-home-search').val() || '').trim().toLocaleLowerCase();
   $('#tua-home-search-clear').toggle(!!query);
-  const entries = getVisibleRoomEntries().filter(({room}) => {
-    const haystack = [getRoomDisplayTitle(room), getHomeParticipants(room)]
-      .join(' ').toLocaleLowerCase();
-    return !query || haystack.includes(query);
-  });
-  list.empty();
-  if (!entries.length) {
-    list.append('<div class="tua-home-empty">' + uiHtml(query ? 'home.noResults' : 'home.empty') + '</div>');
-    return;
+  if (homeRenderPending || !homeRoomEntries) {
+    homeRoomEntries = getVisibleRoomEntries().map(entry => {
+      const title = getRoomDisplayTitle(entry.room);
+      const participants = getHomeParticipants(entry.room);
+      return { ...entry, title, participants, haystack: [title, participants].join(' ').toLocaleLowerCase() };
+    });
+    homeRenderPending = false;
   }
-  for (const {room,ownerKey} of entries) {
+  const entries = query ? homeRoomEntries.filter(entry => entry.haystack.includes(query)) : homeRoomEntries;
+  const rows = [];
+  if (!entries.length) rows.push('<div class="tua-home-empty">' + uiHtml(query ? 'home.noResults' : 'home.empty') + '</div>');
+  for (const {room,ownerKey,title,participants} of entries) {
     const mode = getRoomMode(room);
     const icon = mode === 'groupTalk' ? '👥' : mode === 'guestOoc' ? '💬' : '🐕';
-    const participants = getHomeParticipants(room);
     const last = (Array.isArray(room.messages) ? room.messages : [])
-      .filter(msg => isRoomSortConversationMessage(msg, room) &&
-        !(msg.role === 'assistant' && isKongtalkIntroContent(String(msg.content || '')))).at(-1);
+      .findLast(msg => isRoomSortConversationMessage(msg, room) &&
+        !(msg.role === 'assistant' && isKongtalkIntroContent(String(msg.content || ''))));
     const preview = last ? String(last.content || '').replace(/\s+/g, ' ').slice(0, 85) : uiText('room.noMessages');
-    const label = getRoomDisplayTitle(room);
+    const label = title;
     const participantSuffix = participants ? ' · ' + participants : '';
-    list.append('<button type="button" class="tua-home-room" role="listitem" data-owner="' +
+    rows.push('<button type="button" class="tua-home-room" role="listitem" data-owner="' +
       escapeHtml(ownerKey) + '" data-id="' + escapeHtml(room.id) + '">' +
       '<span class="tua-home-room-icon" aria-hidden="true">' + icon + '</span>' +
       '<span class="tua-home-room-copy"><b>' + escapeHtml(label) + '</b>' +
       '<small>' + escapeHtml(modeUiLabel(mode) + participantSuffix) + '</small>' +
       '<span class="tua-home-room-preview">' + escapeHtml(preview) + '</span></span>' +
       (room.pinned ? '<span class="tua-home-pin" aria-label="📌">📌</span>' : '') + '</button>');
+  }
+  const markup = rows.join('');
+  if (list[0]._tuaHomeMarkup !== markup) {
+    list.empty().append(markup);
+    list[0]._tuaHomeMarkup = markup;
   }
 }
 
@@ -6386,28 +6584,31 @@ async function openSelectedRoom(ownerKey, id) {
 function toggleRoomList(force) {
   const list = $('#tua-room-list');
   if (!list.length) return;
-  renderRoomList();
-  if (typeof force === 'boolean') list.toggleClass('open', force);
-  else list.toggleClass('open');
+  const open = typeof force === 'boolean' ? force : !list.hasClass('open');
+  list.toggleClass('open', open);
+  if (open) renderRoomList();
 }
 
 function renderRoomList() {
   const list = $('#tua-room-list');
-  if (!list.length) return;
-  list.empty();
+  if (!list.length || !canRenderMessages() || !list.hasClass('open')) return;
   const entries = getVisibleRoomEntries();
+  const rows = [];
   for (const { room, ownerKey } of entries) {
     const count = Array.isArray(room.messages) ? room.messages.length : 0;
     const active = room.id === activeRoomId && ownerKey === roomStateCharKey ? 'active' : '';
     const pinned = room.pinned ? 'pinned' : '';
-    const visibleMessages = Array.isArray(room.messages) ? room.messages.filter(msg => isRoomSortConversationMessage(msg, room)) : [];
-    const last = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].content : uiText('room.noMessages');
+    const last = (Array.isArray(room.messages) ? room.messages : []).findLast(msg => isRoomSortConversationMessage(msg, room))?.content ?? uiText('room.noMessages');
     const binding = getRoomMode(room) === 'guestOoc' ? normalizeGuestPersonaBinding(room.personaBinding) : null;
     const roomMode = modeUiLabel(getRoomMode(room)) + (binding ? ' · ' + uiText('guest.personaLabel', binding.name, binding.rpCharacterName || '—') : '');
     const title = (room.pinned ? '📌 ' : '') + getRoomDisplayTitle(room);
-    list.append('<button class="tua-room-item ' + active + ' ' + pinned + '" data-id="' + escapeHtml(room.id) + '" data-owner="' + escapeHtml(ownerKey) + '"><span><b>' + escapeHtml(title) + '</b><small>' + escapeHtml(roomMode) + ' · ' + escapeHtml(String(last).slice(0, 34)) + '</small></span><em>' + count + '</em></button>');
+    rows.push('<button class="tua-room-item ' + active + ' ' + pinned + '" data-id="' + escapeHtml(room.id) + '" data-owner="' + escapeHtml(ownerKey) + '"><span><b>' + escapeHtml(title) + '</b><small>' + escapeHtml(roomMode) + ' · ' + escapeHtml(String(last).slice(0, 34)) + '</small></span><em>' + count + '</em></button>');
   }
-  list.find('.tua-room-item').off('.tuaRoom')
+  const markup = rows.join('');
+  if (list[0]._tuaRoomListMarkup === markup) return;
+  list.empty().append(markup);
+  list[0]._tuaRoomListMarkup = markup;
+  list.find('.tua-room-item')
     .on('click.tuaRoom', async function (e) {
       if (roomContextSuppressClick) {
         e.preventDefault();
@@ -6432,61 +6633,45 @@ function renderRoomList() {
 }
 
 function scrollMessagesToBottom() {
-  const box = $('#tua-messages');
-  const el = box[0];
+  if (!canRenderMessages()) return;
+  const el = document.getElementById('tua-messages');
   if (!el) return;
+  const owner = el.dataset.renderRoom;
   if (getRoomMode() === 'groupTalk') { el.scrollTop = el.scrollHeight || 0; return; }
-  const run = () => { el.scrollTop = el.scrollHeight || 0; };
+  const run = () => {
+    if (canRenderMessages() && el.isConnected && el.dataset.renderRoom === owner) el.scrollTop = el.scrollHeight || 0;
+  };
   run();
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
   setTimeout(run, 30);
   setTimeout(run, 120);
 }
 
-function renderMessages() {
-  if (homeVisible) renderHome();
-  const box = $('#tua-messages');
-  if (!box.length) return;
+function renderMessages({ updateLists = true } = {}) {
+  if (!canRenderPanel()) { panelRenderPending = true; homeRenderPending = true; return; }
+  if (homeVisible) { renderHome(); return; }
+  const box = document.getElementById('tua-messages');
+  if (!box) return;
   const room = getActiveRoom();
-  if (getRoomMode(room) === 'groupTalk') return renderGroupMessages(room);
-  delete box[0].dataset.groupRoom;
-  if (!room) { box.empty(); return; }
-  box.empty();
-  hideContextMenu();
-  const visibleMessages = (room.messages || []).filter(m => !isOrphanGenerationPlaceholder(m, room.id));
-  for (const m of visibleMessages) {
-    const roleClass = m.role === 'declaration' ? 'declaration' : (m.role === 'user' ? 'user' : 'assistant');
-    const name = m.role === 'declaration' ? '' : (m.role === 'user' ? getUserKongtalkNickname() : getSpeakerName());
-    const nameHtml = name && m.role === 'assistant' && !m.loading && !m.error
-      ? renderSpeakerNameWithAvatar(name, getKongtalkCharacterAvatarUrl(getSpeakerCharacter(room)))
-      : (name ? '<div class="tua-msg-name">' + escapeHtml(name) + '</div>' : '');
-    const reference = normalizeQuotedReference(m.quote);
-    const quoteHtml = reference ? `<div class="tua-quoted-message"><b>${uiHtml('message.quotedFrom', reference.speaker)}</b><span>${escapeHtml(reference.content.slice(0, 220))}</span></div>` : '';
-    const lockedClass = m.role === 'declaration' ? ' tua-locked' : '';
-    const title = uiText(m.role === 'declaration' ? 'message.declaration' : 'message.pressHint');
-    const variantState = getAssistantVariantState(m);
-    const variantNavigation = m.role === 'assistant' && variantState.variants.length > 1
-      ? `<div class="tua-variant-nav" aria-label="${uiHtml('message.variant', variantState.variantIndex + 1, variantState.variants.length)}">
-          <button type="button" data-variant-direction="-1" title="${uiHtml('message.previous')}" aria-label="${uiHtml('message.previous')}" ${generationInFlight ? 'disabled' : ''}>‹</button>
-          <span>${variantState.variantIndex + 1}/${variantState.variants.length}</span>
-          <button type="button" data-variant-direction="1" title="${uiHtml('message.next')}" aria-label="${uiHtml('message.next')}" ${generationInFlight ? 'disabled' : ''}>›</button>
-        </div>`
-      : '';
-    const html = `
-      <div class="tua-msg tua-${roleClass}${lockedClass} ${m.error ? 'tua-error' : ''} ${m.loading ? 'tua-loading' : ''}" data-id="${escapeHtml(m.id)}" tabindex="0" title="${title}">
-        ${nameHtml}
-        <div class="tua-bubble">${quoteHtml}${normalizeNewlines(m.content)}</div>
-        ${variantNavigation}
-      </div>`;
-    box.append(html);
+  if (getRoomMode(room) === 'groupTalk') {
+    renderGroupMessages(room);
+  } else {
+    const userName = getUserKongtalkNickname();
+    const speaker = getSpeakerName(room);
+    const avatarUrl = getKongtalkCharacterAvatarUrl(getSpeakerCharacter(room));
+    const labels = getMessageRenderLabels();
+    const { changed } = reconcileMessageNodes(box, room, (node, message) => {
+      const name = message.role === 'declaration' ? '' : message.role === 'user' ? userName : speaker;
+      const showAvatar = !!(name && message.role === 'assistant' && !message.loading && !message.error);
+      return updateMessageNode(node, message, name, showAvatar ? avatarUrl : '', showAvatar, labels);
+    });
+    if (changed) {
+      hideContextMenu();
+      box.scrollTop = box.scrollHeight || 0;
+    }
   }
-  bindVariantNavigationHandlers();
-  bindMessagePressHandlers();
-  bindSpeakerAvatarFallbacks(box[0]);
-  box.scrollTop(box[0]?.scrollHeight || 0);
+  if (updateLists) renderRoomList();
 }
-
-
 
 function switchAssistantVariant(messageId, direction) {
   if (generationInFlight) return;
@@ -6505,8 +6690,8 @@ function switchAssistantVariant(messageId, direction) {
   renderMessages();
 }
 
-function bindVariantNavigationHandlers() {
-  $('#tua-messages .tua-variant-nav button').off('.tuaVariant')
+function bindVariantNavigationHandlers(node) {
+  $(node).find('.tua-variant-nav button')
     .on('pointerdown.tuaVariant pointerup.tuaVariant pointercancel.tuaVariant', e => e.stopPropagation())
     .on('click.tuaVariant', function (e) {
       e.preventDefault();
@@ -6717,10 +6902,9 @@ function cancelMessageLongPress() {
   messageLongPressState = null;
 }
 
-function bindMessagePressHandlers() {
-  const box = $('#tua-messages');
-  box.off('scroll.tuaPressCancel').on('scroll.tuaPressCancel', cancelMessageLongPress);
-  box.find('.tua-msg:not(.tua-locked)').off('.tuaPress')
+function bindMessagePressHandlers(node) {
+  if (node.classList.contains('tua-locked')) return;
+  $(node)
     .on('contextmenu.tuaPress', function (e) {
       e.preventDefault();
       cancelMessageLongPress();
@@ -6883,6 +7067,9 @@ function cleanupRuntimeState() {
   lastRequestPreview = null;
   dataManageScope = 'character';
   homeVisible = true;
+  homeRoomEntries = null;
+  homeRenderPending = true;
+  panelRenderPending = true;
   if (panelEl) setPanelVisible(false, { persistPreference: false });
 }
 
