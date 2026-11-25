@@ -13,10 +13,15 @@ The character card, persona, and selected RP context can inform the conversation
 
 ## 📥 Installation and First Steps
 
+**Current version: 5.5.7.**
+
 1. In SillyTavern, open **Extensions → Install extension** (sometimes under extension management).
 2. Paste `https://github.com/AmbasaS2/konggomul-talk`, install, and reload the page.
-3. Open the **Konggomul Talk** panel from the extensions menu and create or select a room for the current character.
-4. Choose a conversation mode and start chatting. These conversations are stored separately from the main RP.
+3. Open a character chat with a working main API, or select a dedicated saved connection profile under Extensions settings → Konggomul Talk. Leave it blank to use the current main API.
+4. Open the **Konggomul Talk** panel from the extensions menu → Home → New conversation (or select an existing room).
+5. Choose a conversation mode and start chatting. These conversations are stored separately from the main RP.
+
+**First try:** Choose ordinary Kongtalk and send a message. Guest Talk, Group Talk, RP context and answer language are optional; read their settings only when you need them.
 
 
 ## ✨ At a Glance
@@ -322,10 +327,15 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 ## 📥 설치 및 처음 사용하기
 
+**현재 버전: 5.5.7.**
+
 1. SillyTavern의 **확장 프로그램 → 확장 설치** 메뉴를 엽니다. 버전에 따라 확장 관리 메뉴 안에 있을 수 있습니다.
 2. `https://github.com/AmbasaS2/konggomul-talk`을 붙여넣어 설치하고 새로고침합니다.
-3. 확장 메뉴에서 **콩고물 톡** 패널을 열고 현재 캐릭터의 방을 만들거나 선택합니다.
-4. 대화 모드를 정해 채팅합니다. 이 대화들은 메인 RP와 별도로 저장됩니다.
+3. 캐릭터 채팅을 열고 메인 API가 연결되어 있는지 확인합니다. 콩톡만 다른 모델로 쓰려면 확장 관리 → 콩고물 톡에서 별도 연결 프로필을 선택합니다. 비워두면 메인 API를 사용합니다.
+4. 확장 메뉴 → **콩고물 톡** → 홈 → 새로운 대화(또는 기존 방 선택).
+5. 대화 모드를 정해 채팅합니다. 이 대화들은 메인 RP와 별도로 저장됩니다.
+
+**처음에는:** 일반 콩톡을 선택하고 메시지를 보내 보세요. 게스트톡·그룹톡·RP 참고 범위·답변 언어는 필요할 때 설정해도 됩니다.
 
 
 ## ✨ 한눈에 보기
