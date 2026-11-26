@@ -8,7 +8,7 @@ The character card, persona, and selected RP context can inform the conversation
 ## 📸 Screenshots
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-talk-preview-mobile.webp"><img src="assets/readme/mobile/konggomul-talk-preview-mobile.webp" alt="Konggomul Talk chat panel and theme selection" width="520" /></a>
+  <a href="assets/readme/konggomul-chat.jpeg"><img src="assets/readme/konggomul-chat.jpeg" alt="Konggomul Talk chat panel and theme selection" width="540" /></a>
 </p>
 
 ## 📥 Installation and First Steps
@@ -34,7 +34,8 @@ The character card, persona, and selected RP context can inform the conversation
 ## 🏠 Home: New Chats and Saved Rooms
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-home-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-home-guide-mobile.webp" alt="Illustrated Konggomul Talk home with New conversation, Conversations, search, and saved rooms / 홈 구성도" width="520" /></a>
+  <a href="assets/readme/screenshots/kong-home-current.webp"><img src="assets/readme/screenshots/kong-home-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 A fresh load opens **Home** instead of automatically selecting the last conversation.
@@ -77,9 +78,7 @@ Before resetting saved conversation data, close or refresh SillyTavern on other 
 
 ## 💬 Konggomul Talk Panel
 
-<p align="center">
-  <a href="assets/readme/mobile/konggomul-panel-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-panel-guide-mobile.webp" alt="Annotated chat panel: controls, rooms, messages, and composer" width="520" /></a>
-</p>
+
 
 Choose **Konggomul Talk** from the Extensions menu to open the panel.
 
@@ -116,7 +115,8 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 ## 🗂️ Conversation Modes
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-modes-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-modes-guide-mobile.webp" alt="Kongtalk, RP Assistant, Guest Talk, AU and Group Talk modes" width="520" /></a>
+  <a href="assets/readme/screenshots/kong-modes-current.webp"><img src="assets/readme/screenshots/kong-modes-current.webp" alt="Current UI (test environment, sample data)" width="540" /></a>
+  <br /><sub>Current UI · sample data in a test environment</sub>
 </p>
 
 **Which mode should I choose?**
@@ -165,7 +165,8 @@ When a new room is created, its opening is prepared for the selected mode.
 Right-click or long-press a message to open its menu.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-message-menu-mobile.png"><img src="assets/readme/mobile/konggomul-message-menu-mobile.png" alt="Konggomul Talk message menu" width="520" /></a>
+  <a href="assets/readme/screenshots/kong-message-menu-current.webp"><img src="assets/readme/screenshots/kong-message-menu-current.webp" alt="Current UI (test environment, sample data)" width="540" /></a>
+  <br /><sub>Current UI · sample data in a test environment</sub>
 </p>
 
 | Menu item | Action |
@@ -180,16 +181,15 @@ In ordinary Kongtalk, begin a message with `OOC:` followed by your question to e
 
 After a response has multiple variants, use the `‹` and `›` arrows beneath it to switch between them. The selected variant remains active and is used as conversation history for later replies.
 
-<p align="center">
-  <a href="assets/readme/mobile/konggomul-edit-message-mobile.png"><img src="assets/readme/mobile/konggomul-edit-message-mobile.png" alt="Editing messages and reply variants" width="520" /></a>
-</p>
+
 
 ## 🛎️ Guest Talk — invite another character
 
 Want to ask someone else about your current RP, or just have a private chat with a favorite character? Guest Talk invites another installed character into a separate one-on-one room, without adding messages to the main RP.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-guest-talk-guide-mobile.png"><img src="assets/readme/mobile/konggomul-guest-talk-guide-mobile.png" alt="Guest Talk illustrated guide: character picker and example private conversation / 게스트톡 초대 및 대화 예시" width="480" /></a>
+  <a href="assets/readme/screenshots/kong-guest-current.webp"><img src="assets/readme/screenshots/kong-guest-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 **How to start**
@@ -210,7 +210,8 @@ Want to ask someone else about your current RP, or just have a private chat with
 Gather two or more installed characters in one room, whether it is a friend group, a team, or a wonderfully chaotic cast chat. Characters can react to you and each other in their own voices. The main RP stays separate.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-group-talk-guide-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-guide-mobile.png" alt="Group Talk illustrated guide: participant picker and example conversation / 그룹톡 참여자 선택과 대화 예시" width="480" /></a>
+  <a href="assets/readme/screenshots/kong-group-current.webp"><img src="assets/readme/screenshots/kong-group-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 **How to start**
@@ -226,9 +227,7 @@ Gather two or more installed characters in one room, whether it is a friend grou
 - Characters speak when relevant; equal turns or a response from everyone are not required. Each complete speaking turn appears in its own bubble with the character's name and avatar.
 - Characters' replies appear one at a time. To see all remaining replies immediately, click **Show all** next to the message input while replies are appearing. An empty send during delivery stops it; a new message interrupts the undisplayed turns and starts a new request. Individual turns can be edited, but Group Talk does not offer response regeneration.
 
-<p align="center">
-  <a href="assets/readme/mobile/konggomul-group-talk-settings-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-settings-mobile.png" alt="Group Talk illustrated guide: shared advanced settings and room participant/RP management / 그룹톡 고급 설정과 방 관리" width="480" /></a>
-</p>
+
 
 **Manage participants and RP references**
 
@@ -260,9 +259,7 @@ Validation covered parser/history/request tests and Chromium desktop/mobile-widt
 
 Use `⚙` in the panel header to adjust the current character and Konggomul Talk display settings.
 
-<p align="center">
-  <a href="assets/readme/mobile/konggomul-panel-settings-mobile.png"><img src="assets/readme/mobile/konggomul-panel-settings-mobile.png" alt="Panel settings, Send with Enter, and speaker avatar size" width="520" /></a>
-</p>
+
 
 **Display and reply settings**
 
@@ -306,7 +303,7 @@ The character card, user/persona information, the current room's previous conver
 ## 🎨 Themes
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-theme-css-preview-mobile.webp"><img src="assets/readme/mobile/konggomul-theme-css-preview-mobile.webp" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="520" /></a>
+  <a href="assets/readme/konggomul-themes.jpeg"><img src="assets/readme/konggomul-themes.jpeg" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="540" /></a>
 </p>
 
 | Theme | Style |
@@ -333,7 +330,8 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 Normal rooms are stored per character in server-side JSON files; Guest Talk and Group Talk use separate shared stores. Original migration backups are retained for recovery.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-data-cleanup-mobile.png"><img src="assets/readme/mobile/konggomul-data-cleanup-mobile.png" alt="Conversation data cleanup options" width="520" /></a>
+  <a href="assets/readme/screenshots/kong-cleanup-current.webp"><img src="assets/readme/screenshots/kong-cleanup-current.webp" alt="Current UI (test environment, sample data)" width="540" /></a>
+  <br /><sub>Current UI · sample data in a test environment</sub>
 </p>
 
 <details>
@@ -365,7 +363,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 📸 화면
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-talk-preview-mobile.webp"><img src="assets/readme/mobile/konggomul-talk-preview-mobile.webp" alt="콩고물 톡 대화 화면과 테마 설정 예시" width="520" /></a>
+  <a href="assets/readme/konggomul-chat.jpeg"><img src="assets/readme/konggomul-chat.jpeg" alt="콩고물 톡 대화 화면과 테마 설정 예시" width="540" /></a>
 </p>
 
 ## 📥 설치 및 처음 사용하기
@@ -391,7 +389,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🏠 홈: 새로운 대화와 대화 목록
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-home-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-home-guide-mobile.webp" alt="현재 콩고물 톡 홈의 주요 기능 구성도" width="520" /></a>
+  <a href="assets/readme/screenshots/kong-home-current.webp"><img src="assets/readme/screenshots/kong-home-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 새로고침하면 마지막 방을 자동으로 열지 않고 **콩고물 톡 홈**으로 이동합니다.
@@ -434,9 +433,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 ## 💬 콩고물 톡 패널
 
-<p align="center">
-  <a href="assets/readme/mobile/konggomul-panel-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-panel-guide-mobile.webp" alt="기존 채팅 패널 화면에 번호로 표시한 각 버튼과 영역의 역할 / annotated chat panel" width="520" /></a>
-</p>
+
 
 확장 메뉴의 **콩고물 톡**을 누르면 패널이 열립니다.
 
@@ -473,7 +470,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🗂️ 대화 모드
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-modes-guide-mobile.webp"><img src="assets/readme/mobile/konggomul-modes-guide-mobile.webp" alt="콩톡, RP 어시, 게스트톡, 평행우주 AU, 성격 반전 AU, 그룹톡의 기능 비교도" width="520" /></a>
+  <a href="assets/readme/screenshots/kong-modes-current.webp"><img src="assets/readme/screenshots/kong-modes-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 **어떤 모드를 고르면 될까요?**
@@ -522,7 +520,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 메시지를 우클릭하거나 길게 누르면 메뉴가 열립니다.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-message-menu-mobile.png"><img src="assets/readme/mobile/konggomul-message-menu-mobile.png" alt="콩고물 톡 메시지 메뉴" width="520" /></a>
+  <a href="assets/readme/screenshots/kong-message-menu-current.webp"><img src="assets/readme/screenshots/kong-message-menu-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 | 메뉴 | 기능 |
@@ -537,16 +536,15 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 하나의 답변에 여러 버전이 생기면 아래의 `‹`와 `›` 화살표로 전환합니다. 현재 선택한 버전이 그대로 유지되며 이후 답변의 대화 기록에 사용됩니다.
 
-<p align="center">
-  <a href="assets/readme/mobile/konggomul-edit-message-mobile.png"><img src="assets/readme/mobile/konggomul-edit-message-mobile.png" alt="메시지 수정 및 답변 스와이프" width="520" /></a>
-</p>
+
 
 ## 🛎️ 게스트톡 — 다른 캐릭터를 따로 초대하기
 
 지금 RP에서 벌어진 일을 다른 캐릭터에게 상담하거나, 좋아하는 캐릭터를 따로 불러 잡담하고 싶을 때 사용해 보세요. 설치된 다른 캐릭터와 메인 RP에 섞이지 않는 1:1 대화를 할 수 있습니다.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-guest-talk-guide-mobile.png"><img src="assets/readme/mobile/konggomul-guest-talk-guide-mobile.png" alt="게스트톡 화면 구성 예시: 캐릭터 선택기와 1:1 대화" width="480" /></a>
+  <a href="assets/readme/screenshots/kong-guest-current.webp"><img src="assets/readme/screenshots/kong-guest-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 **어떻게 시작하나요?**
@@ -567,7 +565,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 좋아하는 캐릭터들을 친구방, 팀방, 가족방처럼 한곳에 모아 보세요. 각자 성격과 말투를 유지하며 사용자뿐 아니라 다른 캐릭터의 발언에도 자연스럽게 반응할 수 있습니다. 메인 RP와는 별개의 대화입니다.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-group-talk-guide-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-guide-mobile.png" alt="그룹톡 화면 구성 예시: 참여자 선택기와 여러 캐릭터의 대화" width="480" /></a>
+  <a href="assets/readme/screenshots/kong-group-current.webp"><img src="assets/readme/screenshots/kong-group-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 **어떻게 시작하나요?**
@@ -583,9 +582,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 - 모든 캐릭터가 반드시 발언하거나 발언량을 똑같이 나눌 필요는 없습니다. 각 화자의 이름과 프로필 이미지가 표시되며 한 차례 발언은 하나의 말풍선에 담깁니다.
 - 캐릭터들의 발언은 차례대로 표시됩니다. 기다리지 않고 모든 답변을 한꺼번에 보고 싶다면, 답변 표시 중 입력창 옆에 나타나는 **모두 표시** 버튼을 누르세요. 도착 중 빈 전송은 중지, 새 메시지 전송은 아직 표시되지 않은 발언을 취소하고 새 요청을 시작합니다. 개별 발언 수정은 가능하지만 그룹톡은 답변 재생성을 제공하지 않습니다.
 
-<p align="center">
-  <a href="assets/readme/mobile/konggomul-group-talk-settings-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-settings-mobile.png" alt="그룹톡 화면 구성 예시: 고급 설정과 참여자·RP 연결 관리" width="480" /></a>
-</p>
+
 
 **참여자와 RP 참고 설정**
 
@@ -617,9 +614,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 패널 상단의 `⚙`에서 현재 캐릭터와 콩고물 톡 화면에 적용할 설정을 조절합니다.
 
-<p align="center">
-  <a href="assets/readme/mobile/konggomul-panel-settings-mobile.png"><img src="assets/readme/mobile/konggomul-panel-settings-mobile.png" alt="패널 설정, Enter 키로 전송, 캐릭터 프로필 이미지 크기" width="520" /></a>
-</p>
+
 
 **화면과 답변 설정**
 
@@ -663,7 +658,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🎨 테마
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-theme-css-preview-mobile.webp"><img src="assets/readme/mobile/konggomul-theme-css-preview-mobile.webp" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="520" /></a>
+  <a href="assets/readme/konggomul-themes.jpeg"><img src="assets/readme/konggomul-themes.jpeg" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="540" /></a>
 </p>
 
 | 테마 | 특징 |
@@ -690,7 +685,8 @@ The panel position and size, theme, character voice note, coworker work note, re
 일반 콩톡은 캐릭터별 JSON 파일에, 게스트톡·그룹톡은 각각 별도의 공통 파일에 대화가 저장됩니다. 기존 기록을 옮길 때 복구 백업을 보존합니다.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-data-cleanup-mobile.png"><img src="assets/readme/mobile/konggomul-data-cleanup-mobile.png" alt="대화 데이터 정리 옵션" width="520" /></a>
+  <a href="assets/readme/screenshots/kong-cleanup-current.webp"><img src="assets/readme/screenshots/kong-cleanup-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
 <details>
