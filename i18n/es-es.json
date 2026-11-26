@@ -54,6 +54,8 @@
   "konggomul.panel.bilingual": "Inglés y coreano (bilingüe)",
   "konggomul.panel.fixedScrollbar": "Personalizar barra de desplazamiento (PC)",
   "konggomul.panel.fixedScrollbarHint": "En PC, aplica la barra de desplazamiento temática. Puedes seguir desplazándote si lo desactivas; las flechas dependen del navegador.",
+  "konggomul.panel.sendOnEnter": "Enviar con Enter",
+  "konggomul.panel.sendOnEnterHint": "Al desactivar esta opción, Enter inserta un salto de línea y solo se envía con el botón de envío.",
   "konggomul.panel.nickname": "Apodo del usuario en Kongtalk",
   "konggomul.panel.nicknameHint": "Nombre o emoji junto a tus mensajes. Máximo 4 caracteres; déjalo en blanco para ocultarlo.",
   "konggomul.panel.fontSize": "Tamaño de letra del chat (px)",

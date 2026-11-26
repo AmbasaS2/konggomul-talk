@@ -13,7 +13,7 @@ The character card, persona, and selected RP context can inform the conversation
 
 ## 📥 Installation and First Steps
 
-**Current version: 5.5.7.**
+**Current version: 5.5.8.**
 
 1. In SillyTavern, open **Extensions → Install extension** (sometimes under extension management).
 2. Paste `https://github.com/AmbasaS2/konggomul-talk`, install, and reload the page.
@@ -230,6 +230,7 @@ Use `⚙` in the panel header to adjust the current character and Konggomul Talk
 | **Response sentence count** | Uses automatic length or targets 1–3, 2–5, 6–10, or 11–18 sentences for normal replies. |
 | **Output language** | Selects Korean, English, English/Korean bilingual, or optional **Auto** (the current SillyTavern interface language). Existing preferences are not changed. In bilingual mode, every English sentence is followed on the next line by its Korean translation in brackets. |
 | **Fixed scrollbar** | Switches between the themed fixed scrollbar and the browser's default scrollbar. |
+| **Send with Enter** | On by default in all talk modes. Enter sends and Shift+Enter inserts a new line. When off, Enter inserts a new line and only the Send button sends. |
 | **User Kongtalk nickname** | Sets the name or emoji shown beside user messages. Up to four characters are displayed; leave it blank to hide the label. |
 | **Chat font size** | Adjusts the font size of Konggomul Talk messages. |
 
@@ -327,7 +328,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 ## 📥 설치 및 처음 사용하기
 
-**현재 버전: 5.5.7.**
+**현재 버전: 5.5.8.**
 
 1. SillyTavern의 **확장 프로그램 → 확장 설치** 메뉴를 엽니다. 버전에 따라 확장 관리 메뉴 안에 있을 수 있습니다.
 2. `https://github.com/AmbasaS2/konggomul-talk`을 붙여넣어 설치하고 새로고침합니다.
@@ -544,6 +545,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **답변 문장 수** | 자동 길이를 사용하거나 일반 답변을 1~3, 2~5, 6~10, 11~18문장 중 하나의 범위로 생성하도록 지정합니다. |
 | **출력 언어** | 한국어·영어·영한 병기 또는 **자동(실리태번 UI 언어)** 중 선택합니다. 기존 사용자 설정은 변경하지 않습니다. 영한 병기는 영문 한 문장 다음 줄에 한국어 번역을 대괄호로 표시합니다. |
 | **스크롤 바 고정** | 테마에 맞춘 고정 스크롤바와 브라우저 기본 스크롤바를 전환합니다. |
+| **Enter 키로 전송** | 모든 대화 모드에 공통 적용됩니다(기본 ON). 체크하면 Enter로 전송하고 Shift+Enter로 줄을 바꿉니다. 해제하면 Enter로 줄을 바꾸고 전송 버튼으로만 전송합니다. |
 | **유저 콩톡 닉네임** | 유저 메시지 옆에 표시할 이름이나 이모지를 정합니다. 화면에는 최대 4글자까지 표시되며, 비워두면 표시하지 않습니다. |
 | **채팅창 폰트 크기** | 콩고물 톡 메시지의 글씨 크기를 조절합니다. |
 

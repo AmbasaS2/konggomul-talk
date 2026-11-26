@@ -54,6 +54,8 @@
   "konggomul.panel.bilingual": "英語／韓国語併記",
   "konggomul.panel.fixedScrollbar": "スクロールバーを装飾（PC）",
   "konggomul.panel.fixedScrollbarHint": "PCではテーマに合わせたスクロールバーを使います。オフでもスクロールでき、矢印ボタンの表示はブラウザーによって異なります。",
+  "konggomul.panel.sendOnEnter": "Enterキーで送信",
+  "konggomul.panel.sendOnEnterHint": "オフにするとEnterキーで改行し、送信ボタンでのみメッセージを送信します。",
   "konggomul.panel.nickname": "ユーザーのコントーク名",
   "konggomul.panel.nicknameHint": "自分のメッセージ横に表示する名前や絵文字。最大4文字。空欄で非表示。",
   "konggomul.panel.fontSize": "チャットの文字サイズ（px）",

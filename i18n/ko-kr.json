@@ -54,6 +54,8 @@
   "konggomul.panel.bilingual": "영한 병기",
   "konggomul.panel.fixedScrollbar": "스크롤바 꾸미기(PC)",
   "konggomul.panel.fixedScrollbarHint": "PC에서 테마 스타일의 스크롤바를 사용해요. 체크하지 않아도 스크롤은 가능하고, 위아래 화살표는 브라우저에 따라 표시돼요.",
+  "konggomul.panel.sendOnEnter": "Enter 키로 전송",
+  "konggomul.panel.sendOnEnterHint": "체크를 해제하면 Enter 키로 줄을 바꾸고 전송 버튼으로만 메시지를 보내요.",
   "konggomul.panel.nickname": "유저 콩톡 닉네임",
   "konggomul.panel.nicknameHint": "유저 메시지 옆에 표시할 이름/이모지입니다. 최대 4글자, 비우면 표시하지 않습니다.",
   "konggomul.panel.fontSize": "채팅창 폰트 크기(px)",

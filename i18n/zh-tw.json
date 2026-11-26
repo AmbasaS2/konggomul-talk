@@ -54,6 +54,8 @@
   "konggomul.panel.bilingual": "英韓雙語",
   "konggomul.panel.fixedScrollbar": "美化捲軸（PC）",
   "konggomul.panel.fixedScrollbarHint": "在電腦上使用主題樣式的捲軸。關閉後仍可捲動；上下箭頭是否顯示取決於瀏覽器。",
+  "konggomul.panel.sendOnEnter": "按 Enter 鍵傳送",
+  "konggomul.panel.sendOnEnterHint": "關閉後，按 Enter 鍵換行，僅透過傳送按鈕傳送訊息。",
   "konggomul.panel.nickname": "使用者聊天暱稱",
   "konggomul.panel.nicknameHint": "顯示在使用者訊息旁的名稱或表情符號。最多顯示 4 個字元，留空則隱藏。",
   "konggomul.panel.fontSize": "聊天字體大小（px）",

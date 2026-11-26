@@ -54,6 +54,8 @@
   "konggomul.panel.bilingual": "英韩双语",
   "konggomul.panel.fixedScrollbar": "美化滚动条（PC）",
   "konggomul.panel.fixedScrollbarHint": "在电脑上使用主题样式的滚动条。关闭后仍能滚动；上下箭头是否显示取决于浏览器。",
+  "konggomul.panel.sendOnEnter": "按 Enter 键发送",
+  "konggomul.panel.sendOnEnterHint": "关闭后，按 Enter 键换行，仅通过发送按钮发送消息。",
   "konggomul.panel.nickname": "用户聊天昵称",
   "konggomul.panel.nicknameHint": "显示在用户消息旁的名称或表情。最多显示 4 个字符，留空则隐藏。",
   "konggomul.panel.fontSize": "聊天字体大小（px）",

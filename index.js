@@ -5,14 +5,14 @@ import { ROOM_INDEX_FORMAT, readRoomIndex, writeRoomIndex, readRoomSnapshot, wri
 import { countRoomData } from './room-reset.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.7
+ * 🐕 콩고물 톡 v5.5.8
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - Enabled static Chat Completion preset instructions are optional; RP markers and context are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.7';
+const EXTENSION_VERSION = '5.5.8';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
@@ -74,6 +74,8 @@ const UI_ENGLISH = Object.freeze({
   "panel.bilingual": "English / Korean bilingual",
   "panel.fixedScrollbar": "Style scrollbar (PC)",
   "panel.fixedScrollbarHint": "Use the themed scrollbar style on desktop. Scrolling still works when off; arrow buttons depend on browser support.",
+  "panel.sendOnEnter": "Send with Enter",
+  "panel.sendOnEnterHint": "When off, Enter inserts a new line and only the Send button sends messages.",
   "panel.nickname": "Kongtalk user nickname",
   "panel.nicknameHint": "Name or emoji shown next to your messages. Up to 4 characters; leave blank to hide.",
   "panel.fontSize": "Chat font size (px)",
@@ -463,6 +465,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   collapsed: false,
   roomActionsCollapsed: true,
   fixedScrollbar: true,
+  sendOnEnter: true,
   characterRooms: {},
   roomVoiceNotes: {},
   guestRecentCharacters: [],
@@ -706,6 +709,7 @@ function normalizeSettingsInPlace(s) {
   s.includePreset = s.includePreset !== false;
   s.includeLorebook = s.includeLorebook !== false;
   s.includeExtensionMemory = s.includeExtensionMemory !== false;
+  s.sendOnEnter = s.sendOnEnter !== false;
   if (typeof s.userKongtalkNickname !== 'string') s.userKongtalkNickname = DEFAULT_SETTINGS.userKongtalkNickname;
   if (s.userKongtalkNickname === 'me🖤') s.userKongtalkNickname = DEFAULT_SETTINGS.userKongtalkNickname;
   s.userKongtalkNickname = limitGraphemes(s.userKongtalkNickname, 4);
@@ -3466,6 +3470,10 @@ function ensurePanel() {
           <input id="tua-panel-fixed-scrollbar" type="checkbox">
           <span>${uiHtml('panel.fixedScrollbar')}</span>
         </label>
+        <label class="tua-checkbox-row" title="${uiHtml('panel.sendOnEnterHint')}">
+          <input id="tua-panel-send-on-enter" type="checkbox">
+          <span>${uiHtml('panel.sendOnEnter')}</span>
+        </label>
         <label>${uiHtml('panel.nickname')}
           <input id="tua-panel-user-nickname" type="text" maxlength="16" placeholder="me" title="${uiHtml('panel.nicknameHint')}">
         </label>
@@ -3641,7 +3649,7 @@ function ensurePanel() {
   $('#tua-pin-room').on('click', () => { closeSettingsPanel(); toggleActiveRoomPinned(); });
   $('#tua-send').on('click', (e) => { e.preventDefault(); e.stopPropagation(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); });
   $('#tua-input').on('focus click', () => { closeSettingsPanel(); closeRoomList(); closeModePicker(); });
-  $('#tua-input').on('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeSettingsPanel(); closeRoomList(); closeModePicker(); sendCurrentInput(); } });
+  $('#tua-input').on('keydown', handleComposerKeydown);
   $('#tua-input').on('input', autoGrowInput);
   $('#tua-panel-tokens,#tua-panel-recent,#tua-panel-memory,#tua-panel-font,#tua-panel-user-nickname').on('change blur', readPanelSettingsUI);
   $('#tua-panel-avatar-size').on('input', function () {
@@ -3651,7 +3659,7 @@ function ensurePanel() {
     document.documentElement.style.setProperty('--tua-speaker-avatar-size', size + 'px');
   }).on('change', readPanelSettingsUI);
   $('#tua-panel-sentence-count,#tua-panel-output-language').on('change', readPanelSettingsUI);
-  $('#tua-panel-include-preset,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-fixed-scrollbar').on('change', readPanelSettingsUI);
+  $('#tua-panel-include-preset,#tua-panel-include-lorebook,#tua-panel-include-extension-memory,#tua-panel-fixed-scrollbar,#tua-panel-send-on-enter').on('change', readPanelSettingsUI);
   $('#tua-panel-voice-note').on('change input', function () {
     if (getRoomMode() === 'groupTalk') return;
     const next = String(this.value || '');
@@ -6099,6 +6107,17 @@ async function regenerateAssistantMessage(messageId) {
   }
 }
 
+function handleComposerKeydown(e) {
+  if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.originalEvent?.isComposing
+    || e.which === 229 || e.keyCode === 229 || e.originalEvent?.keyCode === 229
+    || getSettings().sendOnEnter === false) return;
+  e.preventDefault();
+  closeSettingsPanel();
+  closeRoomList();
+  closeModePicker();
+  sendCurrentInput();
+}
+
 async function sendCurrentInput() {
   const settings = getSettings();
   if (!settings.enabled) { alert(uiText('dialog.disabled')); return; }
@@ -6184,6 +6203,7 @@ function hydratePanelSettingsUI() {
   $('#tua-panel-include-lorebook').prop('checked', s.includeLorebook !== false);
   $('#tua-panel-include-extension-memory').prop('checked', s.includeExtensionMemory !== false);
   $('#tua-panel-fixed-scrollbar').prop('checked', s.fixedScrollbar !== false);
+  $('#tua-panel-send-on-enter').prop('checked', s.sendOnEnter !== false);
   $('#tua-panel-voice-note').val(getVoiceNote());
   hydrateGroupPanelOptions();
   $('.tua-theme-buttons button').removeClass('active').filter(`[data-theme="${getThemeKey()}"]`).addClass('active');
@@ -6222,7 +6242,7 @@ function readPanelSettingsUI() {
   const nicknameBefore = s.userKongtalkNickname;
   const visualsBefore = [s.fontSize, s.speakerAvatarSize, s.fixedScrollbar];
   const settingsBefore = JSON.stringify([s.maxTokens, s.recentMessages, s.chatMemoryLimit, s.sentenceCount, s.outputLanguage,
-    s.userKongtalkNickname, s.includePreset, s.includeLorebook, s.includeExtensionMemory, ...visualsBefore]);
+    s.userKongtalkNickname, s.includePreset, s.includeLorebook, s.includeExtensionMemory, ...visualsBefore, s.sendOnEnter]);
 
   const sentenceCount = String($('#tua-panel-sentence-count').val() || '');
   if (SENTENCE_COUNT_KEYS.has(sentenceCount)) s.sentenceCount = sentenceCount;
@@ -6265,6 +6285,8 @@ function readPanelSettingsUI() {
   if (includeExtensionMemoryEl.length) s.includeExtensionMemory = includeExtensionMemoryEl.prop('checked') !== false;
   const fixedScrollbarEl = $('#tua-panel-fixed-scrollbar');
   if (fixedScrollbarEl.length) s.fixedScrollbar = fixedScrollbarEl.prop('checked') !== false;
+  const sendOnEnterEl = $('#tua-panel-send-on-enter');
+  if (sendOnEnterEl.length) s.sendOnEnter = sendOnEnterEl.prop('checked') !== false;
 
   const fontValue = String($('#tua-panel-font').val() ?? '').trim();
   if (fontValue !== '') {
@@ -6281,7 +6303,7 @@ function readPanelSettingsUI() {
   }
 
   const settingsAfter = JSON.stringify([s.maxTokens, s.recentMessages, s.chatMemoryLimit, s.sentenceCount, s.outputLanguage,
-    s.userKongtalkNickname, s.includePreset, s.includeLorebook, s.includeExtensionMemory, s.fontSize, s.speakerAvatarSize, s.fixedScrollbar]);
+    s.userKongtalkNickname, s.includePreset, s.includeLorebook, s.includeExtensionMemory, s.fontSize, s.speakerAvatarSize, s.fixedScrollbar, s.sendOnEnter]);
   if (settingsBefore !== settingsAfter) saveSettings();
   if (visualsBefore.some((value, index) => value !== [s.fontSize, s.speakerAvatarSize, s.fixedScrollbar][index])) applyVisualSettings();
   if (nicknameBefore !== s.userKongtalkNickname) renderMessages();
