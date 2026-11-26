@@ -1,6 +1,6 @@
 # 🐕 Konggomul Talk
 
-**Konggomul Talk is a SillyTavern assistant extension for chatting outside the active RP—with the current character or an invited Guest Talk character.**
+**Konggomul Talk is a SillyTavern assistant extension for chatting outside the active RP—with the current character, another invited character, or several characters together in a group chat.**
 
 The character card, persona, and selected RP context can inform the conversation, but Konggomul Talk messages remain separate from the main RP. The former Apply to RP summary/injection feature has been removed.
 
@@ -130,7 +130,7 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 | **Opposite-personality AU** | You want a modern AU with a reversed personality and speaking style. |
 | **Group Talk** | You want two or more selected characters to talk in one room. |
 
-*The Group Talk section below explains how shared speaking turns and memory work.*
+*See the Guest Talk and Group Talk guides below for how to invite characters, manage rooms, and choose RP references.*
 
 <details>
 <summary>Detailed mode descriptions and opening messages</summary>
@@ -184,17 +184,58 @@ After a response has multiple variants, use the `‹` and `›` arrows beneath i
   <a href="assets/readme/mobile/konggomul-edit-message-mobile.png"><img src="assets/readme/mobile/konggomul-edit-message-mobile.png" alt="Editing messages and reply variants" width="860" /></a>
 </p>
 
-## 👥 Group Talk — complete speaking turns (5.5.2)
+## 🛎️ Guest Talk — invite another character
 
-Create a Group Talk room from the mode picker, name it, and search/select at least two character cards. The current RP character is optional. Participants can be added or removed later. Recent RP, active lorebook, and accessible extension memory are independent reference choices; the same selective collectors as Kongtalk are used.
+Want to ask someone else about your current RP, or just have a private chat with a favorite character? Guest Talk invites another installed character into a separate one-on-one room, without adding messages to the main RP.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-guest-talk-guide-mobile.png"><img src="assets/readme/mobile/konggomul-guest-talk-guide-mobile.png" alt="Guest Talk illustrated guide: character picker and example private conversation / 게스트톡 초대 및 대화 예시" width="480" /></a>
+</p>
+
+**How to start**
+
+1. Open **Home → New conversation → Guest Talk**.
+2. Choose an installed character. Up to five recently selected guests appear first; search by name or choose **Show all characters** to browse the full list.
+3. Send a message in the new room. The invited character speaks as themselves; the current RP character is not the speaker.
+
+**What makes Guest Talk different?**
+
+- The current RP persona, selected recent RP, active lorebook and accessible extension memory can help the guest understand the situation. The guest respects established relationships and first-hand experiences rather than inventing a shared past or claiming someone else's experiences.
+- Guest rooms are stored separately and remain available after switching the main RP. Voice notes belong to the invited character, not the main RP character.
+- Changing the active RP with the same persona does not prompt a persona choice. If the persona changes, choose **New room** or **Continue existing room**; previous messages are preserved.
+- The chosen guest and mode are fixed for that room. To invite someone else, create a new Guest Talk room.
+
+## 👥 Group Talk — bring your characters together
+
+Gather two or more installed characters in one room, whether it is a friend group, a team, or a wonderfully chaotic cast chat. Characters can react to you and each other in their own voices. The main RP stays separate.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-group-talk-guide-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-guide-mobile.png" alt="Group Talk illustrated guide: participant picker and example conversation / 그룹톡 참여자 선택과 대화 예시" width="480" /></a>
+</p>
+
+**How to start**
+
+1. Open **Home → New conversation → Group Talk**.
+2. Enter a room name, search the installed character cards, and select at least two participants. The current RP character is optional.
+3. Select **Create Group Talk**, then send a message or use an empty send to start the exchange.
 
 **How Group Talk replies work**
 
 - One request generates a shared response for the room, not one request per character.
 - The default total target is **1,000 tokens for all speakers combined** (adjustable in Group Talk Advanced settings).
-- Characters speak when relevant; equal turns or a response from everyone are not required.
+- Characters speak when relevant; equal turns or a response from everyone are not required. Each complete speaking turn appears in its own bubble with the character's name and avatar.
+- Use **Show all** to reveal remaining turns. An empty send during delivery stops it; a new message interrupts the undisplayed turns and starts a new request. Individual turns can be edited, but Group Talk does not offer response regeneration.
 
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-group-talk-settings-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-settings-mobile.png" alt="Group Talk illustrated guide: shared advanced settings and room participant/RP management / 그룹톡 고급 설정과 방 관리" width="480" /></a>
+</p>
 
+**Manage participants and RP references**
+
+- Open the group room, then **⚙ → Manage this Group Talk room → Add/remove participants** to change the cast; save at least two participants.
+- In **Group Talk Advanced Settings**, adjust total target tokens (100–8,000), memory messages (20–320; default 80), preset inclusion (off by default), recent RP, lorebook and extension memory references. These choices are shared across group rooms, not separate settings per character.
+- Each room retains its own participants, conversation history and linked RP/reference snapshot. Use the current RP or disconnect RP references in room management. When the RP or persona changes, choose whether to keep the previous saved context, use the current context, or disconnect the RP.
+- Group Talk has its own export/import/reset scope; its messages remain separate from Guest Talk, ordinary Kongtalk and the main RP.
 
 <details>
 <summary>Speaking turns, memory, room settings, references, and validation details</summary>
@@ -316,7 +357,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 # 🐕 콩고물 톡
 
-**콩고물 톡은 현재 캐릭터 또는 별도로 초대한 게스트 캐릭터와 RP 밖에서 채팅할 수 있는 SillyTavern 어시스턴트 확장입니다.**
+**콩고물 톡은 현재 캐릭터와 잡담하거나, 다른 캐릭터를 따로 초대하거나, 여러 캐릭터를 한 단톡방에 모아 RP 밖에서 대화할 수 있는 SillyTavern 어시스턴트 확장입니다.**
 
 캐릭터 카드, 페르소나와 현재 RP 맥락을 참고해 대화하지만, 콩고물 톡 메시지는 메인 RP에 섞이지 않습니다. 기존 'RP 반영' 요약·주입 기능은 제거되었습니다.
 
@@ -500,17 +541,58 @@ The panel position and size, theme, character voice note, coworker work note, re
   <a href="assets/readme/mobile/konggomul-edit-message-mobile.png"><img src="assets/readme/mobile/konggomul-edit-message-mobile.png" alt="메시지 수정 및 답변 스와이프" width="860" /></a>
 </p>
 
-## 👥 그룹톡 — 발언 단위 대화 (5.5.2)
+## 🛎️ 게스트톡 — 다른 캐릭터를 따로 초대하기
 
-모드 선택에서 그룹톡을 만들고, 방 이름과 참여 캐릭터 2명 이상을 고릅니다. 게스트톡처럼 캐시트를 검색할 수 있으며 현재 RP 캐릭터는 자유롭게 포함하거나 제외할 수 있습니다. 참여자는 나중에도 추가·제외할 수 있습니다. 최근 RP·로어북·확장 데이터는 각각 선택하며 기존 콩톡의 선택적 수집 방식을 사용합니다.
+지금 RP에서 벌어진 일을 다른 캐릭터에게 상담하거나, 좋아하는 캐릭터를 따로 불러 잡담하고 싶을 때 사용해 보세요. 설치된 다른 캐릭터와 메인 RP에 섞이지 않는 1:1 대화를 할 수 있습니다.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-guest-talk-guide-mobile.png"><img src="assets/readme/mobile/konggomul-guest-talk-guide-mobile.png" alt="게스트톡 화면 구성 예시: 캐릭터 선택기와 1:1 대화" width="480" /></a>
+</p>
+
+**어떻게 시작하나요?**
+
+1. **홈 → 새로운 대화 → 게스트톡**을 선택합니다.
+2. 초대할 캐릭터를 고릅니다. 최근에 선택한 게스트 최대 5명이 먼저 표시되며, 이름으로 검색하거나 **모든 캐릭터 보기**에서 전체 목록을 확인할 수 있습니다.
+3. 새로 열린 방에서 메시지를 보냅니다. 현재 RP 캐릭터가 아니라 초대한 게스트가 자신의 성격과 말투로 답합니다.
+
+**게스트톡의 특징**
+
+- 현재 RP 페르소나, 선택한 최근 RP, 활성 로어북, 접근 가능한 확장 메모리 등을 참고할 수 있습니다. 기존 관계와 직접 겪은 사건을 존중하며, 전해 들은 일을 자기 경험처럼 말하거나 없는 인연을 지어내지 않도록 구성했습니다.
+- 게스트톡 방은 별도로 저장되어 메인 RP 캐릭터가 바뀌어도 다시 열 수 있습니다. 말투 고정 메모도 초대한 캐릭터별로 따로 유지합니다.
+- 같은 페르소나로 RP만 바꾸면 페르소나 변경 확인 창이 뜨지 않습니다. 페르소나가 달라지면 **새 방 만들기 / 기존 방 계속** 중 선택하며 이전 대화 기록은 보존합니다.
+- 만든 방의 게스트와 모드는 유지됩니다. 다른 캐릭터를 초대하려면 새 게스트톡 방을 만드세요.
+
+## 👥 그룹톡 — 여러 캐릭터를 한 단톡방에 모으기
+
+좋아하는 캐릭터들을 친구방, 팀방, 가족방처럼 한곳에 모아 보세요. 각자 성격과 말투를 유지하며 사용자뿐 아니라 다른 캐릭터의 발언에도 자연스럽게 반응할 수 있습니다. 메인 RP와는 별개의 대화입니다.
+
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-group-talk-guide-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-guide-mobile.png" alt="그룹톡 화면 구성 예시: 참여자 선택기와 여러 캐릭터의 대화" width="480" /></a>
+</p>
+
+**어떻게 시작하나요?**
+
+1. **홈 → 새로운 대화 → 그룹톡**을 선택합니다.
+2. 방 이름을 정하고 설치된 캐시트를 검색해 **2명 이상**을 선택합니다. 현재 RP 캐릭터를 꼭 포함할 필요는 없습니다.
+3. **그룹톡 만들기**를 누른 뒤 메시지를 보내거나 빈 입력창으로 전송해 대화를 시작합니다.
 
 **그룹톡 답변 방식**
 
 - 캐릭터마다 API를 따로 호출하지 않고, 한 번의 요청으로 그룹 전체 답변을 생성합니다.
 - 기본 목표는 **모든 화자가 함께 쓰는 총 1,000토큰**이며, 그룹톡 고급 설정에서 조절할 수 있습니다.
-- 모든 캐릭터가 반드시 발언하거나 발언량을 똑같이 나눌 필요는 없습니다.
+- 모든 캐릭터가 반드시 발언하거나 발언량을 똑같이 나눌 필요는 없습니다. 각 화자의 이름과 프로필 이미지가 표시되며 한 차례 발언은 하나의 말풍선에 담깁니다.
+- **모두 표시**로 남은 발언을 펼칠 수 있습니다. 도착 중 빈 전송은 중지, 새 메시지 전송은 아직 표시되지 않은 발언을 취소하고 새 요청을 시작합니다. 개별 발언 수정은 가능하지만 그룹톡은 답변 재생성을 제공하지 않습니다.
 
+<p align="center">
+  <a href="assets/readme/mobile/konggomul-group-talk-settings-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-settings-mobile.png" alt="그룹톡 화면 구성 예시: 고급 설정과 참여자·RP 연결 관리" width="480" /></a>
+</p>
 
+**참여자와 RP 참고 설정**
+
+- 그룹톡방에서 **⚙ → 이 그룹톡방 관리 → 참여 캐릭터 추가·제외**를 눌러 참여자를 바꿀 수 있습니다. 2명 이상을 선택한 뒤 **참여자 저장**을 누릅니다.
+- **그룹톡 고급 설정**에서는 전체 목표 토큰(100~8,000), 기억 범위(20~320개, 기본 80개), 프리셋 포함(기본 OFF), 최근 RP·로어북·확장 데이터 참고 여부를 조절합니다. 이 설정은 모든 그룹톡방에 공통 적용됩니다.
+- 참여자·대화 기록·연결된 RP와 저장된 참고 맥락은 방마다 유지됩니다. 방 관리에서 현재 RP 연결 또는 RP 연결 해제를 할 수 있습니다. RP나 페르소나가 바뀌면 이전 참고 맥락 유지, 현재 맥락 사용, RP 참고 해제 중 선택합니다.
+- 그룹톡 전용 내보내기·가져오기·초기화 범위가 있으며 일반 콩톡·게스트톡·메인 RP와 기록을 따로 관리합니다.
 
 <details>
 <summary>발언 처리·기억 범위·방 관리·참고 맥락·검증 내용 자세히 보기</summary>
