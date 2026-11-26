@@ -224,7 +224,7 @@ Gather two or more installed characters in one room, whether it is a friend grou
 - One request generates a shared response for the room, not one request per character.
 - The default total target is **1,000 tokens for all speakers combined** (adjustable in Group Talk Advanced settings).
 - Characters speak when relevant; equal turns or a response from everyone are not required. Each complete speaking turn appears in its own bubble with the character's name and avatar.
-- Use **Show all** to reveal remaining turns. An empty send during delivery stops it; a new message interrupts the undisplayed turns and starts a new request. Individual turns can be edited, but Group Talk does not offer response regeneration.
+- Characters' replies appear one at a time. To see all remaining replies immediately, click **Show all** next to the message input while replies are appearing. An empty send during delivery stops it; a new message interrupts the undisplayed turns and starts a new request. Individual turns can be edited, but Group Talk does not offer response regeneration.
 
 <p align="center">
   <a href="assets/readme/mobile/konggomul-group-talk-settings-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-settings-mobile.png" alt="Group Talk illustrated guide: shared advanced settings and room participant/RP management / 그룹톡 고급 설정과 방 관리" width="480" /></a>
@@ -242,7 +242,7 @@ Gather two or more installed characters in one room, whether it is a friend grou
 
 **One request, one shared answer length.** The default target is **1,000 tokens total**, shared naturally among the characters—not 1,000 tokens per character. Change it from 100 to 8,000 in Group Talk Advanced settings; the same value applies to all group rooms. Group Talk enforces a separate actual output cap (target plus a small JSON-formatting margin), including when using a dedicated connection profile. Ordinary Kongtalk and Guest Talk retain their previous request limits. Speakers join only when relevant; no roll call or equal airtime is required.
 
-**One speaking turn, one bubble.** A character can develop a thought across sentences and paragraphs without being split at each sentence. Completed turns arrive sequentially. Speaker names in every Kongtalk mode include round character-card avatars, with one shared live-preview slider in Advanced settings (18–48 px, default 26). Reading position and existing text selection are preserved; when starting at the bottom, only the beginning of the first reply is revealed. Later arrivals never force the view downward. “Show all” reveals the remaining turns. A new user message during delivery cancels only the undisplayed turns and starts a new request.
+**One speaking turn, one bubble.** A character can develop a thought across sentences and paragraphs without being split at each sentence. Completed turns arrive sequentially. Speaker names in every Kongtalk mode include round character-card avatars, with one shared live-preview slider in Advanced settings (18–48 px, default 26). Reading position and existing text selection are preserved; when starting at the bottom, only the beginning of the first reply is revealed. Later arrivals never force the view downward. The “Show all” button next to the message input appears during delivery and displays all remaining replies at once without another API request. A new user message during delivery cancels only the undisplayed turns and starts a new request.
 
 **Room memory uses messages, not a new token budget.** All Group Talk rooms share one memory-length setting, **80 earlier messages** by default (20–320 adjustable). Each room still reads only its own conversation. The latest user message is added once, separately. There is no Group Talk preflight gate based on the main RP context setting, no per-character API request, and no automatic summarization request.
 
@@ -581,7 +581,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 - 캐릭터마다 API를 따로 호출하지 않고, 한 번의 요청으로 그룹 전체 답변을 생성합니다.
 - 기본 목표는 **모든 화자가 함께 쓰는 총 1,000토큰**이며, 그룹톡 고급 설정에서 조절할 수 있습니다.
 - 모든 캐릭터가 반드시 발언하거나 발언량을 똑같이 나눌 필요는 없습니다. 각 화자의 이름과 프로필 이미지가 표시되며 한 차례 발언은 하나의 말풍선에 담깁니다.
-- **모두 표시**로 남은 발언을 펼칠 수 있습니다. 도착 중 빈 전송은 중지, 새 메시지 전송은 아직 표시되지 않은 발언을 취소하고 새 요청을 시작합니다. 개별 발언 수정은 가능하지만 그룹톡은 답변 재생성을 제공하지 않습니다.
+- 캐릭터들의 발언은 차례대로 표시됩니다. 기다리지 않고 모든 답변을 한꺼번에 보고 싶다면, 답변 표시 중 입력창 옆에 나타나는 **모두 표시** 버튼을 누르세요. 도착 중 빈 전송은 중지, 새 메시지 전송은 아직 표시되지 않은 발언을 취소하고 새 요청을 시작합니다. 개별 발언 수정은 가능하지만 그룹톡은 답변 재생성을 제공하지 않습니다.
 
 <p align="center">
   <a href="assets/readme/mobile/konggomul-group-talk-settings-mobile.png"><img src="assets/readme/mobile/konggomul-group-talk-settings-mobile.png" alt="그룹톡 화면 구성 예시: 고급 설정과 참여자·RP 연결 관리" width="480" /></a>
@@ -599,7 +599,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 **API 한 번, 전체 답변 분량 하나.** 기본 목표는 캐릭터들이 나눠 쓰는 **전체 1,000토큰**입니다. 캐릭터마다 1,000토큰을 할당하지 않습니다. 그룹톡 고급 설정에서 100~8,000토큰으로 바꾸면 모든 그룹톡방에 똑같이 적용됩니다. 그룹톡은 전용 연결 프로필에서도 목표 분량에 JSON 형식용 여유만 더한 실제 출력 상한을 적용합니다. 기존 콩톡·게스트톡의 호출 방식은 유지하며, 말풍선 개수·균등한 발언량·전원 참여를 강제하지 않습니다.
 
-**한 차례 발언을 한 말풍선에 담습니다.** 여러 문장이나 문단을 말해도 문장별로 쪼개지 않습니다. 완성된 캐릭터 발언은 순서대로 도착하지만 읽던 위치와 선택한 텍스트는 유지됩니다. 일반 콩톡·게스트톡·평행우주AU·RP 어시·그룹톡 등 모든 모드에서 화자 이름 옆에 캐시트의 원형 프로필 이미지를 표시하며, 고급 설정의 슬라이더로 크기를 전체 공통으로 18~48px(기본 26px) 조절하며 값이 실시간 반영됩니다. 맨 아래에서 시작했을 때는 첫 답변의 시작만 보여주며, 이후 도착 때문에 아래로 끌려가지 않습니다. ‘모두 표시’로 남은 발언을 펼칠 수 있습니다. 도착 중 새 메시지를 보내면 아직 보이지 않은 발언만 취소하고 새 요청을 시작합니다.
+**한 차례 발언을 한 말풍선에 담습니다.** 여러 문장이나 문단을 말해도 문장별로 쪼개지 않습니다. 완성된 캐릭터 발언은 순서대로 도착하지만 읽던 위치와 선택한 텍스트는 유지됩니다. 일반 콩톡·게스트톡·평행우주AU·RP 어시·그룹톡 등 모든 모드에서 화자 이름 옆에 캐시트의 원형 프로필 이미지를 표시하며, 고급 설정의 슬라이더로 크기를 전체 공통으로 18~48px(기본 26px) 조절하며 값이 실시간 반영됩니다. 맨 아래에서 시작했을 때는 첫 답변의 시작만 보여주며, 이후 도착 때문에 아래로 끌려가지 않습니다. 답변 표시 중 입력창 옆에 나타나는 ‘모두 표시’ 버튼을 누르면 추가 API 호출 없이 남은 발언을 한꺼번에 표시합니다. 도착 중 새 메시지를 보내면 아직 보이지 않은 발언만 취소하고 새 요청을 시작합니다.
 
 **기억은 새 토큰 계산기 대신 메시지 수를 씁니다.** 모든 그룹톡방에 **이전 메시지 기본 80개**의 동일한 기억 범위를 적용합니다(20~320개 조절 가능). 실제 대화 기억은 각 그룹톡방의 자기 기록만 사용합니다. 방금 입력한 메시지는 별도로 한 번만 포함됩니다. 일반 RP 컨텍스트 수치로 그룹톡 요청을 사전 차단하지 않으며, 캐릭터별 호출이나 자동 요약 호출도 하지 않습니다.
 
