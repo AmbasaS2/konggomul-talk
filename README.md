@@ -156,6 +156,7 @@ When a new room is created, its opening is prepared for the selected mode.
 | Action | Result |
 |---|---|
 | **Enter a message and press Send** | Generates the character's reply in the current room. |
+| **Press Enter** | Sends when **Send with Enter** is enabled (default); otherwise inserts a new line. Shift+Enter always inserts a new line. |
 | **Press Send with an empty input** | Continues naturally from the latest conversation. |
 | **Press Send while an AI reply is being generated** | Stops the current generation. |
 
@@ -219,7 +220,7 @@ Validation covered parser/history/request tests and Chromium desktop/mobile-widt
 Use `⚙` in the panel header to adjust the current character and Konggomul Talk display settings.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-panel-settings-mobile.png"><img src="assets/readme/mobile/konggomul-panel-settings-mobile.png" alt="Panel settings and speaker avatar size (v5.5.5 UI illustration)" width="860" /></a>
+  <a href="assets/readme/mobile/konggomul-panel-settings-mobile.png"><img src="assets/readme/mobile/konggomul-panel-settings-mobile.png" alt="Panel settings, Send with Enter, and speaker avatar size (v5.5.8 UI illustration)" width="860" /></a>
 </p>
 
 **Display and reply settings**
@@ -229,7 +230,7 @@ Use `⚙` in the panel header to adjust the current character and Konggomul Talk
 | **Theme** | Selects Konggomul, Choco Strawberry, Melon Soda, Simple MacBook, or Custom. |
 | **Response sentence count** | Uses automatic length or targets 1–3, 2–5, 6–10, or 11–18 sentences for normal replies. |
 | **Output language** | Selects Korean, English, English/Korean bilingual, or optional **Auto** (the current SillyTavern interface language). Existing preferences are not changed. In bilingual mode, every English sentence is followed on the next line by its Korean translation in brackets. |
-| **Fixed scrollbar** | Switches between the themed fixed scrollbar and the browser's default scrollbar. |
+| **Style scrollbar (PC)** | Switches between the themed scrollbar and the browser's default scrollbar on desktop. |
 | **Send with Enter** | On by default in all talk modes. Enter sends and Shift+Enter inserts a new line. When off, Enter inserts a new line and only the Send button sends. |
 | **User Kongtalk nickname** | Sets the name or emoji shown beside user messages. Up to four characters are displayed; leave it blank to hide the label. |
 | **Chat font size** | Adjusts the font size of Konggomul Talk messages. |
@@ -471,6 +472,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 | 조작 | 기능 |
 |---|---|
 | **메시지 입력 + 전송 버튼 클릭** | 현재 방에서 캐릭터의 답변을 생성합니다. |
+| **Enter 키** | **Enter 키로 전송**을 체크하면 전송하고(기본값), 해제하면 줄을 바꿉니다. Shift+Enter는 항상 줄을 바꿉니다. |
 | **빈 입력창 + 전송 버튼 클릭** | 직전 대화를 자연스럽게 이어서 답변을 생성합니다. |
 | **AI 답변 생성 중 전송 버튼 클릭** | 생성 중인 답변을 중지합니다. |
 
@@ -534,7 +536,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 패널 상단의 `⚙`에서 현재 캐릭터와 콩고물 톡 화면에 적용할 설정을 조절합니다.
 
 <p align="center">
-  <a href="assets/readme/mobile/konggomul-panel-settings-mobile.png"><img src="assets/readme/mobile/konggomul-panel-settings-mobile.png" alt="패널 설정과 캐릭터 프로필 이미지 크기 (v5.5.5 UI 구성 예시)" width="860" /></a>
+  <a href="assets/readme/mobile/konggomul-panel-settings-mobile.png"><img src="assets/readme/mobile/konggomul-panel-settings-mobile.png" alt="패널 설정, Enter 키로 전송, 캐릭터 프로필 이미지 크기 (v5.5.8 UI 구성 예시)" width="860" /></a>
 </p>
 
 **화면과 답변 설정**
@@ -544,7 +546,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 | **테마** | 콩고물, 초코딸기, 메론소다, 심플 맥북, 커스텀 중에서 선택합니다. |
 | **답변 문장 수** | 자동 길이를 사용하거나 일반 답변을 1~3, 2~5, 6~10, 11~18문장 중 하나의 범위로 생성하도록 지정합니다. |
 | **출력 언어** | 한국어·영어·영한 병기 또는 **자동(실리태번 UI 언어)** 중 선택합니다. 기존 사용자 설정은 변경하지 않습니다. 영한 병기는 영문 한 문장 다음 줄에 한국어 번역을 대괄호로 표시합니다. |
-| **스크롤 바 고정** | 테마에 맞춘 고정 스크롤바와 브라우저 기본 스크롤바를 전환합니다. |
+| **스크롤바 꾸미기(PC)** | PC에서 테마 스타일의 스크롤바와 브라우저 기본 스크롤바를 전환합니다. |
 | **Enter 키로 전송** | 모든 대화 모드에 공통 적용됩니다(기본 ON). 체크하면 Enter로 전송하고 Shift+Enter로 줄을 바꿉니다. 해제하면 Enter로 줄을 바꾸고 전송 버튼으로만 전송합니다. |
 | **유저 콩톡 닉네임** | 유저 메시지 옆에 표시할 이름이나 이모지를 정합니다. 화면에는 최대 4글자까지 표시되며, 비워두면 표시하지 않습니다. |
 | **채팅창 폰트 크기** | 콩고물 톡 메시지의 글씨 크기를 조절합니다. |
