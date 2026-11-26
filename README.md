@@ -8,7 +8,7 @@ The character card, persona, and selected RP context can inform the conversation
 ## 📸 Screenshots
 
 <p align="center">
-  <a href="assets/readme/konggomul-chat.jpeg"><img src="assets/readme/konggomul-chat.jpeg" alt="Konggomul Talk chat panel and theme selection" width="540" /></a>
+  <a href="assets/readme/guides/preview.webp"><img src="assets/readme/guides/preview.webp" alt="콩고물 톡 / Konggomul Talk" width="640" /></a>
 </p>
 
 ## 📥 Installation and First Steps
@@ -34,7 +34,7 @@ The character card, persona, and selected RP context can inform the conversation
 ## 🏠 Home: New Chats and Saved Rooms
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-home-current.webp"><img src="assets/readme/screenshots/kong-home-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/home.webp"><img src="assets/readme/guides/home.webp" alt="홈과 대화 목록 / Home and saved rooms" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
@@ -115,7 +115,7 @@ Existing rooms remain stored separately for each main RP character. Guest Talk r
 ## 🗂️ Conversation Modes
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-modes-current.webp"><img src="assets/readme/screenshots/kong-modes-current.webp" alt="Current UI (test environment, sample data)" width="540" /></a>
+  <a href="assets/readme/guides/modes.webp"><img src="assets/readme/guides/modes.webp" alt="대화 모드 / Conversation modes" width="640" /></a>
   <br /><sub>Current UI · sample data in a test environment</sub>
 </p>
 
@@ -165,7 +165,7 @@ When a new room is created, its opening is prepared for the selected mode.
 Right-click or long-press a message to open its menu.
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-message-menu-current.webp"><img src="assets/readme/screenshots/kong-message-menu-current.webp" alt="Current UI (test environment, sample data)" width="540" /></a>
+  <a href="assets/readme/guides/message.webp"><img src="assets/readme/guides/message.webp" alt="메시지 메뉴 / Message actions" width="640" /></a>
   <br /><sub>Current UI · sample data in a test environment</sub>
 </p>
 
@@ -188,7 +188,7 @@ After a response has multiple variants, use the `‹` and `›` arrows beneath i
 Want to ask someone else about your current RP, or just have a private chat with a favorite character? Guest Talk invites another installed character into a separate one-on-one room, without adding messages to the main RP.
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-guest-current.webp"><img src="assets/readme/screenshots/kong-guest-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/guest.webp"><img src="assets/readme/guides/guest.webp" alt="게스트톡 / Guest Talk" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
@@ -210,7 +210,7 @@ Want to ask someone else about your current RP, or just have a private chat with
 Gather two or more installed characters in one room, whether it is a friend group, a team, or a wonderfully chaotic cast chat. Characters can react to you and each other in their own voices. The main RP stays separate.
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-group-current.webp"><img src="assets/readme/screenshots/kong-group-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/group.webp"><img src="assets/readme/guides/group.webp" alt="그룹톡 / Group Talk" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
@@ -303,7 +303,7 @@ The character card, user/persona information, the current room's previous conver
 ## 🎨 Themes
 
 <p align="center">
-  <a href="assets/readme/konggomul-themes.jpeg"><img src="assets/readme/konggomul-themes.jpeg" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="540" /></a>
+  <a href="assets/readme/guides/themes.webp"><img src="assets/readme/guides/themes.webp" alt="테마 / Themes" width="640" /></a>
 </p>
 
 | Theme | Style |
@@ -330,7 +330,7 @@ Changing the theme updates the panel, send button, collapsed button, and startin
 Normal rooms are stored per character in server-side JSON files; Guest Talk and Group Talk use separate shared stores. Original migration backups are retained for recovery.
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-cleanup-current.webp"><img src="assets/readme/screenshots/kong-cleanup-current.webp" alt="Current UI (test environment, sample data)" width="540" /></a>
+  <a href="assets/readme/guides/cleanup.webp"><img src="assets/readme/guides/cleanup.webp" alt="대화 데이터 정리 / Conversation data cleanup" width="640" /></a>
   <br /><sub>Current UI · sample data in a test environment</sub>
 </p>
 
@@ -363,7 +363,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 📸 화면
 
 <p align="center">
-  <a href="assets/readme/konggomul-chat.jpeg"><img src="assets/readme/konggomul-chat.jpeg" alt="콩고물 톡 대화 화면과 테마 설정 예시" width="540" /></a>
+  <a href="assets/readme/guides/preview.webp"><img src="assets/readme/guides/preview.webp" alt="콩고물 톡 / Konggomul Talk" width="640" /></a>
 </p>
 
 ## 📥 설치 및 처음 사용하기
@@ -389,7 +389,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🏠 홈: 새로운 대화와 대화 목록
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-home-current.webp"><img src="assets/readme/screenshots/kong-home-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/home.webp"><img src="assets/readme/guides/home.webp" alt="홈과 대화 목록 / Home and saved rooms" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
@@ -470,7 +470,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🗂️ 대화 모드
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-modes-current.webp"><img src="assets/readme/screenshots/kong-modes-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/modes.webp"><img src="assets/readme/guides/modes.webp" alt="대화 모드 / Conversation modes" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
@@ -520,7 +520,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 메시지를 우클릭하거나 길게 누르면 메뉴가 열립니다.
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-message-menu-current.webp"><img src="assets/readme/screenshots/kong-message-menu-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/message.webp"><img src="assets/readme/guides/message.webp" alt="메시지 메뉴 / Message actions" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
@@ -543,7 +543,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 지금 RP에서 벌어진 일을 다른 캐릭터에게 상담하거나, 좋아하는 캐릭터를 따로 불러 잡담하고 싶을 때 사용해 보세요. 설치된 다른 캐릭터와 메인 RP에 섞이지 않는 1:1 대화를 할 수 있습니다.
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-guest-current.webp"><img src="assets/readme/screenshots/kong-guest-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/guest.webp"><img src="assets/readme/guides/guest.webp" alt="게스트톡 / Guest Talk" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
@@ -565,7 +565,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 좋아하는 캐릭터들을 친구방, 팀방, 가족방처럼 한곳에 모아 보세요. 각자 성격과 말투를 유지하며 사용자뿐 아니라 다른 캐릭터의 발언에도 자연스럽게 반응할 수 있습니다. 메인 RP와는 별개의 대화입니다.
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-group-current.webp"><img src="assets/readme/screenshots/kong-group-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/group.webp"><img src="assets/readme/guides/group.webp" alt="그룹톡 / Group Talk" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
@@ -658,7 +658,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 ## 🎨 테마
 
 <p align="center">
-  <a href="assets/readme/konggomul-themes.jpeg"><img src="assets/readme/konggomul-themes.jpeg" alt="Konggomul Talk theme palettes compared using the colors in the current CSS / 현재 CSS의 콩고물 톡 테마별 색상 비교" width="540" /></a>
+  <a href="assets/readme/guides/themes.webp"><img src="assets/readme/guides/themes.webp" alt="테마 / Themes" width="640" /></a>
 </p>
 
 | 테마 | 특징 |
@@ -685,7 +685,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 일반 콩톡은 캐릭터별 JSON 파일에, 게스트톡·그룹톡은 각각 별도의 공통 파일에 대화가 저장됩니다. 기존 기록을 옮길 때 복구 백업을 보존합니다.
 
 <p align="center">
-  <a href="assets/readme/screenshots/kong-cleanup-current.webp"><img src="assets/readme/screenshots/kong-cleanup-current.webp" alt="현재 버전 화면 (테스트 환경·예시 데이터)" width="540" /></a>
+  <a href="assets/readme/guides/cleanup.webp"><img src="assets/readme/guides/cleanup.webp" alt="대화 데이터 정리 / Conversation data cleanup" width="640" /></a>
   <br /><sub>현재 버전 UI · 테스트 환경의 예시 데이터</sub>
 </p>
 
