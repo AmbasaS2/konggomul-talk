@@ -6144,8 +6144,8 @@ function renderSettings() {
         </div>
       </div>
       <div class="tua-global-debug-box">
-        <button type="button" id="tua-reset-character-rooms" class="menu_button tua-debug-settings-button">🗑️ <span>${uiHtml('settings.cleanup')}</span></button>
-        <button type="button" id="tua-show-debug" class="menu_button tua-debug-settings-button">🐞 <span>${uiHtml('settings.debug')}</span></button>
+        <button type="button" id="tua-reset-character-rooms" class="menu_button tua-debug-settings-button"><i class="fa-solid fa-broom" aria-hidden="true"></i> <span>${uiHtml('settings.cleanup')}</span></button>
+        <button type="button" id="tua-show-debug" class="menu_button tua-debug-settings-button"><i class="fa-solid fa-spider" aria-hidden="true"></i> <span>${uiHtml('settings.debug')}</span></button>
         <div id="tua-debug-panel" class="tua-settings-debug-panel" style="display:none;">
           <div class="tua-debug-actions">
             <button type="button" id="tua-copy-debug" class="menu_button">${uiHtml('settings.copyLog')}</button>
