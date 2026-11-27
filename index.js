@@ -6343,15 +6343,14 @@ function isPanelViewportConstrained() {
 }
 
 function schedulePanelViewportRepair() {
-  if (panelViewportRepairRaf) cancelAnimationFrame(panelViewportRepairRaf);
+  // A closed panel is sized/positioned when it is next shown. Keep the
+  // minimized floating button clamped, but don't repaint themes on resize.
+  if (!panelEl?.classList.contains('tua-visible') || panelViewportRepairRaf !== null) return;
   panelViewportRepairRaf = requestAnimationFrame(() => {
     panelViewportRepairRaf = null;
-    if (!panelEl) return;
-    applyVisualSettings();
-    requestAnimationFrame(() => {
-      if (!panelEl || !panelEl.classList.contains('tua-visible')) return;
-      applyPanelPosition();
-    });
+    if (!panelEl?.classList.contains('tua-visible')) return;
+    applyViewportPanelSize();
+    applyPanelPosition();
   });
 }
 
@@ -6439,13 +6438,23 @@ function applyThemeUI() {
   }
 }
 
+function applyViewportPanelSize() {
+  const s = getSettings();
+  const visualSize = getViewportSafePanelSize(s.panelWidth, s.panelHeight);
+  const style = document.documentElement.style;
+  for (const [key, value] of [
+    ['--tua-panel-width', `${visualSize.width}px`],
+    ['--tua-panel-height', `${visualSize.height}px`],
+  ]) {
+    if (style.getPropertyValue(key) !== value) style.setProperty(key, value);
+  }
+}
+
 function applyVisualSettings() {
   const s = getSettings();
   document.documentElement.style.setProperty('--tua-font-size', `${s.fontSize}px`);
   document.documentElement.style.setProperty('--tua-speaker-avatar-size', `${s.speakerAvatarSize}px`);
-  const visualSize = getViewportSafePanelSize(s.panelWidth, s.panelHeight);
-  document.documentElement.style.setProperty('--tua-panel-width', `${visualSize.width}px`);
-  document.documentElement.style.setProperty('--tua-panel-height', `${visualSize.height}px`);
+  applyViewportPanelSize();
   if (panelEl) {
     panelEl.classList.toggle('tua-collapsed', !!s.collapsed);
     panelEl.classList.toggle('tua-fixed-scrollbar', s.fixedScrollbar !== false);
@@ -6661,13 +6670,19 @@ function scrollMessagesToBottom() {
   if (!el) return;
   const owner = el.dataset.renderRoom;
   if (getRoomMode() === 'groupTalk') { el.scrollTop = el.scrollHeight || 0; return; }
+  // Multiple render callers in the same frame share one trailing scroll.
+  // A stale request must never move a newly opened room.
+  if (el._tuaScrollRequest?.owner === owner) return;
+  const request = { owner };
+  el._tuaScrollRequest = request;
   const run = () => {
+    if (el._tuaScrollRequest !== request) return;
+    el._tuaScrollRequest = null;
     if (canRenderMessages() && el.isConnected && el.dataset.renderRoom === owner) el.scrollTop = el.scrollHeight || 0;
   };
-  run();
+  el.scrollTop = el.scrollHeight || 0;
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
-  setTimeout(run, 30);
-  setTimeout(run, 120);
+  else run();
 }
 
 function renderMessages({ updateLists = true } = {}) {
@@ -6690,7 +6705,7 @@ function renderMessages({ updateLists = true } = {}) {
     });
     if (changed) {
       hideContextMenu();
-      box.scrollTop = box.scrollHeight || 0;
+      scrollMessagesToBottom();
     }
   }
   if (updateLists) renderRoomList();
