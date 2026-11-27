@@ -13,7 +13,7 @@ The character card, persona, and selected RP context can inform the conversation
 
 ## 📥 Installation and First Steps
 
-**Current version: 5.5.8.**
+**Current version: 5.5.9.**
 
 1. In SillyTavern, open **Extensions → Install extension** (sometimes under extension management).
 2. Paste `https://github.com/AmbasaS2/konggomul-talk`, install, and reload the page.
@@ -368,7 +368,7 @@ The panel position and size, theme, character voice note, coworker work note, re
 
 ## 📥 설치 및 처음 사용하기
 
-**현재 버전: 5.5.8.**
+**현재 버전: 5.5.9.**
 
 1. SillyTavern의 **확장 프로그램 → 확장 설치** 메뉴를 엽니다. 버전에 따라 확장 관리 메뉴 안에 있을 수 있습니다.
 2. `https://github.com/AmbasaS2/konggomul-talk`을 붙여넣어 설치하고 새로고침합니다.

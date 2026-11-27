@@ -5,14 +5,14 @@ import { ROOM_INDEX_FORMAT, readRoomIndex, writeRoomIndex, readRoomSnapshot, wri
 import { countRoomData } from './room-reset.js';
 
 /*
- * 🐕 콩고물 톡 v5.5.8
+ * 🐕 콩고물 톡 v5.5.9
  * Separate in-character companion conversation for SillyTavern.
  * - Main RP chat is read as context, but assistant messages are NOT auto-injected into it.
  * - Enabled static Chat Completion preset instructions are optional; RP markers and context are rebuilt separately.
  */
 
 const MODULE_NAME = 'title_undecided_assistant';
-const EXTENSION_VERSION = '5.5.8';
+const EXTENSION_VERSION = '5.5.9';
 const DELETION_MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const GUEST_ROOM_STORE_KEY = '__konggomul_guest_ooc__';
 const GROUP_ROOM_STORE_KEY = '__konggomul_group_talk__';
