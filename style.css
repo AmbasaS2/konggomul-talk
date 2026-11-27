@@ -367,30 +367,6 @@
   line-height: 1.45;
 }
 
-#tua-chatbar-launcher {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-height: 28px;
-  padding: 5px 10px;
-  margin: 4px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(130, 89, 35, .28);
-  background: #fff7dd;
-  color: #2a1c0d;
-  font-size: 12px;
-  font-weight: 700;
-  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset;
-  cursor: pointer;
-}
-#tua-chatbar-launcher:hover { background: #f7dfaa; }
-#tua-chatbar-launcher.tua-floating-launcher {
-  position: fixed;
-  right: 18px;
-  bottom: 82px;
-  z-index: 10000;
-}
 
 /* v2.1: keep default/settings-controlled panel size. */
 .tua-title { font-size: calc(var(--tua-font-size) + 1px); }
@@ -492,39 +468,6 @@
   box-sizing: border-box !important;
 }
 
-/* v1.8: keep launcher out of the extension list; if an old cached launcher remains there, make it look like a normal menu row instead of a loud pill. */
-#extensionsMenu #tua-chatbar-launcher,
-#extensions_menu #tua-chatbar-launcher,
-.extensionsMenu #tua-chatbar-launcher,
-.extensions_menu #tua-chatbar-launcher,
-#extensions_list #tua-chatbar-launcher,
-.extensions_list #tua-chatbar-launcher {
-  all: unset !important;
-  box-sizing: border-box !important;
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  min-height: 28px !important;
-  padding: 3px 8px !important;
-  margin: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: inherit !important;
-  font: inherit !important;
-  line-height: 1.25 !important;
-  cursor: pointer !important;
-  box-shadow: none !important;
-  text-align: left !important;
-}
-#extensionsMenu #tua-chatbar-launcher:hover,
-#extensions_menu #tua-chatbar-launcher:hover,
-.extensionsMenu #tua-chatbar-launcher:hover,
-.extensions_menu #tua-chatbar-launcher:hover,
-#extensions_list #tua-chatbar-launcher:hover,
-.extensions_list #tua-chatbar-launcher:hover {
-  background: rgba(128, 128, 128, .12) !important;
-}
 
 
 /* v2.0: hide legacy launchers; the current menu entry uses SillyTavern native row styling */
@@ -602,9 +545,6 @@
   cursor: grab;
   user-select: none;
   touch-action: none;
-}
-#tua-panel.tua-dragging .tua-header {
-  cursor: grabbing;
 }
 #tua-panel.tua-dragging {
   user-select: none;
@@ -703,7 +643,6 @@ body.tua-panel-dragging-body { user-select: none !important; }
 /* v3.9.1: compact rounded-rectangle UI refinements */
 #tua-panel button,
 #tua-context-menu button,
-#tua-chatbar-launcher,
 .tua-danger-light {
   border-radius: 9px !important;
 }
@@ -829,9 +768,6 @@ body.tua-panel-dragging-body { user-select: none !important; }
 body.tua-panel-resizing-body {
   user-select: none !important;
 }
-#tua-panel.tua-collapsed #tua-resize-handle {
-  display: none !important;
-}
 .tua-checkbox-row {
   flex-direction: row !important;
   align-items: center !important;
@@ -888,10 +824,6 @@ body.tua-panel-resizing-body {
 }
 #tua-collapsed-button:hover {
   background: rgba(247, 223, 170, .45) !important;
-}
-#tua-collapsed-button .tua-collapsed-emoji {
-  opacity: 1 !important;
-  filter: none !important;
 }
 
 /* v4.0.3 UI polish */
@@ -1059,16 +991,9 @@ body.tua-panel-resizing-body {
     radial-gradient(circle at 12% 10%, rgba(255,255,255,.70) 0 11%, transparent 12%),
     linear-gradient(135deg, var(--tua-header-a), var(--tua-header-b) 48%, var(--tua-header-c)) !important;
 }
-#tua-panel .tua-messages {
-  background: var(--tua-bg) !important;
-}
 #tua-collapsed-button {
   background: var(--tua-collapsed-bg) !important;
   background-color: var(--tua-collapsed-bg) !important;
-}
-#tua-collapsed-button:hover {
-  background: var(--tua-collapsed-bg-hover) !important;
-  background-color: var(--tua-collapsed-bg-hover) !important;
 }
 
 .tua-theme-picker {
@@ -1287,7 +1212,6 @@ body.tua-panel-resizing-body {
   border-color: color-mix(in srgb, var(--tua-line) 70%, transparent) !important;
   box-shadow: 0 1px 0 rgba(255,255,255,.22) inset !important;
 }
-#tua-panel .tua-room-item { background: var(--tua-room-item-bg) !important; }
 #tua-panel .tua-room-item.active,
 #tua-panel .tua-theme-buttons button.active {
   background: var(--tua-room-active-bg) !important;
@@ -1912,11 +1836,6 @@ body.tua-panel-resizing-body {
 
 
 /* v4.1.3: debug dump button lives in SillyTavern extension settings, not the floating chat panel */
-.tua-settings-mini .tua-global-debug-box {
-  margin-top: 10px;
-  display: grid;
-  gap: 6px;
-}
 
 .tua-settings-mini #tua-debug-output {
   width: 100%;
@@ -2060,18 +1979,6 @@ body.tua-panel-resizing-body {
 }
 
 /* v4.3.1: final corner clipping + smaller theme resize handle */
-#tua-panel:not(.tua-collapsed) {
-  resize: none !important;
-  overflow: hidden !important;
-  border-radius: 20px !important;
-  background: transparent !important;
-  background-color: transparent !important;
-}
-#tua-panel:not(.tua-collapsed) .tua-window {
-  border-radius: 20px !important;
-  overflow: hidden !important;
-  background-clip: padding-box !important;
-}
 #tua-panel .tua-input-row {
   padding-right: 32px !important;
   overflow: hidden !important;
@@ -2104,42 +2011,11 @@ body.tua-panel-resizing-body {
 
 
 /* v4.3.2: restore input/send alignment + clean 3-line resize grip */
-#tua-panel:not(.tua-collapsed) {
-  resize: none !important;
-  overflow: hidden !important;
-  border-radius: 20px !important;
-  background: transparent !important;
-  background-color: transparent !important;
-}
 #tua-panel:not(.tua-collapsed) .tua-window {
   position: relative !important;
   border-radius: 20px !important;
   overflow: hidden !important;
   background-clip: padding-box !important;
-}
-#tua-panel .tua-input-row {
-  display: flex !important;
-  align-items: center !important;
-  gap: 7px !important;
-  padding: 9px 10px 10px 10px !important;
-  padding-right: 10px !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-#tua-panel #tua-input {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  width: auto !important;
-  resize: none !important;
-}
-#tua-panel #tua-send {
-  flex: 0 0 32px !important;
-  width: 32px !important;
-  min-width: 32px !important;
-  max-width: 32px !important;
-  height: 32px !important;
-  margin: 0 !important;
-  transform: none !important;
 }
 #tua-resize-handle {
   position: absolute !important;
@@ -2174,9 +2050,6 @@ body.tua-panel-resizing-body {
   opacity: .95 !important;
   background: transparent !important;
   background-color: transparent !important;
-}
-#tua-panel.tua-collapsed #tua-resize-handle {
-  display: none !important;
 }
 
 /* v4.3.4: clean single-color resize grip + no input-button displacement */
@@ -2253,15 +2126,8 @@ body.tua-panel-resizing-body {
   background: transparent !important;
   background-color: transparent !important;
 }
-#tua-panel.tua-collapsed #tua-resize-handle {
-  display: none !important;
-}
 
 /* v4.3.6: longer, thinner, uniform resize grip */
-#tua-panel:not(.tua-collapsed) {
-  resize: none !important;
-  overflow: hidden !important;
-}
 #tua-panel .tua-input-row {
   padding-right: 10px !important;
 }
@@ -2298,27 +2164,13 @@ body.tua-panel-resizing-body {
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M19 5 L5 19 M19 10 L10 19 M19 15 L15 19' stroke='black' stroke-width='.85' stroke-linecap='round'/%3E%3C/svg%3E") center / 18px 18px no-repeat !important;
   clip-path: none !important;
 }
-#tua-resize-handle::after {
-  content: none !important;
-  display: none !important;
-}
 #tua-resize-handle:hover {
   opacity: .75 !important;
   background: transparent !important;
   background-color: transparent !important;
 }
-#tua-panel.tua-collapsed #tua-resize-handle {
-  display: none !important;
-}
 
 /* v4.3.8: minimal two-line resize grip */
-#tua-panel:not(.tua-collapsed) {
-  resize: none !important;
-  overflow: hidden !important;
-}
-#tua-panel .tua-input-row {
-  padding-right: 8px !important;
-}
 #tua-resize-handle {
   position: absolute !important;
   right: 7px !important;
@@ -2352,17 +2204,10 @@ body.tua-panel-resizing-body {
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath d='M17 5 L5 17 M17 10 L10 17' stroke='black' stroke-width='.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 18px 18px no-repeat !important;
   clip-path: none !important;
 }
-#tua-resize-handle::after {
-  content: none !important;
-  display: none !important;
-}
 #tua-resize-handle:hover {
   opacity: .68 !important;
   background: transparent !important;
   background-color: transparent !important;
-}
-#tua-panel.tua-collapsed #tua-resize-handle {
-  display: none !important;
 }
 
 
@@ -2431,10 +2276,6 @@ body.tua-panel-resizing-body {
 #tua-panel .tua-messages {
   min-height: 0 !important;
 }
-#tua-chatbar-launcher.tua-floating-launcher {
-  bottom: 82px !important;
-  z-index: 10000 !important;
-}
 
 
 /* Let the chat panel sit flush with viewport edges instead of floating with a forced gap */
@@ -2453,9 +2294,6 @@ body.tua-panel-resizing-body {
 
 /* Align panel and floating launcher stacking level */
 #tua-panel {
-  z-index: 10000 !important;
-}
-#tua-chatbar-launcher.tua-floating-launcher {
   z-index: 10000 !important;
 }
 
