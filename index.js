@@ -6433,8 +6433,9 @@ function applyThemeUI() {
   }
   const entryIcon = document.querySelector('#tua-extension-menu-entry .tua-extension-menu-icon');
   if (entryIcon) {
-    entryIcon.textContent = theme.menuIcon;
-    entryIcon.style.display = theme.menuIcon ? '' : 'none';
+    if (entryIcon.textContent !== theme.menuIcon) entryIcon.textContent = theme.menuIcon;
+    const display = theme.menuIcon ? '' : 'none';
+    if (entryIcon.style.display !== display) entryIcon.style.display = display;
   }
 }
 
